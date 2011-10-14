@@ -6,8 +6,10 @@ import time, sys, os
 if sys.platform.startswith('linux'):
     def _get_memory(pid):
         try:
-            with open('/proc/%s/statm' % pid) as f:
-                return int(f.read().split(' ')[1])
+            f = open('/proc/%s/statm' % pid)
+            res = int(f.read().split(' ')[1])
+            f.close()
+            return res
         except IOError:
             return 0
 else:
