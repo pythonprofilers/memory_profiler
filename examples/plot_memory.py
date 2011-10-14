@@ -15,8 +15,28 @@ mm1.resize(mm2.shape)
 
 import pylab as pl
 x = np.linspace(0, np.max(mm1), len(mm1))
-pl.plot(x, mm1, x, mm2, '+', color='black')
-pl.fill_between(x, mm1, alpha=0.2, dashes='dotted', linewidth=.1, label='with qr_multiply')
-pl.fill_between(x, mm2, alpha=0.2, color='yellow', label='naive computation')
+pl.plot(x, mm1, 'red', label='naive computation')
+pl.plot(x, mm2, 'green', label='using qr_multiply')
+#pl.plot(x, mm2, color='black', alpha=.8)
+#pl.plot(x, mm1, color='black', alpha=.8)
+p = pl.fill_between(x, mm1)
+p.set_facecolors('none')
+ax = pl.axes()
+from matplotlib.patches import PathPatch
+for path in p.get_paths():
+    p1 = PathPatch(path, color='green', fc="none", hatch="//")
+    ax.add_patch(p1)
+    p1.set_zorder(p.get_zorder() - 0.1)
+
+p = pl.fill_between(x, mm2)
+p.set_facecolors('none')
+ax = pl.axes()
+from matplotlib.patches import PathPatch
+for path in p.get_paths():
+    p1 = PathPatch(path, color='red', fc="none", hatch="/")
+    ax.add_patch(p1)
+    p1.set_zorder(p.get_zorder() - .1)
 pl.legend()
+pl.xlabel('time')
+pl.ylabel('Memory consumption (in MB)')
 pl.show()
