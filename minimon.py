@@ -19,7 +19,7 @@ else:
 
 def memory(proc= -1, num= -1, interval=.1, locals={}):
     """
-    Return the memory usage of a process of piece of code
+    Return the memory usage of a process or piece of code
     
     Parameters
     ----------
