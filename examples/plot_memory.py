@@ -9,8 +9,8 @@ X = np.random.randn(1000, 1000)
 y = np.random.randn(1000)
 mm = memory("linalg.qr_multiply(X, y)", interval=.01, locals=locals())
 mm2 = memory("R, Q = linalg.qr(X);np.dot(Q.T, y)", interval=.01, locals=locals())
-mm1 = (np.array(mm) * 4.) / 1024
-mm2 = (np.array(mm2) * 4.) / 1024
+mm1 = np.array(mm)
+mm2 = np.array(mm2)
 mm1.resize(mm2.shape)
 
 import pylab as pl
