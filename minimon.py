@@ -56,7 +56,7 @@ def memory(proc= -1, num= -1, interval=.1, locals={}):
         from multiprocessing import Process
         def f(x, locals):
             # function interface for exec
-            exec x in globals(), locals
+            exec(x, locals)
 
         p = Process(target=f, args=(proc, locals))
         p.start()
@@ -94,6 +94,16 @@ def find_script(script_name):
     print >> sys.stderr, 'Could not find script %s' % script_name
     raise SystemExit(1)
 
+def label(code):
+    """ Return a (filename, first_lineno, func_name) tuple for a given code
+    object.
+
+    This is the same labelling as used by the cProfile module in Python 2.5.
+    """
+    if isinstance(code, str):
+        return ('~', 0, code)    # built-in functions ('~' sorts at the end)
+    else:
+        return (code.co_filename, code.co_firstlineno, code.co_name)
 
 class LineProfiler:
     """ A profiler that records the amount of memory for each line """
@@ -153,17 +163,21 @@ class LineProfiler:
             if self.enable_count == 0:
                 self.disable()
 
-    def memory_usage(self, frame, event, arg):
+    def trace_memory_usage(self, frame, event, arg):
         if event == 'line':
-            lineno = frame.f_lineno
-            filename = frame.f_globals["__file__"]
-            if filename == "<stdin>":
-                filename = "traceit.py"
-            if (filename.endswith(".pyc") or
-                filename.endswith(".pyo")):
-                filename = filename[:-1]
-            line = linecache.getline(filename, lineno)
-            print "%s MB %s" % (memory(), line.rstrip())
+            if frame.f_code in self.code_map:
+                filename = frame.f_globals['__file__']
+                if filename == "<stdin>":
+                    # FIXME ?
+                    filename = "traceit.py"
+                if (filename.endswith(".pyc") or
+                    filename.endswith(".pyo")):
+                    filename = filename[:-1]
+                entry = self.code_map[frame.f_code].setdefault(frame.f_lineno, [])
+                entry.append(memory())
+
+        # why this is needed, I don't know
+        return self.trace_memory_usage
 
     def __enter__(self):
         self.enable_by_count()
@@ -172,11 +186,20 @@ class LineProfiler:
         self.disable_by_count()
 
     def enable(self):
-        sys.settrace(self.memory_usage)
+        sys.settrace(self.trace_memory_usage)
 
     def disable(self):
         self.last_time = {}
         sys.settrace(None)
+
+def show_results(prof):
+    print "Memory usage\t  Code"
+    for code in prof.code_map:
+        lines = prof.code_map[code]
+        for l in sorted(lines.keys()):
+            mem = str(max(lines[l]))
+            line = linecache.getline(code.co_filename, l)
+            print "%s MB %s" % (mem, (' ' * (10 - len(mem)) + line.rstrip()))
 
 if __name__ == '__main__':
     prof = LineProfiler()
@@ -184,3 +207,4 @@ if __name__ == '__main__':
     __builtin__.__dict__['profile'] = prof
     __file__ = find_script(sys.argv[1])
     execfile(__file__, locals(), locals())
+    show_results(prof)
