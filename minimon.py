@@ -1,5 +1,9 @@
 """Get process information"""
 
+__version__ = '0.1-git'
+
+_CMD_USAGE = "python -m minimon script_file.py"
+
 import time, sys, os
 import linecache
 
@@ -174,7 +178,7 @@ class LineProfiler:
                     filename.endswith(".pyo")):
                     filename = filename[:-1]
                 entry = self.code_map[frame.f_code].setdefault(frame.f_lineno, [])
-                entry.append(memory())
+                entry.append(_get_memory(os.getpid()))
 
         # why this is needed, I don't know
         return self.trace_memory_usage
@@ -192,8 +196,10 @@ class LineProfiler:
         self.last_time = {}
         sys.settrace(None)
 
-def show_results(prof):
-    print "Memory usage\t  Code"
+def show_results(prof, stream=None):
+    if stream is None:
+        stream = sys.stdout
+
     for code in prof.code_map:
         lines = prof.code_map[code]
         for l in sorted(lines.keys()):
@@ -202,9 +208,30 @@ def show_results(prof):
             print "%s MB %s" % (mem, (' ' * (10 - len(mem)) + line.rstrip()))
 
 if __name__ == '__main__':
-    prof = LineProfiler()
-    import __builtin__
-    __builtin__.__dict__['profile'] = prof
-    __file__ = find_script(sys.argv[1])
-    execfile(__file__, locals(), locals())
-    show_results(prof)
+    from optparse import OptionParser
+    parser = OptionParser(usage=_CMD_USAGE)
+    parser.add_option('-o', '--outfile', dest='outfile',
+        help='Save stats to <outfile>', default=None)
+    parser.add_option('-v', '--visualize', action='store_true',
+        dest='visualize', help='Visualize result at exit',
+        default=False)
+    parser.add_option('-l', '--line', action='store_true',
+        dest='line', help='Do line-by-line timings',
+        default=False)
+
+
+    if not sys.argv[1:] or sys.argv[1] in ("--help", "-h"):
+        parser.print_help()
+        sys.exit(2)
+
+    (options, args) = parser.parse_args()
+    sys.argv[:] = args
+
+    if options.line:
+        prof = LineProfiler()
+        import __builtin__
+        __builtin__.__dict__['monitor'] = prof
+        __file__ = find_script(args[0])
+        execfile(__file__, locals(), locals())
+        if options.visualize:
+            show_results(prof)
