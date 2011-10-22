@@ -12,7 +12,7 @@ if sys.platform.startswith('linux'):
     def _get_memory(pid):
         try:
             f = open('/proc/%s/statm' % pid)
-            res = (int(f.read().split(' ')[1]) * 4) / 1024
+            res = (int(f.read().split(' ')[1]) * 4.) / 1024
             f.close()
             return res
         except IOError:
@@ -203,9 +203,9 @@ def show_results(prof, stream=None):
     for code in prof.code_map:
         lines = prof.code_map[code]
         for l in sorted(lines.keys()):
-            mem = str(max(lines[l]))
+            mem = max(lines[l])
             line = linecache.getline(code.co_filename, l)
-            print "%s MB %s" % (mem, (' ' * (10 - len(mem)) + line.rstrip()))
+            print "%5.1f MB %s" % (mem, (' ' * 10) + line.rstrip())
 
 if __name__ == '__main__':
     from optparse import OptionParser
