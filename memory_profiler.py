@@ -2,7 +2,7 @@
 
 __version__ = '0.1-git'
 
-_CMD_USAGE = "python -m minimon script_file.py"
+_CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os
 import linecache
@@ -22,7 +22,7 @@ else:
     # .. better to be safe than sorry ..
     raise NotImplementedError
 
-def memory(proc= -1, num= -1, interval=.1, locals={}):
+def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
     """
     Return the memory usage of a process or piece of code
 

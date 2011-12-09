@@ -1,7 +1,5 @@
 Some utilities to monitor process memory usage
 
-Do not use it. It's work in progress.
-
 
 Frequently Asked Questions
 --------------------------
