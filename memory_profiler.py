@@ -237,7 +237,7 @@ if __name__ == '__main__':
     if options.line:
         prof = LineProfiler()
         import __builtin__
-        __builtin__.__dict__['monitor'] = prof
+        __builtin__.__dict__['profile'] = prof
         __file__ = find_script(args[0])
         execfile(__file__, locals(), locals())
         if options.visualize:
