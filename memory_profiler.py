@@ -28,10 +28,11 @@ def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
 
     Parameters
     ----------
-    proc : {int, string}
+    proc : {int, string, tuple}
         The process to monitor. Can be given by a PID or by a string
-        containing a filename or the code to be executed. Set to -1
-        (default)for current process.
+        containing a filename. A tuple containing (f, args, kwargs) specifies
+        to run the function f(*args, **kwargs). Set to -1 (default)for 
+        current process.
 
     interval : int, optional
 
@@ -51,18 +52,23 @@ def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
     """
     ret = []
 
-    if isinstance(proc, str):
-        if proc.endswith('.py'):
-            f = open('proc', 'r')
-            proc = f.read()
-            f.close()
-            # TODO: make sure script's directory is on sys.path
-        from multiprocessing import Process
-        def f(x, locals):
+    if str(proc).endswith('.py'):
+        f = open('proc', 'r')
+        proc = f.read()
+        f.close()
+        # TODO: make sure script's directory is on sys.path
+        def f_exec(x, locals):
             # function interface for exec
             exec(x, locals)
+        proc = (f_exec, (), {})
 
-        p = Process(target=f, args=(proc, locals))
+    if isinstance(proc, (list, tuple)):
+        from multiprocessing import Process
+        if len(proc) == 1:
+            proc = (proc[0], (), {})
+        elif len(proc) == 2:
+            proc = (proc[0], proc[1], {})
+        p = Process(target=proc[0], args=proc[1], kwargs=proc[2])
         p.start()
         while p.is_alive(): # FIXME: or num
             ret.append(_get_memory(p.pid))
