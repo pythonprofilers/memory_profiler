@@ -1,38 +1,18 @@
 """
 Plot memory usage of a numeric computation using numpy and scipy
 """
+import pylab as pl
 import numpy as np
-from minimon import memory
+from memory_profiler import memory_usage
 from scipy import linalg
 
 X = np.random.randn(1000, 1000)
-y = np.random.randn(1000)
-mm = memory("linalg.qr_multiply(X, y)", interval=.01, locals=locals())
-mm2 = memory("R, Q = linalg.qr(X);np.dot(Q.T, y)", interval=.01, locals=locals())
-mm1 = np.array(mm)
-mm2 = np.array(mm2)
-mm1.resize(mm2.shape)
 
-import pylab as pl
-x = np.linspace(0, np.max(mm1), len(mm1))
-p = pl.fill_between(x, mm1)
-p.set_facecolors('none')
-ax = pl.axes()
-from matplotlib.patches import PathPatch
-for path in p.get_paths():
-    p1 = PathPatch(path, color='green', fc="none", hatch="//")
-    ax.add_patch(p1)
-    p1.set_zorder(p.get_zorder() - 0.1)
+mem = memory_usage((linalg.qr, (X,)))
+x = np.linspace(0, len(mem) * .1, len(mem))
 
-p = pl.fill_between(x, mm2)
-p.set_facecolors('none')
-ax = pl.axes()
-from matplotlib.patches import PathPatch
-for path in p.get_paths():
-    p2 = PathPatch(path, color='red', fc="none", hatch="/")
-    ax.add_patch(p2)
-    p2.set_zorder(p.get_zorder() - .1)
-pl.legend([p2, p1], ["naive computation", "qr_multiply"])
+p = pl.fill_between(x, mem)
+
 pl.xlabel('time')
 pl.ylabel('Memory consumption (in MB)')
 pl.show()

@@ -6,17 +6,18 @@ _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os
 import linecache
+import subprocess
 
-if sys.platform.startswith('linux'):
-    # FIXME: kernel page size might vary between archs
+if os.name == 'posix':
     def _get_memory(pid):
+        # .. 
+        # .. memory usage in MB ..
+        out = subprocess.check_output(['ps', '-p %s' % pid, '-v']).split('\n')
         try:
-            f = open('/proc/%s/statm' % pid)
-            res = (int(f.read().split(' ')[1]) * 4.) / 1024
-            f.close()
-            return res
-        except IOError:
-            return 0
+            vsz_index = out[0].split().index('RSS')
+            return float(out[1].split()[vsz_index]) / 1024
+        except:
+            return -1
 else:
     # ..
     # .. better to be safe than sorry ..
@@ -48,12 +49,12 @@ def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
     Returns
     -------
     mm : list of integers
-        memory usage, in MB
+        memory usage, in KB
     """
     ret = []
 
     if str(proc).endswith('.py'):
-        filename = find_script(proc)
+        filename = _find_script(proc)
         f = open(filename, 'r')
         proc = f.read()
         f.close()
@@ -87,7 +88,7 @@ def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
 # ..
 # .. utility functions for line-by-line ..
 
-def find_script(script_name):
+def _find_script(script_name):
     """ Find the script.
 
     If the input is not a file, then $PATH will be searched.
@@ -106,6 +107,7 @@ def find_script(script_name):
     raise SystemExit(1)
 
 def label(code):
+    # TODO: remove
     """ Return a (filename, first_lineno, func_name) tuple for a given code
     object.
 
@@ -238,7 +240,7 @@ if __name__ == '__main__':
         prof = LineProfiler()
         import __builtin__
         __builtin__.__dict__['profile'] = prof
-        __file__ = find_script(args[0])
+        __file__ = _find_script(args[0])
         execfile(__file__, locals(), locals())
         if options.visualize:
             show_results(prof)
