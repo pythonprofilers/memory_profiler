@@ -10,7 +10,7 @@ import subprocess
 
 if os.name == 'posix':
     def _get_memory(pid):
-        # .. 
+        # ..
         # .. memory usage in MB ..
         out = subprocess.check_output(['ps', '-p %s' % pid, '-v']).split('\n')
         try:
@@ -23,7 +23,7 @@ else:
     # .. better to be safe than sorry ..
     raise NotImplementedError
 
-def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
+def memory_usage(proc= -1, num= -1, interval=.1):
     """
     Return the memory usage of a process or piece of code
 
@@ -32,7 +32,7 @@ def memory_usage(proc= -1, num= -1, interval=.1, locals={}):
     proc : {int, string, tuple}
         The process to monitor. Can be given by a PID or by a string
         containing a filename. A tuple containing (f, args, kwargs) specifies
-        to run the function f(*args, **kwargs). Set to -1 (default)for 
+        to run the function f(*args, **kwargs). Set to -1 (default)for
         current process.
 
     interval : int, optional

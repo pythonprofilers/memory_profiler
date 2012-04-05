@@ -2,7 +2,7 @@
     $ python minimon.py test.py
 """
 
-@monitor
+@profile
 def sample():
     a = 2
     a + 3
