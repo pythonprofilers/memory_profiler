@@ -39,10 +39,15 @@ in::
 
 Output will follow::
 
-    13.8 MB               a = np.zeros((100, 100))
-    13.9 MB               b = np.zeros((1000, 1000))
-    21.5 MB               c = np.zeros((10000, 1000))
-    97.8 MB               return a, b, c
+    Line #    Mem usage   Line Contents
+    ===================================
+         3
+         4                @profile
+         5     13.68 MB   def my_func():
+         6     13.77 MB       a = np.zeros((100, 100))
+         7     21.40 MB       b = np.zeros((1000, 1000))
+         8     97.70 MB       c = np.zeros((10000, 1000))
+
 
 
 Bugs & wishlist
