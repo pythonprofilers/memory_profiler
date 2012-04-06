@@ -52,9 +52,7 @@ Output will follow::
 
 Bugs & wishlist
 ---------------
-It currently prints the memory at line *before* the line has been
-executed. It would be nice to print consumption after the line has
-been executed. Maybe also print the increment in memory consumption.
+Maybe also print the increment in memory consumption.
 
 
 Development
