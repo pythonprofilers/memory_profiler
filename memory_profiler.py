@@ -224,7 +224,7 @@ def show_results(prof, stream=None):
             mem = ''
             if lines.has_key(l):
                 mem = '%5.2f MB' % max(lines.get(l))
-            line = linecache.getline(filename, l - 1)
+            line = linecache.getline(filename, l)
             stream.write(template % (l, mem, line))
 
 if __name__ == '__main__':
