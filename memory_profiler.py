@@ -5,7 +5,7 @@ __version__ = '0.1'
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os
-import linecache
+import linecache, inspect
 import subprocess
 
 if os.name == 'posix':
@@ -177,16 +177,13 @@ class LineProfiler:
                 self.disable()
 
     def trace_memory_usage(self, frame, event, arg):
-        if event == 'line':
+
+        if event in ('line', 'return'):
             if frame.f_code in self.code_map:
-                filename = frame.f_globals['__file__']
-                if filename == "<stdin>":
-                    # FIXME ?
-                    filename = "traceit.py"
-                if (filename.endswith(".pyc") or
-                    filename.endswith(".pyo")):
-                    filename = filename[:-1]
-                entry = self.code_map[frame.f_code].setdefault(frame.f_lineno, [])
+                lineno = frame.f_lineno
+                if event == 'return':
+                    lineno += 1
+                entry = self.code_map[frame.f_code].setdefault(lineno, [])
                 entry.append(_get_memory(os.getpid()))
 
         # why this is needed, I don't know
@@ -206,15 +203,29 @@ class LineProfiler:
         sys.settrace(None)
 
 def show_results(prof, stream=None):
+
     if stream is None:
         stream = sys.stdout
+    template = '%6s %12s   %-s'
+    header = template % ('Line #', 'Mem usage', 'Line Contents')
+    stream.write(header + '\n')
+    stream.write('=' * len(header) + '\n')
 
     for code in prof.code_map:
         lines = prof.code_map[code]
-        for l in sorted(lines.keys()):
-            mem = max(lines[l])
-            line = linecache.getline(code.co_filename, l)
-            print "%5.1f MB %s" % (mem, (' ' * 10) + line.rstrip())
+        filename = code.co_filename
+        if (filename.endswith(".pyc") or
+            filename.endswith(".pyo")):
+            filename = filename[:-1]
+        all_lines = linecache.getlines(filename)
+        sublines = inspect.getblock(all_lines[code.co_firstlineno-1:])
+        linenos = range(code.co_firstlineno, code.co_firstlineno + len(sublines))
+        for l in linenos:
+            mem = ''
+            if lines.has_key(l):
+                mem = '%5.2f MB' % max(lines.get(l))
+            line = linecache.getline(filename, l - 1)
+            stream.write(template % (l, mem, line))
 
 if __name__ == '__main__':
     from optparse import OptionParser

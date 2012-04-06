@@ -52,9 +52,12 @@ executed. It would be nice to print consumption after the line has
 been executed. Maybe also print the increment in memory consumption.
 
 
-Frequently Asked Questions
---------------------------
-None
+Development
+-----------
+Latest sources are available from github:
+
+    https://github.com/fabianp/memory_profiler
+
 
 Author: Fabian Pedregosa <fabian@fseoane.net>
 License: Simplified BSD
