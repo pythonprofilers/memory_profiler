@@ -12,6 +12,9 @@ if os.name == 'posix':
     def _get_memory(pid):
         # ..
         # .. memory usage in MB ..
+        # .. this should work on both Mac and Linux ..
+        # .. subprocess.check_output appeared in 2.7, using Popen ..
+        # .. for backwards compatibility ..
         out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
               stdout=subprocess.PIPE).communicate()[0].split('\n')
         try:
