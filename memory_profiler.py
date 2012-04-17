@@ -12,7 +12,8 @@ if os.name == 'posix':
     def _get_memory(pid):
         # ..
         # .. memory usage in MB ..
-        out = subprocess.check_output(['ps', '-p %s' % pid, '-v']).split('\n')
+        out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
+              stdout=subprocess.PIPE).communicate()[0].split('\n')
         try:
             vsz_index = out[0].split().index('RSS')
             return float(out[1].split()[vsz_index]) / 1024
