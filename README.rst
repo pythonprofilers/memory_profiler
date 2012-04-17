@@ -9,7 +9,7 @@ Installation
 ------------
 To install through easy_install or pip::
 
-    $ easy_install -U line_profiler # pip install -U line_profiler
+    $ easy_install -U memory_profiler # pip install -U memory_profiler
 
 To install from source, download the package, extract and type::
 
@@ -35,7 +35,7 @@ then execute the code passing the option "-m memory_profiler" to the
 python interpreter. If the file name was example.py, this would result
 in::
 
-    $ python -m line_profiler example.py
+    $ python -m memory_profiler example.py
 
 Output will follow::
 
