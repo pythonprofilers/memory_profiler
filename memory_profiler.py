@@ -174,8 +174,8 @@ class LineProfiler:
         if event in ('line', 'return'):
             if frame.f_code in self.code_map:
                 lineno = frame.f_lineno
-                if event == 'line':
-                    lineno -= 1
+                if event == 'return':
+                    lineno += 1
                 entry = self.code_map[frame.f_code].setdefault(lineno, [])
                 entry.append(_get_memory(os.getpid()))
 
@@ -213,10 +213,20 @@ def show_results(prof, stream=None):
         all_lines = linecache.getlines(filename)
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno-1:])
         linenos = range(code.co_firstlineno, code.co_firstlineno + len(sub_lines))
+        lines_normalized = {}
+
+        # we are gong go move everything one frame up
+        keys = lines.keys()
+        keys.sort()
+        lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
+        while len(keys) > 1:
+            v = keys.pop(0)
+            lines_normalized[v] = lines[keys[0]]
+
         for l in linenos:
             mem = ''
-            if lines.has_key(l):
-                mem = '%5.2f MB' % max(lines.get(l))
+            if lines_normalized.has_key(l):
+                mem = '%5.2f MB' % max(lines_normalized.get(l))
             line = linecache.getline(filename, l)
             stream.write(template % (l, mem, line))
 
