@@ -110,17 +110,6 @@ def _find_script(script_name):
     print >> sys.stderr, 'Could not find script %s' % script_name
     raise SystemExit(1)
 
-def label(code):
-    # TODO: remove
-    """ Return a (filename, first_lineno, func_name) tuple for a given code
-    object.
-
-    This is the same labelling as used by the cProfile module in Python 2.5.
-    """
-    if isinstance(code, str):
-        return ('~', 0, code)    # built-in functions ('~' sorts at the end)
-    else:
-        return (code.co_filename, code.co_firstlineno, code.co_name)
 
 class LineProfiler:
     """ A profiler that records the amount of memory for each line """
@@ -185,8 +174,8 @@ class LineProfiler:
         if event in ('line', 'return'):
             if frame.f_code in self.code_map:
                 lineno = frame.f_lineno
-                if event == 'return':
-                    lineno += 1
+                if event == 'line':
+                    lineno -= 1
                 entry = self.code_map[frame.f_code].setdefault(lineno, [])
                 entry.append(_get_memory(os.getpid()))
 
@@ -222,8 +211,8 @@ def show_results(prof, stream=None):
             filename.endswith(".pyo")):
             filename = filename[:-1]
         all_lines = linecache.getlines(filename)
-        sublines = inspect.getblock(all_lines[code.co_firstlineno-1:])
-        linenos = range(code.co_firstlineno, code.co_firstlineno + len(sublines))
+        sub_lines = inspect.getblock(all_lines[code.co_firstlineno-1:])
+        linenos = range(code.co_firstlineno, code.co_firstlineno + len(sub_lines))
         for l in linenos:
             mem = ''
             if lines.has_key(l):

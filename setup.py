@@ -16,7 +16,7 @@ Operating System :: Unix
 
 setup(
     name='memory_profiler',
-    description='A module for getting memory usage of a python program',
+    description='A module for monitoring memory usage of a python program',
     long_description=open('README.rst').read(),
     version=memory_profiler.__version__,
     author='Fabian Pedregosa',
