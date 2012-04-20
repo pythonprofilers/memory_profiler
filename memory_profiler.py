@@ -25,7 +25,7 @@ if os.name == 'posix':
 else:
     # ..
     # .. better to be safe than sorry ..
-    raise NotImplementedError
+    raise NotImplementedError('Only UNIX supported at the moment')
 
 def memory_usage(proc= -1, num= -1, interval=.1):
     """
