@@ -252,9 +252,15 @@ if __name__ == '__main__':
 
     if options.line:
         prof = LineProfiler()
-        import __builtin__
-        __builtin__.__dict__['profile'] = prof
         __file__ = _find_script(args[0])
-        execfile(__file__, locals(), locals())
+        if sys.version_info[0] < 3:
+            import __builtin__
+            __builtin__.__dict__['profile'] = prof
+            execfile(__file__, locals(), locals())
+        else:
+            import builtins
+            builtins.__dict__['profile'] = prof
+            exec(compile(open(__file__).read(), __file__, 'exec'), locals(), globals())
+
         if options.visualize:
             show_results(prof)
