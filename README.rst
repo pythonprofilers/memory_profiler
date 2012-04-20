@@ -43,11 +43,12 @@ Output will follow::
     Line #    Mem usage   Line Contents
     ===================================
          3                @profile
-         4                def my_func():
-         5     13.68 MB       a = np.zeros((100, 100))
-         6     13.77 MB       b = np.zeros((1000, 1000))
-         7     21.40 MB       c = np.zeros((10000, 1000))
-         8     97.70 MB       return a, b, c
+         4     14.19 MB   def my_func():
+         5     14.27 MB       a = np.zeros((100, 100))
+         6     21.91 MB       b = np.zeros((1000, 1000))
+         7     98.20 MB       c = np.zeros((10000, 1000))
+         8     98.20 MB       return a, b, c
+
 
 
 
