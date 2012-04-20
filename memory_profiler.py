@@ -215,7 +215,7 @@ def show_results(prof, stream=None):
         linenos = range(code.co_firstlineno, code.co_firstlineno + len(sub_lines))
         lines_normalized = {}
 
-        # we are gong go move everything one frame up
+        # move everything one frame up
         keys = lines.keys()
         keys.sort()
         lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
