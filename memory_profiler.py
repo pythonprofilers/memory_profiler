@@ -12,7 +12,7 @@ try:
     
     def _get_memory(pid):
         process = psutil.Process(pid)
-        return process.get_memory_info()[0]
+        return float((float(process.get_memory_info()[0]) / 1024)) / 1024
 except ImportError:
     import subprocess
     
