@@ -6,26 +6,32 @@ _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os
 import linecache, inspect
-import subprocess
 
-if os.name == 'posix':
+try:
+    import psutil
+    
     def _get_memory(pid):
-        # ..
-        # .. memory usage in MB ..
-        # .. this should work on both Mac and Linux ..
-        # .. subprocess.check_output appeared in 2.7, using Popen ..
-        # .. for backwards compatibility ..
-        out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-              stdout=subprocess.PIPE).communicate()[0].split('\n')
-        try:
-            vsz_index = out[0].split().index('RSS')
-            return float(out[1].split()[vsz_index]) / 1024
-        except:
-            return -1
-else:
-    # ..
-    # .. better to be safe than sorry ..
-    raise NotImplementedError('Only UNIX supported at the moment')
+        process = psutil.Process(pid)
+        return float((float(process.get_memory_info()[0]) / 1024)) / 1024
+except ImportError:
+    import subprocess
+    
+    if os.name == 'posix':
+        def _get_memory(pid):
+            # ..
+            # .. memory usage in MB ..
+            # .. this should work on both Mac and Linux ..
+            # .. subprocess.check_output appeared in 2.7, using Popen ..
+            # .. for backwards compatibility ..
+            out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
+                  stdout=subprocess.PIPE).communicate()[0].split('\n')
+            try:
+                vsz_index = out[0].split().index('RSS')
+                return float(out[1].split()[vsz_index]) / 1024
+            except:
+                return -1
+    else:
+        raise NotImplementedError('The psutil module is required for non-unix platforms')
 
 def memory_usage(proc= -1, num= -1, interval=.1):
     """
