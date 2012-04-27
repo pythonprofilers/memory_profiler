@@ -4,7 +4,7 @@ __version__ = '0.8'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-import time, sys, os
+import time, sys, os, warnings
 import linecache, inspect
 
 try:
@@ -12,10 +12,13 @@ try:
     
     def _get_memory(pid):
         process = psutil.Process(pid)
-        return float((float(process.get_memory_info()[0]) / 1024)) / 1024
+        return float(process.get_memory_info()[0]) / (1024 ** 2)
+
 except ImportError:
+
+    warnings.warn('psutil module not found (memory_profiler will be slow)')
+
     import subprocess
-    
     if os.name == 'posix':
         def _get_memory(pid):
             # ..
