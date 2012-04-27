@@ -66,7 +66,7 @@ Latest sources are available from github:
 
 Authors
 -------
-This module was written by `Fabian Pedregosa <fabian@fseoane.net>`_ inspired by Robert Kern's
+This module was written by `Fabian Pedregosa <http://fseoane.net>`_ inspired by Robert Kern's
 `line profiler <http://packages.python.org/line_profiler/>`_.
 
 `Tom <http://tomforb.es/>`_ added windows support and speed improvements via the
