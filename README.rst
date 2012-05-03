@@ -36,7 +36,7 @@ python interpreter to load the memory_profiler module and print to
 stdout the line-by-line analysis. If the file name was example.py,
 this would result in::
 
-    $ python -m memory_profiler -l -v example.py
+    $ python -m memory_profiler example.py
 
 Output will follow::
 
