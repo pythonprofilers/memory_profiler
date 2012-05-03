@@ -32,9 +32,9 @@ profile with @profile::
 
 
 then execute the code passing the option "-m memory_profiler" to the
-python interpreter to load the memory_profiler module and "-l -v" to
-do a line-by-line analysis and print the result. If the file name was
-example.py, this would result in::
+python interpreter to load the memory_profiler module and print to
+stdout the line-by-line analysis. If the file name was example.py,
+this would result in::
 
     $ python -m memory_profiler -l -v example.py
 

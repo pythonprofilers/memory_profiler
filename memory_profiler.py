@@ -16,7 +16,8 @@ try:
 
 except ImportError:
 
-    warnings.warn('psutil module not found (memory_profiler will be slow)')
+    warnings.warn("psutil module not found. This module provides "
+                  "speed enhacements and windows support")
 
     import subprocess
     if os.name == 'posix':
@@ -246,10 +247,10 @@ if __name__ == '__main__':
         help='Save stats to <outfile>', default=None)
     parser.add_option('-v', '--visualize', action='store_true',
         dest='visualize', help='Visualize result at exit',
-        default=False)
+        default=True)
     parser.add_option('-l', '--line', action='store_true',
         dest='line', help='Do line-by-line timings',
-        default=False)
+        default=True)
 
 
     if not sys.argv[1:] or sys.argv[1] in ("--help", "-h"):
