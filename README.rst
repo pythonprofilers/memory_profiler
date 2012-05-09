@@ -1,5 +1,6 @@
-Memory Profiler
----------------
+=================
+ Memory Profiler
+=================
 This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
 programs.
@@ -9,8 +10,9 @@ It's a pure python module and has the `psutil
 recommended) dependencies.
 
 
-Installation
-------------
+==============
+ Installation
+==============
 To install through easy_install or pip::
 
     $ easy_install -U memory_profiler # pip install -U memory_profiler
@@ -21,8 +23,9 @@ To install from source, download the package, extract and type::
 
 
 
-Usage
------
+=======
+ Usage
+=======
 The line-by-line profiler is used much in the same way of the
 line_profiler: you must first decorate the function you would like to
 profile with @profile. In this example, we create a simple function
@@ -66,8 +69,9 @@ Python interpreter after that line has been executed. The third column
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
-Frequently Asked Questions
---------------------------
+============================
+ Frequently Asked Questions
+============================
 
     * Q: How accurate are the results ?
     * A: This module gets the memory consumption by querying the
@@ -79,12 +83,13 @@ Frequently Asked Questions
 
     * Q: Does it work under windows ?
     * A: Yes, but you will need the
-    `psutil <http://pypi.python.org/pypi/psutil>`_ module.
+      `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
 
 
-Support, bugs & wish list
--------------------------
+===========================
+ Support, bugs & wish list
+===========================
 For support, please ask your question on `stack overflow
 <http://stackoverflow.com/>`_ and tag it with the *memory-profiler*
 keyword.
@@ -95,15 +100,17 @@ If you've got questions regarding development, you can email me
 directly at fabian@fseoane.net
 
 
-Development
------------
+=============
+ Development
+=============
 Latest sources are available from github:
 
     https://github.com/fabianp/memory_profiler
 
 
-Authors
--------
+=========
+ Authors
+=========
 This module was written by `Fabian Pedregosa <http://fseoane.net>`_
 inspired by Robert Kern's `line profiler
 <http://packages.python.org/line_profiler/>`_.
@@ -112,6 +119,7 @@ inspired by Robert Kern's `line profiler
 `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
 
-License
--------
+=========
+ License
+=========
 Simplified BSD
