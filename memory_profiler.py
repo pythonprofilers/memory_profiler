@@ -1,6 +1,6 @@
 """Get process information"""
 
-__version__ = '0.9'
+__version__ = '0.10'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
