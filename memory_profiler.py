@@ -9,7 +9,7 @@ import linecache, inspect
 
 try:
     import psutil
-    
+
     def _get_memory(pid):
         process = psutil.Process(pid)
         return float(process.get_memory_info()[0]) / (1024 ** 2)
@@ -209,8 +209,8 @@ def show_results(prof, stream=None):
 
     if stream is None:
         stream = sys.stdout
-    template = '%6s %12s   %-s'
-    header = template % ('Line #', 'Mem usage', 'Line Contents')
+    template = '%6s %12s %10s   %-s'
+    header = template % ('Line #', 'Mem usage', 'Increment', 'Line Contents')
     stream.write(header + '\n')
     stream.write('=' * len(header) + '\n')
 
@@ -228,17 +228,25 @@ def show_results(prof, stream=None):
         # move everything one frame up
         keys = lines.keys()
         keys.sort()
+        increment = {}
         lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
         while len(keys) > 1:
             v = keys.pop(0)
             lines_normalized[v] = lines[keys[0]]
 
+        #import ipdb; ipdb.set_trace()
+        mem_old = max(lines_normalized[linenos[0] + 1])
         for l in linenos:
             mem = ''
+            inc = ''
             if lines_normalized.has_key(l):
-                mem = '%5.2f MB' % max(lines_normalized.get(l))
+                mem = max(lines_normalized[l])
+                inc = mem - mem_old
+                mem_old = mem
+                mem = '%5.2f MB' % mem
+                inc = '%5.2f MB' % inc
             line = linecache.getline(filename, l)
-            stream.write(template % (l, mem, line))
+            stream.write(template % (l, mem, inc, line))
 
 if __name__ == '__main__':
     from optparse import OptionParser
