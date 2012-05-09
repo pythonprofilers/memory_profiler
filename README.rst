@@ -4,6 +4,10 @@ This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
 programs.
 
+It's a pure python module and has the `psutil
+<http://pypi.python.org/pypi/psutil>`_ module as optional (but highly
+recommended) dependencies.
+
 
 Installation
 ------------
@@ -40,21 +44,43 @@ this would result in::
 
 Output will follow::
 
-    Line #    Mem usage   Line Contents
-    ===================================
-         3                @profile
-         4     14.19 MB   def my_func():
-         5     14.27 MB       a = np.zeros((100, 100))
-         6     21.91 MB       b = np.zeros((1000, 1000))
-         7     98.20 MB       c = np.zeros((10000, 1000))
-         8     98.20 MB       return a, b, c
+    Line #    Mem usage  Increment   Line Contents
+    ==============================================
+         3                           @profile
+         4     13.59 MB    0.00 MB   def my_func():
+         5     13.68 MB    0.09 MB       a = np.zeros((100, 100))
+         6     21.31 MB    7.63 MB       b = np.zeros((1000, 1000))
+         7     97.61 MB   76.30 MB       c = np.zeros((10000, 1000))
+         8     97.61 MB    0.00 MB       return a, b, c
+
+
+The first column represents the line number of the code that has been
+profiled, the second column (*Mem usage*) the memory usage of the
+Python interpreter after that line has been executed. The third column
+(*Increment*) represents the difference in memory of the current line
+with respect to the last one. The last column (*Line Contents*) prints
+the code that has been profiled.
+
+Frequently Asked Questions
+--------------------------
+
+    * Q: How accurate are the results ?
+    * A: This module gets the memory consumption by querying the
+      operating system kernel about the ammount of memory the current
+      process has allocated, which might be slightly different from
+      the ammount of memory that is actually used by the Python
+      interpreter. For this reason, the output is only an
+      approximation, and might vary between runs.
+
+    * Q: Does it work under windows ?
+    * A: Yes, but you will need the
+    `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
 
 
-
-Bugs & wishlist
+Bugs & wish list
 ---------------
-Maybe also print the increment in memory consumption.
+...
 
 
 Development
@@ -66,8 +92,9 @@ Latest sources are available from github:
 
 Authors
 -------
-This module was written by `Fabian Pedregosa <http://fseoane.net>`_ inspired by Robert Kern's
-`line profiler <http://packages.python.org/line_profiler/>`_.
+This module was written by `Fabian Pedregosa <http://fseoane.net>`_
+inspired by Robert Kern's `line profiler
+<http://packages.python.org/line_profiler/>`_.
 
 `Tom <http://tomforb.es/>`_ added windows support and speed improvements via the
 `psutil <http://pypi.python.org/pypi/psutil>`_ module.
