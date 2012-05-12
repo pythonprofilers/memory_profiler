@@ -249,36 +249,25 @@ def show_results(prof, stream=None):
             stream.write(template % (l, mem, inc, line))
 
 if __name__ == '__main__':
-    from optparse import OptionParser
-    parser = OptionParser(usage=_CMD_USAGE)
-    parser.add_option('-o', '--outfile', dest='outfile',
-        help='Save stats to <outfile>', default=None)
-    parser.add_option('-v', '--visualize', action='store_true',
-        dest='visualize', help='Visualize result at exit',
-        default=True)
-    parser.add_option('-l', '--line', action='store_true',
-        dest='line', help='Do line-by-line timings',
-        default=True)
-
+    from argparse import ArgumentParser
+    parser = ArgumentParser(usage=_CMD_USAGE)
+    parser.add_argument('filename', help='The file to profile')
 
     if not sys.argv[1:] or sys.argv[1] in ("--help", "-h"):
         parser.print_help()
         sys.exit(2)
 
-    (options, args) = parser.parse_args()
-    sys.argv[:] = args
+    args = parser.parse_args()
 
-    if options.line:
-        prof = LineProfiler()
-        __file__ = _find_script(args[0])
-        if sys.version_info[0] < 3:
-            import __builtin__
-            __builtin__.__dict__['profile'] = prof
-            execfile(__file__, locals(), locals())
-        else:
-            import builtins
-            builtins.__dict__['profile'] = prof
-            exec(compile(open(__file__).read(), __file__, 'exec'), locals(), globals())
+    prof = LineProfiler()
+    __file__ = _find_script(args.filename)
+    if sys.version_info[0] < 3:
+        import __builtin__
+        __builtin__.__dict__['profile'] = prof
+        execfile(__file__, locals(), locals())
+    else:
+        import builtins
+        builtins.__dict__['profile'] = prof
+        exec(compile(open(__file__).read(), __file__, 'exec'), locals(), globals())
 
-        if options.visualize:
-            show_results(prof)
+    show_results(prof)
