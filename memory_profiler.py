@@ -69,9 +69,8 @@ def memory_usage(proc= -1, num= -1, interval=.1):
 
     if str(proc).endswith('.py'):
         filename = _find_script(proc)
-        f = open(filename, 'r')
-        proc = f.read()
-        f.close()
+        with open(filename) as f:
+            proc = f.read()
         # TODO: make sure script's directory is on sys.path
         def f_exec(x, locals):
             # function interface for exec
