@@ -28,9 +28,9 @@ except ImportError:
             # .. subprocess.check_output appeared in 2.7, using Popen ..
             # .. for backwards compatibility ..
             out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-                  stdout=subprocess.PIPE).communicate()[0].split('\n')
+                  stdout=subprocess.PIPE).communicate()[0].split(b'\n')
             try:
-                vsz_index = out[0].split().index('RSS')
+                vsz_index = out[0].split().index(b'RSS')
                 return float(out[1].split()[vsz_index]) / 1024
             except:
                 return -1
@@ -116,7 +116,7 @@ def _find_script(script_name):
         if os.path.isfile(fn):
             return fn
 
-    print >> sys.stderr, 'Could not find script %s' % script_name
+    print >> sys.stderr, 'Could not find script {0}'.format(script_name)
     raise SystemExit(1)
 
 
@@ -141,10 +141,11 @@ class LineProfiler:
         """ Record line profiling information for the given Python function.
         """
         try:
-            code = func.func_code
+            code = func.__code__
         except AttributeError:
             import warnings
-            warnings.warn("Could not extract a code object for the object %r" % (func,))
+            warnings.warn("Could not extract a code object for the object {0!r}"
+                            .format(func))
             return
         if code not in self.code_map:
             self.code_map[code] = {}
@@ -208,8 +209,8 @@ def show_results(prof, stream=None):
 
     if stream is None:
         stream = sys.stdout
-    template = '%6s %12s %10s   %-s'
-    header = template % ('Line #', 'Mem usage', 'Increment', 'Line Contents')
+    template = '{0:>6} {1:>12} {2:>10}   {3:<}'
+    header = template.format('Line #', 'Mem usage', 'Increment', 'Line Contents')
     stream.write(header + '\n')
     stream.write('=' * len(header) + '\n')
 
@@ -225,8 +226,7 @@ def show_results(prof, stream=None):
         lines_normalized = {}
 
         # move everything one frame up
-        keys = lines.keys()
-        keys.sort()
+        keys = sorted(lines.keys())
         increment = {}
         lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
         while len(keys) > 1:
@@ -238,14 +238,14 @@ def show_results(prof, stream=None):
         for l in linenos:
             mem = ''
             inc = ''
-            if lines_normalized.has_key(l):
+            if l in lines_normalized:
                 mem = max(lines_normalized[l])
                 inc = mem - mem_old
                 mem_old = mem
-                mem = '%5.2f MB' % mem
-                inc = '%5.2f MB' % inc
+                mem = '{0:5.2f} MB'.format(mem)
+                inc = '{0:5.2f} MB'.format(inc)
             line = linecache.getline(filename, l)
-            stream.write(template % (l, mem, inc, line))
+            stream.write(template.format(l, mem, inc, line))
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

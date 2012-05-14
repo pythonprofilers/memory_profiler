@@ -28,8 +28,8 @@ To install from source, download the package, extract and type::
 =======
 The line-by-line profiler is used much in the same way of the
 line_profiler: you must first decorate the function you would like to
-profile with @profile. In this example, we create a simple function
-*my_func* that allocates tuples a, b and then deletes b::
+profile with ``@profile``. In this example, we create a simple function
+``my_func`` that allocates lists ``a``, ``b`` and then deletes ``b``::
 
 
     @profile
@@ -43,7 +43,7 @@ profile with @profile. In this example, we create a simple function
         my_func()
 
 
-execute the code passing the option "-m memory_profiler" to the
+Execute the code passing the option ``-m memory_profiler`` to the
 python interpreter to load the memory_profiler module and print to
 stdout the line-by-line analysis. If the file name was example.py,
 this would result in::
