@@ -248,18 +248,17 @@ def show_results(prof, stream=None):
             stream.write(template.format(l, mem, inc, line))
 
 if __name__ == '__main__':
-    from argparse import ArgumentParser
-    parser = ArgumentParser(usage=_CMD_USAGE)
-    parser.add_argument('filename', help='The file to profile')
+    from optparse import OptionParser
+    parser = OptionParser(usage=_CMD_USAGE)
 
-    if not sys.argv[1:] or sys.argv[1] in ("--help", "-h"):
+    if not sys.argv[1:]:
         parser.print_help()
         sys.exit(2)
 
-    args = parser.parse_args()
+    (options, args) = parser.parse_args()
 
     prof = LineProfiler()
-    __file__ = _find_script(args.filename)
+    __file__ = _find_script(args[0])
     if sys.version_info[0] < 3:
         import __builtin__
         __builtin__.__dict__['profile'] = prof
