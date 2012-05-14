@@ -226,8 +226,7 @@ def show_results(prof, stream=None):
         lines_normalized = {}
 
         # move everything one frame up
-        keys = lines.keys()
-        keys.sort()
+        keys = sorted(lines.keys())
         increment = {}
         lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
         while len(keys) > 1:
@@ -239,7 +238,7 @@ def show_results(prof, stream=None):
         for l in linenos:
             mem = ''
             inc = ''
-            if lines_normalized.has_key(l):
+            if l in lines_normalized:
                 mem = max(lines_normalized[l])
                 inc = mem - mem_old
                 mem_old = mem
