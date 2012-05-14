@@ -28,9 +28,9 @@ except ImportError:
             # .. subprocess.check_output appeared in 2.7, using Popen ..
             # .. for backwards compatibility ..
             out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-                  stdout=subprocess.PIPE).communicate()[0].split('\n')
+                  stdout=subprocess.PIPE).communicate()[0].split(b'\n')
             try:
-                vsz_index = out[0].split().index('RSS')
+                vsz_index = out[0].split().index(b'RSS')
                 return float(out[1].split()[vsz_index]) / 1024
             except:
                 return -1
