@@ -116,7 +116,7 @@ def _find_script(script_name):
         if os.path.isfile(fn):
             return fn
 
-    print >> sys.stderr, 'Could not find script {}'.format(script_name)
+    print >> sys.stderr, 'Could not find script {0}'.format(script_name)
     raise SystemExit(1)
 
 
@@ -144,7 +144,7 @@ class LineProfiler:
             code = func.__code__
         except AttributeError:
             import warnings
-            warnings.warn("Could not extract a code object for the object {!r}"
+            warnings.warn("Could not extract a code object for the object {0!r}"
                             .format(func))
             return
         if code not in self.code_map:
@@ -209,7 +209,7 @@ def show_results(prof, stream=None):
 
     if stream is None:
         stream = sys.stdout
-    template = '{:>6} {:>12} {:>10}   {:<}'
+    template = '{0:>6} {1:>12} {2:>10}   {3:<}'
     header = template.format('Line #', 'Mem usage', 'Increment', 'Line Contents')
     stream.write(header + '\n')
     stream.write('=' * len(header) + '\n')
@@ -242,8 +242,8 @@ def show_results(prof, stream=None):
                 mem = max(lines_normalized[l])
                 inc = mem - mem_old
                 mem_old = mem
-                mem = '{:5.2f} MB'.format(mem)
-                inc = '{:5.2f} MB'.format(inc)
+                mem = '{0:5.2f} MB'.format(mem)
+                inc = '{0:5.2f} MB'.format(inc)
             line = linecache.getline(filename, l)
             stream.write(template.format(l, mem, inc, line))
 
