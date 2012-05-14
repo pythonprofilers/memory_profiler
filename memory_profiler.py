@@ -9,11 +9,6 @@ import linecache, inspect
 
 try:
     import psutil
-
-    def _get_memory(pid):
-        process = psutil.Process(pid)
-        return float(process.get_memory_info()[0]) / (1024 ** 2)
-
 except ImportError:
 
     warnings.warn("psutil module not found. This module provides "
@@ -31,11 +26,17 @@ except ImportError:
                   stdout=subprocess.PIPE).communicate()[0].split(b'\n')
             try:
                 vsz_index = out[0].split().index(b'RSS')
-                return float(out[1].split()[vsz_index]) / 1024
+                mem = float(out[1].split()[vsz_index]) / 1024
             except:
                 return -1
+            else:  # if no exception occurs
+                return mem
     else:
         raise NotImplementedError('The psutil module is required for non-unix platforms')
+else:  # psutil module is present
+    def _get_memory(pid):
+        process = psutil.Process(pid)
+        return float(process.get_memory_info()[0]) / (1024 ** 2)
 
 def memory_usage(proc= -1, num= -1, interval=.1):
     """
