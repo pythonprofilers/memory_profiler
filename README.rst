@@ -118,6 +118,9 @@ inspired by Robert Kern's `line profiler
 `Tom <http://tomforb.es/>`_ added windows support and speed improvements via the
 `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
+`Victor <https://github.com/octavo>`_ added python3, bugfixes and general
+cleanup.
+
 
 =========
  License
