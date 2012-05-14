@@ -233,7 +233,6 @@ def show_results(prof, stream=None):
             v = keys.pop(0)
             lines_normalized[v] = lines[keys[0]]
 
-        #import ipdb; ipdb.set_trace()
         mem_old = max(lines_normalized[linenos[0] + 1])
         for l in linenos:
             mem = ''
