@@ -231,14 +231,14 @@ def show_results(prof, stream=None):
         # move everything one frame up
         keys = sorted(lines.keys())
 
+        k_old = keys[0] - 1
         lines_normalized[keys[0] - 1] = lines[keys[0]]
         k = keys.pop(0)
         while keys:
-            if len(lines[keys[0]]) > 1:
-                # .. inside a loop ..
-                lines_normalized[k] = lines[k]
-            else:
-                lines_normalized[k] = lines[keys[0]]
+            lines_normalized[k] = lines[keys[0]]
+            for i in range(len(lines_normalized[k_old]), len(lines_normalized[k])):
+                lines_normalized[k][i] = -1.
+            k_old = k
             k = keys.pop(0)
 
         first_line = sorted(lines_normalized.keys())[0]
@@ -254,6 +254,7 @@ def show_results(prof, stream=None):
                 inc = '{0:5.2f} MB'.format(inc)
             line = linecache.getline(filename, l)
             stream.write(template.format(l, mem, inc, line))
+        stream.write('\n')
 
 if __name__ == '__main__':
     from optparse import OptionParser
