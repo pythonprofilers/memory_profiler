@@ -227,7 +227,6 @@ def show_results(prof, stream=None):
 
         # move everything one frame up
         keys = sorted(lines.keys())
-        increment = {}
         lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
         while len(keys) > 1:
             v = keys.pop(0)
