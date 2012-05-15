@@ -216,6 +216,9 @@ def show_results(prof, stream=None):
 
     for code in prof.code_map:
         lines = prof.code_map[code]
+        if not lines:
+            # .. measurements are empty ..
+            continue
         filename = code.co_filename
         if (filename.endswith(".pyc") or
             filename.endswith(".pyo")):
