@@ -230,12 +230,19 @@ def show_results(prof, stream=None):
 
         # move everything one frame up
         keys = sorted(lines.keys())
-        lines_normalized[code.co_firstlineno+1] = lines[keys[0]]
-        while len(keys) > 1:
-            v = keys.pop(0)
-            lines_normalized[v] = lines[keys[0]]
 
-        mem_old = max(lines_normalized[linenos[0] + 1])
+        lines_normalized[keys[0] - 1] = lines[keys[0]]
+        k = keys.pop(0)
+        while keys:
+            if len(lines[keys[0]]) > 1:
+                # .. inside a loop ..
+                lines_normalized[k] = lines[k]
+            else:
+                lines_normalized[k] = lines[keys[0]]
+            k = keys.pop(0)
+
+        first_line = sorted(lines_normalized.keys())[0]
+        mem_old = max(lines_normalized[first_line])
         for l in linenos:
             mem = ''
             inc = ''
