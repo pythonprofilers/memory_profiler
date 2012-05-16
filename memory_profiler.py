@@ -1,6 +1,6 @@
 """Get process information"""
 
-__version__ = '0.12'
+__version__ = '0.13'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -16,8 +16,7 @@ try:
 
 except ImportError:
 
-    warnings.warn("psutil module not found. This module provides "
-                  "speed enhacements and windows support")
+    warnings.warn("psutil module not found. memory_profiler will be slow")
 
     import subprocess
     if os.name == 'posix':
