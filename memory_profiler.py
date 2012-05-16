@@ -266,6 +266,9 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
+    # .. remove memory_profiler from sys.argv ..
+    sys.argv.pop(0)
+
     prof = LineProfiler()
     __file__ = _find_script(args[0])
     if sys.version_info[0] < 3:
