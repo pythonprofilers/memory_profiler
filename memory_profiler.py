@@ -142,7 +142,6 @@ class LineProfiler:
         try:
             code = func.__code__
         except AttributeError:
-            import warnings
             warnings.warn("Could not extract a code object for the object {0!r}"
                             .format(func))
             return
@@ -180,8 +179,7 @@ class LineProfiler:
 
     def trace_memory_usage(self, frame, event, arg):
 
-        if event in ('line', 'return'):
-            if frame.f_code in self.code_map:
+        if event in ('line', 'return') and frame.f_code in self.code_map:
                 lineno = frame.f_lineno
                 if event == 'return':
                     lineno += 1
@@ -219,8 +217,7 @@ def show_results(prof, stream=None):
             # .. measurements are empty ..
             continue
         filename = code.co_filename
-        if (filename.endswith(".pyc") or
-            filename.endswith(".pyo")):
+        if filename.endswith((".pyc", ".pyo")):
             filename = filename[:-1]
         all_lines = linecache.getlines(filename)
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno-1:])
