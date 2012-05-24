@@ -239,7 +239,7 @@ def show_results(prof, stream=None):
 
         first_line = sorted(lines_normalized.keys())[0]
         mem_old = max(lines_normalized[first_line])
-        for l in linenos:
+        for i, l in enumerate(linenos):
             mem = ''
             inc = ''
             if l in lines_normalized:
@@ -248,8 +248,7 @@ def show_results(prof, stream=None):
                 mem_old = mem
                 mem = '{0:5.2f} MB'.format(mem)
                 inc = '{0:5.2f} MB'.format(inc)
-            line = linecache.getline(filename, l)
-            stream.write(template.format(l, mem, inc, line))
+            stream.write(template.format(l, mem, inc, sub_lines[i]))
         stream.write('\n')
 
 if __name__ == '__main__':
