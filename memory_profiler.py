@@ -207,9 +207,6 @@ def show_results(prof, stream=None):
     if stream is None:
         stream = sys.stdout
     template = '{0:>6} {1:>12} {2:>10}   {3:<}'
-    header = template.format('Line #', 'Mem usage', 'Increment', 'Line Contents')
-    stream.write(header + '\n')
-    stream.write('=' * len(header) + '\n')
 
     for code in prof.code_map:
         lines = prof.code_map[code]
@@ -219,11 +216,18 @@ def show_results(prof, stream=None):
         filename = code.co_filename
         if filename.endswith((".pyc", ".pyo")):
             filename = filename[:-1]
+        stream.write('Filename: ' + filename + '\n\n')
+        if not os.path.exists(filename):
+            stream.write('ERROR: Could not find file ' + filenam + '\n')
+            continue
         all_lines = linecache.getlines(filename)
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno-1:])
         linenos = range(code.co_firstlineno, code.co_firstlineno + len(sub_lines))
         lines_normalized = {}
 
+        header = template.format('Line #', 'Mem usage', 'Increment', 'Line Contents')
+        stream.write(header + '\n')
+        stream.write('=' * len(header) + '\n')
         # move everything one frame up
         keys = sorted(lines.keys())
 
@@ -249,7 +253,7 @@ def show_results(prof, stream=None):
                 mem = '{0:5.2f} MB'.format(mem)
                 inc = '{0:5.2f} MB'.format(inc)
             stream.write(template.format(l, mem, inc, sub_lines[i]))
-        stream.write('\n')
+        stream.write('\n\n')
 
 if __name__ == '__main__':
     from optparse import OptionParser
