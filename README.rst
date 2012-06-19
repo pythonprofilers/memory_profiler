@@ -91,8 +91,7 @@ the code that has been profiled.
  Support, bugs & wish list
 ===========================
 For support, please ask your question on `stack overflow
-<http://stackoverflow.com/>`_ and tag it with the *memory-profiler*
-keyword.
+<http://stackoverflow.com/>`_ and add the *profiling* tag.
 Send issues, proposals, etc. to `github's issue tracker
 <https://github.com/fabianp/memory_profiler/issues>`_ .
 
