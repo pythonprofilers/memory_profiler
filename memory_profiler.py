@@ -1,11 +1,15 @@
-"""Get process information"""
+"""Profile the memory usage of a Python program"""
 
 __version__ = '0.14'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-import time, sys, os, warnings
-import linecache, inspect
+import time
+import sys
+import os
+import warnings
+import linecache
+import inspect
 
 try:
     import psutil
@@ -36,7 +40,8 @@ except ImportError:
     else:
         raise NotImplementedError('The psutil module is required for non-unix platforms')
 
-def memory_usage(proc= -1, num= -1, interval=.1):
+
+def memory_usage(proc=-1, num=-1, interval=.1):
     """
     Return the memory usage of a process or piece of code
 
@@ -70,6 +75,7 @@ def memory_usage(proc= -1, num= -1, interval=.1):
         filename = _find_script(proc)
         with open(filename) as f:
             proc = f.read()
+
         # TODO: make sure script's directory is on sys.path
         def f_exec(x, locals):
             # function interface for exec
@@ -84,7 +90,7 @@ def memory_usage(proc= -1, num= -1, interval=.1):
             proc = (proc[0], proc[1], {})
         p = Process(target=proc[0], args=proc[1], kwargs=proc[2])
         p.start()
-        while p.is_alive(): # FIXME: or num
+        while p.is_alive():  # FIXME: or num
             ret.append(_get_memory(p.pid))
             time.sleep(interval)
     else:
@@ -99,6 +105,7 @@ def memory_usage(proc= -1, num= -1, interval=.1):
 
 # ..
 # .. utility functions for line-by-line ..
+
 
 def _find_script(script_name):
     """ Find the script.
@@ -202,6 +209,7 @@ class LineProfiler:
         self.last_time = {}
         sys.settrace(None)
 
+
 def show_results(prof, stream=None):
 
     if stream is None:
@@ -218,14 +226,16 @@ def show_results(prof, stream=None):
             filename = filename[:-1]
         stream.write('Filename: ' + filename + '\n\n')
         if not os.path.exists(filename):
-            stream.write('ERROR: Could not find file ' + filenam + '\n')
+            stream.write('ERROR: Could not find file ' + filename + '\n')
             continue
         all_lines = linecache.getlines(filename)
-        sub_lines = inspect.getblock(all_lines[code.co_firstlineno-1:])
-        linenos = range(code.co_firstlineno, code.co_firstlineno + len(sub_lines))
+        sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
+        linenos = range(code.co_firstlineno, code.co_firstlineno +
+                        len(sub_lines))
         lines_normalized = {}
 
-        header = template.format('Line #', 'Mem usage', 'Increment', 'Line Contents')
+        header = template.format('Line #', 'Mem usage', 'Increment',
+                                 'Line Contents')
         stream.write(header + '\n')
         stream.write('=' * len(header) + '\n')
         # move everything one frame up
@@ -236,7 +246,8 @@ def show_results(prof, stream=None):
         k = keys.pop(0)
         while keys:
             lines_normalized[k] = lines[keys[0]]
-            for i in range(len(lines_normalized[k_old]), len(lines_normalized[k])):
+            for i in range(len(lines_normalized[k_old]),
+                           len(lines_normalized[k])):
                 lines_normalized[k][i] = -1.
             k_old = k
             k = keys.pop(0)
@@ -277,6 +288,7 @@ if __name__ == '__main__':
     else:
         import builtins
         builtins.__dict__['profile'] = prof
-        exec(compile(open(__file__).read(), __file__, 'exec'), locals(), globals())
+        exec(compile(open(__file__).read(), __file__, 'exec'), locals(),
+                                                               globals())
 
     show_results(prof)
