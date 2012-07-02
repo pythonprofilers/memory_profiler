@@ -294,7 +294,7 @@ def show_results(prof, stream=None):
         stream.write('\n\n')
 
 
-# A %lprun magic for IPython.
+# A lprun-style %mprun magic for IPython.
 def magic_mprun(self, parameter_s=''):
     """ Execute a statement under the line-by-line memory profiler from the
     memory_profilser module.
@@ -344,7 +344,6 @@ def magic_mprun(self, parameter_s=''):
     parameter_s = parameter_s.replace('"', r'\"').replace("'", r"\'")
     opts, arg_str = self.parse_options(parameter_s, 'rf:T:', list_all=True)
     opts.merge(opts_def)
-    print arg_str
     global_ns = self.shell.user_global_ns
     local_ns = self.shell.user_ns
 
@@ -358,7 +357,6 @@ def magic_mprun(self, parameter_s=''):
                 e.__class__.__name__, e))
 
     profile = LineProfiler(*funcs)
-    print funcs
     # Add the profiler to the builtins for @profile.
     import __builtin__
     if 'profile' in __builtin__.__dict__:
@@ -413,6 +411,88 @@ def magic_mprun(self, parameter_s=''):
         return_value = profile
 
     return return_value
+
+
+# a timeit-style %memit magic for IPython
+def magic_memit(self, line=''):
+    """Measure memory usage of a Python statement
+
+    Usage, in line mode:
+      %memit [-r<R>] statement
+
+    Options:
+    -r<R>: repeat the loop iteration <R> times and take the best result.
+    Default: 3
+
+    -t<T>: timeout after <T> seconds. Default: None
+
+    Examples
+    --------
+    ::
+
+      In [1]: import numpy as np
+
+      In [2]: %memit np.zeros(1e7)
+      best of 3: 76.402344 MB per loop
+      Out[2]: 76.40234375
+
+      In [3]: %memit np.ones(1e6)
+      best of 3: 7.820312 MB per loop
+      Out[3]: 7.8203125
+
+      In [4]: %memit -r 10 np.empty(1e8)
+      best of 10: 0.101562 MB per loop
+      Out[4]: 0.1015625
+
+    """
+
+    import multiprocessing as pr
+    from multiprocessing.queues import SimpleQueue
+
+    opts, stmt = self.parse_options(line, 'r:t:tcp:',
+                                    posix=False, strict=False)
+    repeat = int(getattr(opts, "r", 3))
+    if repeat < 1:
+        repeat == 1
+    timeout = int(getattr(opts, "t", 0))
+    if timeout <= 0:
+        timeout = None
+
+    ns = self.shell.user_ns
+
+    def _get_usage(q, stmt, setup='pass', ns={}):
+        from memory_profiler import memory_usage as _mu
+        try:
+            exec setup in ns
+            _mu0 = _mu()[0]
+            exec stmt in ns
+            _mu1 = _mu()[0]
+            q.put(_mu1 - _mu0)
+        except:
+            q.put(float('-inf'))
+
+    q = SimpleQueue()
+    # try once in the current process
+    _get_usage(q, stmt, 'pass', ns)
+    # try in child processes
+    at_least_one_worked = False
+    for _ in xrange(repeat):
+        p = pr.Process(target=_get_usage, args=(q, stmt, 'pass', ns))
+        p.start()
+        p.join(timeout=timeout)
+        if p.exitcode == 0:
+            at_least_one_worked = True
+        else:
+            p.terminate()
+            q.put(float('-inf'))
+
+    if not at_least_one_worked:
+        print 'ERROR: subprocesses failed, result may be inaccurate.'
+
+    usages = [q.get() for _ in xrange(repeat)]
+    usage = max(usages)
+    print u"worst of %d: %f MB per loop" % (repeat, usage)
+
 
 if __name__ == '__main__':
     from optparse import OptionParser
