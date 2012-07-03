@@ -120,6 +120,8 @@ inspired by Robert Kern's `line profiler
 `Victor <https://github.com/octavo>`_ added python3, bugfixes and general
 cleanup.
 
+`Vlad Niculae <http://vene.ro>`_ added IPython magic functions.
+
 
 =========
  License
