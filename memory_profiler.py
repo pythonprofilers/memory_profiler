@@ -38,7 +38,8 @@ except ImportError:
             except:
                 return -1
     else:
-        raise NotImplementedError('The psutil module is required for non-unix platforms')
+        raise NotImplementedError('The psutil module is required for non-unix '
+                                  'platforms')
 
 
 def memory_usage(proc=-1, num=-1, interval=.1):
@@ -304,8 +305,8 @@ def magic_mprun(self, parameter_s=''):
 
     The given statement (which doesn't require quote marks) is run via the
     LineProfiler. Profiling is enabled for the functions specified by the -f
-    options. The statistics will be shown side-by-side with the code through the
-    pager once the statement has completed.
+    options. The statistics will be shown side-by-side with the code through
+    the pager once the statement has completed.
 
     Options:
 
@@ -319,8 +320,8 @@ def magic_mprun(self, parameter_s=''):
 
     One or more -f options are required to get any useful results.
 
-    -T <filename>: dump the text-formatted statistics with the code side-by-side
-    out to a text file.
+    -T <filename>: dump the text-formatted statistics with the code
+    side-by-side out to a text file.
 
     -r: return the LineProfiler object after it has completed profiling.
     """
@@ -418,13 +419,17 @@ def magic_memit(self, line=''):
     """Measure memory usage of a Python statement
 
     Usage, in line mode:
-      %memit [-r<R>] statement
+      %memit [-ir<R>t<T>] statement
 
     Options:
     -r<R>: repeat the loop iteration <R> times and take the best result.
     Default: 3
 
-    -t<T>: timeout after <T> seconds. Default: None
+    -i: run the code in the current environment, without forking a new process.
+    This is required on some MacOS versions of Accelerate if your line contains
+    a call to `np.dot`.
+
+    -t<T>: timeout after <T> seconds. Unused if `-i` is active. Default: None
 
     Examples
     --------
@@ -433,30 +438,46 @@ def magic_memit(self, line=''):
       In [1]: import numpy as np
 
       In [2]: %memit np.zeros(1e7)
-      best of 3: 76.402344 MB per loop
-      Out[2]: 76.40234375
+      maximum of 3: 76.402344 MB per loop
 
       In [3]: %memit np.ones(1e6)
-      best of 3: 7.820312 MB per loop
-      Out[3]: 7.8203125
+      maximum of 3: 7.820312 MB per loop
 
       In [4]: %memit -r 10 np.empty(1e8)
-      best of 10: 0.101562 MB per loop
-      Out[4]: 0.1015625
+      maximum of 10: 0.101562 MB per loop
+
+      In [5]: memit -t 3 while True: pass;
+      Subprocess timed out.
+      Subprocess timed out.
+      Subprocess timed out.
+      ERROR: all subprocesses exited unsuccessfully. Try again with the `-i`
+      option.
+      maximum of 3: -inf MB per loop
 
     """
-
-    import multiprocessing as pr
-    from multiprocessing.queues import SimpleQueue
-
-    opts, stmt = self.parse_options(line, 'r:t:tcp:',
-                                    posix=False, strict=False)
-    repeat = int(getattr(opts, "r", 3))
+    opts, stmt = self.parse_options(line, 'r:t:i', posix=False, strict=False)
+    repeat = int(getattr(opts, 'r', 3))
     if repeat < 1:
         repeat == 1
-    timeout = int(getattr(opts, "t", 0))
+    timeout = int(getattr(opts, 't', 0))
     if timeout <= 0:
         timeout = None
+    run_in_place = hasattr(opts, 'i')
+
+    # Don't depend on multiprocessing:
+    try:
+        import multiprocessing as pr
+        from multiprocessing.queues import SimpleQueue
+        q = SimpleQueue()
+    except ImportError:
+        class ListWithPut(list):
+            "Just a list where the `append` method is aliased to `put`."
+            def put(self, x):
+                self.append(x)
+        q = ListWithPut()
+        print ('WARNING: cannot import module `multiprocessing`. Forcing the'
+               '`-i` option.')
+        run_in_place = True
 
     ns = self.shell.user_ns
 
@@ -468,30 +489,37 @@ def magic_memit(self, line=''):
             exec stmt in ns
             _mu1 = _mu()[0]
             q.put(_mu1 - _mu0)
-        except:
+        except Exception as e:
             q.put(float('-inf'))
+            raise e
 
-    q = SimpleQueue()
-    # try once in the current process
-    _get_usage(q, stmt, 'pass', ns)
-    # try in child processes
-    at_least_one_worked = False
-    for _ in xrange(repeat):
-        p = pr.Process(target=_get_usage, args=(q, stmt, 'pass', ns))
-        p.start()
-        p.join(timeout=timeout)
-        if p.exitcode == 0:
-            at_least_one_worked = True
-        else:
-            p.terminate()
-            q.put(float('-inf'))
+    if run_in_place:
+        for _ in xrange(repeat):
+            _get_usage(q, stmt, ns=ns)
+    else:
+        # run in consecutive subprocesses
+        at_least_one_worked = False
+        for _ in xrange(repeat):
+            p = pr.Process(target=_get_usage, args=(q, stmt, 'pass', ns))
+            p.start()
+            p.join(timeout=timeout)
+            if p.exitcode == 0:
+                at_least_one_worked = True
+            else:
+                p.terminate()
+                if p.exitcode == None:
+                    print 'Subprocess timed out.'
+                else:
+                    print 'Subprocess exited with code %d.' % p.exitcode
+                q.put(float('-inf'))
 
-    if not at_least_one_worked:
-        print 'ERROR: subprocesses failed, result may be inaccurate.'
+        if not at_least_one_worked:
+            print ('ERROR: all subprocesses exited unsuccessfully. Try again '
+                   'with the `-i` option.')
 
     usages = [q.get() for _ in xrange(repeat)]
     usage = max(usages)
-    print u"worst of %d: %f MB per loop" % (repeat, usage)
+    print u"maximum of %d: %f MB per loop" % (repeat, usage)
 
 
 if __name__ == '__main__':
