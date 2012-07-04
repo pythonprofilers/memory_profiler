@@ -21,7 +21,40 @@ To install from source, download the package, extract and type::
 
     $ python setup.py install
 
+After installing the module, if you use IPython, you can set up the `%mprun`
+and `%memit` magics by following these steps.
 
+For IPython 0.10, you can install it by editing the IPython configuration
+file ~/.ipython/ipy_user_conf.py to add the following lines::
+
+    # These two lines are standard and probably already there.
+    import IPython.ipapi
+    ip = IPython.ipapi.get()
+
+    # These two are the important ones.
+    import memory_profiler    
+    ip.expose_magic('mprun', memory_profiler.magic_mprun)
+    ip.expose_magic('memit', memory_profiler.magic_memit)prun)
+
+For IPython 0.11+, you have to  create a file named
+~/.ipython/extensions/memory_profiler_ext.py with the following content::
+
+    import memory_profiler
+     
+    def load_ipython_extension(ip):
+        ip.define_magic('mprun', memory_profiler.magic_mprun)
+        ip.define_magic('memit', memory_profiler.magic_memit)
+
+Then, edit the configuration file for your IPython profile,
+~/.ipython/profile_default/ipython_config.py, to register the extension like
+this (If you already have other extensions, just add this one to the list)::
+
+    c.TerminalIPythonApp.extensions = [
+        'memory_profiler_ext',
+    ]
+    c.InteractiveShellApp.extensions = [
+        'memory_profiler_ext',
+    ]
 
 =======
  Usage
@@ -68,6 +101,24 @@ Python interpreter after that line has been executed. The third column
 (*Increment*) represents the difference in memory of the current line
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
+
+The same output can be obtained in IPython by using the `%mprun` magic command.
+In this case, you can skip the `@profile` decorator and instead use the
+`-f` parameter, like this::
+
+    In [1] from example import my_func
+
+    In [2] %mprun -f my_func my_func()
+
+Another useful magic that we define is `%memit`, which is analogous to
+`%timeit`. It can be used as follows::
+
+    In [1]: import numpy as np
+
+    In [2]: %memit np.zeros(1e7)
+    maximum of 3: 76.402344 MB per loop
+
+For more details, see the docstrings of the magics.
 
 ============================
  Frequently Asked Questions
@@ -119,6 +170,8 @@ inspired by Robert Kern's `line profiler
 
 `Victor <https://github.com/octavo>`_ added python3, bugfixes and general
 cleanup.
+
+`Vlad <http://vene.ro/>`_ added the `%mprun` and `%memit` IPython magics. 
 
 
 =========
