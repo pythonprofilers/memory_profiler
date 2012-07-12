@@ -271,6 +271,8 @@ def show_results(prof, stream=None):
 
         k_old = keys[0] - 1
         lines_normalized[keys[0] - 1] = lines[keys[0]]
+        for i in range(1, len(lines_normalized[keys[0] - 1])):
+            lines_normalized[keys[0] - 1][i] = -1.
         k = keys.pop(0)
         while keys:
             lines_normalized[k] = lines[keys[0]]
