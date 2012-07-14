@@ -184,7 +184,7 @@ class LineProfiler:
         """
         self.enable_by_count()
         try:
-            exec cmd in globals, locals
+            exec(cmd, globals, locals)
         finally:
             self.disable_by_count()
         return self
