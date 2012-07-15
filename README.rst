@@ -45,6 +45,11 @@ For IPython 0.11+, you have to  create a file named
         ip.define_magic('mprun', memory_profiler.magic_mprun)
         ip.define_magic('memit', memory_profiler.magic_memit)
 
+If you don't have an IPython profile already set up, create one using the
+following command::
+
+    $ ipython profile create
+
 Then, edit the configuration file for your IPython profile,
 ~/.ipython/profile_default/ipython_config.py, to register the extension like
 this (If you already have other extensions, just add this one to the list)::
