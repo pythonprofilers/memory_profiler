@@ -255,6 +255,9 @@ def show_results(prof, stream=None):
         stream.write('Filename: ' + filename + '\n\n')
         if not os.path.exists(filename):
             stream.write('ERROR: Could not find file ' + filename + '\n')
+            if filename.startswith("ipython-input"):
+                print("NOTE: %mprun can only be used on functions defined in "
+                      "physical files, and not in the IPython environment.")
             continue
         all_lines = linecache.getlines(filename)
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
@@ -425,7 +428,7 @@ def magic_memit(self, line=''):
 
     Options:
     -r<R>: repeat the loop iteration <R> times and take the best result.
-    Default: 3
+    Default: 1
 
     -i: run the code in the current environment, without forking a new process.
     This is required on some MacOS versions of Accelerate if your line contains
@@ -440,10 +443,10 @@ def magic_memit(self, line=''):
       In [1]: import numpy as np
 
       In [2]: %memit np.zeros(1e7)
-      maximum of 3: 76.402344 MB per loop
+      maximum of 1: 76.402344 MB per loop
 
       In [3]: %memit np.ones(1e6)
-      maximum of 3: 7.820312 MB per loop
+      maximum of 1: 7.820312 MB per loop
 
       In [4]: %memit -r 10 np.empty(1e8)
       maximum of 10: 0.101562 MB per loop
@@ -454,11 +457,11 @@ def magic_memit(self, line=''):
       Subprocess timed out.
       ERROR: all subprocesses exited unsuccessfully. Try again with the `-i`
       option.
-      maximum of 3: -inf MB per loop
+      maximum of 1: -inf MB per loop
 
     """
     opts, stmt = self.parse_options(line, 'r:t:i', posix=False, strict=False)
-    repeat = int(getattr(opts, 'r', 3))
+    repeat = int(getattr(opts, 'r', 1))
     if repeat < 1:
         repeat == 1
     timeout = int(getattr(opts, 't', 0))
