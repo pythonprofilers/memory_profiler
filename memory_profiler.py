@@ -4,12 +4,11 @@ __version__ = '0.15'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-import time
-import sys
-import os
+import time, sys, os, pdb
 import warnings
 import linecache
 import inspect
+
 
 try:
     import psutil
@@ -40,6 +39,7 @@ except ImportError:
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
+
 
 
 def memory_usage(proc=-1, num=-1, interval=.1):
@@ -130,12 +130,13 @@ def _find_script(script_name):
 class LineProfiler:
     """ A profiler that records the amount of memory for each line """
 
-    def __init__(self, *functions):
+    def __init__(self, *functions, **kw):
         self.functions = list(functions)
         self.code_map = {}
         self.enable_count = 0
         for func in functions:
             self.add_function(func)
+        self.max_mem = kw.get('max_mem', None)
 
     def __call__(self, func):
         self.add_function(func)
@@ -163,6 +164,7 @@ class LineProfiler:
     def wrap_function(self, func):
         """ Wrap a function to profile it.
         """
+
         def f(*args, **kwds):
             self.enable_by_count()
             try:
@@ -225,6 +227,26 @@ class LineProfiler:
 
         return self.trace_memory_usage
 
+    def trace_max_mem(self, frame, event, arg):
+        # run into PDB as soon as memory is higher than MAX_MEM
+        if event in ('line', 'return'):
+            c = _get_memory(os.getpid())
+            if c >= self.max_mem:
+                t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
+                    'of {0:.2f} MB\n'.format(self.max_mem)
+                sys.stdout.write(t)
+                sys.stdout.write('Stepping into the debugger \n')
+                frame.f_lineno -= 2
+                p = pdb.Pdb()
+                p.quitting = False
+                p.stopframe = frame
+                p.returnframe = None
+                p.stoplineno = frame.f_lineno - 3
+                p.botframe = None
+                return p.trace_dispatch
+
+        return self.trace_max_mem
+
     def __enter__(self):
         self.enable_by_count()
 
@@ -232,7 +254,10 @@ class LineProfiler:
         self.disable_by_count()
 
     def enable(self):
-        sys.settrace(self.trace_memory_usage)
+        if self.max_mem is not None:
+            sys.settrace(self.trace_max_mem)
+        else:
+            sys.settrace(self.trace_memory_usage)
 
     def disable(self):
         self.last_time = {}
@@ -529,7 +554,10 @@ def magic_memit(self, line=''):
 
 if __name__ == '__main__':
     from optparse import OptionParser
-    parser = OptionParser(usage=_CMD_USAGE)
+    parser = OptionParser(usage=_CMD_USAGE, version=__version__)
+    parser.add_option("--pdb-mmem", dest="max_mem", metavar="MAXMEM",
+        type="float", action="store",
+        help="step into the debugger when memory exceeds MAXMEM")
 
     if not sys.argv[1:]:
         parser.print_help()
@@ -537,10 +565,7 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    # .. remove memory_profiler from sys.argv ..
-    sys.argv.pop(0)
-
-    prof = LineProfiler()
+    prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
     if sys.version_info[0] < 3:
         import __builtin__
