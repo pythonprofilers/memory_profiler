@@ -242,7 +242,7 @@ class LineProfiler:
 def show_results(prof, stream=None):
     if stream is None:
         stream = sys.stdout
-    template = '{0:>6} {1:>12} {2:>10}   {3:<}'
+    template = '{0:>6} {1:>12} {2:>12}   {3:<}'
 
     for code in prof.code_map:
         lines = prof.code_map[code]
