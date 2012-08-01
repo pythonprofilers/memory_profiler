@@ -294,8 +294,8 @@ def show_results(prof, stream=None):
                 mem = max(lines_normalized[l])
                 inc = mem - mem_old
                 mem_old = mem
-                mem = '{0:5.4f} MB'.format(mem)
-                inc = '{0:5.4f} MB'.format(inc)
+                mem = '{0:9.2f} MB'.format(mem)
+                inc = '{0:9.2f} MB'.format(inc)
             stream.write(template.format(l, mem, inc, sub_lines[i]))
         stream.write('\n\n')
 
