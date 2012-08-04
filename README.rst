@@ -87,7 +87,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
     # These two are the important ones.
     import memory_profiler
     ip.expose_magic('mprun', memory_profiler.magic_mprun)
-    ip.expose_magic('memit', memory_profiler.magic_memit)prun)
+    ip.expose_magic('memit', memory_profiler.magic_memit)
 
 For IPython 0.11+, you have to edit the file
 ~/.ipython/extensions/memory_profiler_ext.py with the following content::

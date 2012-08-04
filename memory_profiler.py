@@ -57,8 +57,7 @@ def memory_usage(proc=-1, num=-1, interval=.1):
     interval : int, optional
 
     num : int, optional
-        Number of samples to generate. In the case of
-        defaults to -1, meaning
+        Maximum number of retrievals. In the case of -1, meaning
         to wait until the process has finished if proc is a string or
         to get just one if proc is an integer.
 
@@ -67,7 +66,7 @@ def memory_usage(proc=-1, num=-1, interval=.1):
 
     Returns
     -------
-    mm : list of integers
+    mm : list of integers, size less than num
         memory usage, in KB
     """
     ret = []
