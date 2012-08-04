@@ -443,6 +443,19 @@ def magic_mprun(self, parameter_s=''):
 
     return return_value
 
+# utility function used in magic_memit
+# TODO: merge sith memory_usage
+def _get_usage(q, stmt, setup='pass', ns={}):
+    from memory_profiler import memory_usage as _mu
+    try:
+        exec(setup, ns)
+        _mu0 = _mu()[0]
+        exec(stmt, ns)
+        _mu1 = _mu()[0]
+        q.put(_mu1 - _mu0)
+    except Exception as e:
+        q.put(float('-inf'))
+        raise e
 
 # a timeit-style %memit magic for IPython
 def magic_memit(self, line=''):
@@ -510,18 +523,6 @@ def magic_memit(self, line=''):
         run_in_place = True
 
     ns = self.shell.user_ns
-
-    def _get_usage(q, stmt, setup='pass', ns={}):
-        from memory_profiler import memory_usage as _mu
-        try:
-            exec setup in ns
-            _mu0 = _mu()[0]
-            exec stmt in ns
-            _mu1 = _mu()[0]
-            q.put(_mu1 - _mu0)
-        except Exception as e:
-            q.put(float('-inf'))
-            raise e
 
     if run_in_place:
         for _ in xrange(repeat):
