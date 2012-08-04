@@ -383,7 +383,7 @@ def magic_mprun(self, parameter_s=''):
     for name in opts.f:
         try:
             funcs.append(eval(name, global_ns, local_ns))
-        except Exception, e:
+        except Exception as e:
             raise UsageError('Could not find function %r.\n%s: %s' % (name,
                 e.__class__.__name__, e))
 
@@ -421,7 +421,7 @@ def magic_mprun(self, parameter_s=''):
         page(output, screen_lines=self.shell.rc.screen_length)
     else:
         page(output)
-    print message,
+    print(message,)
 
 #    dump_file = opts.D[0]
 #    if dump_file:
@@ -434,8 +434,8 @@ def magic_mprun(self, parameter_s=''):
         pfile = open(text_file, 'w')
         pfile.write(output)
         pfile.close()
-        print '\n*** Profile printout saved to text file %s. %s' % (text_file,
-                                                                    message)
+        print('\n*** Profile printout saved to text file %s. %s' % (text_file,
+                                                                    message))
 
     return_value = None
     if 'r' in opts:
@@ -538,9 +538,9 @@ def magic_memit(self, line=''):
             else:
                 p.terminate()
                 if p.exitcode == None:
-                    print 'Subprocess timed out.'
+                    print('Subprocess timed out.')
                 else:
-                    print 'Subprocess exited with code %d.' % p.exitcode
+                    print('Subprocess exited with code %d.' % p.exitcode)
                 q.put(float('-inf'))
 
         if not at_least_one_worked:
@@ -549,7 +549,7 @@ def magic_memit(self, line=''):
 
     usages = [q.get() for _ in xrange(repeat)]
     usage = max(usages)
-    print u"maximum of %d: %f MB per loop" % (repeat, usage)
+    print('maximum of %d: %f MB per loop' % (repeat, usage))
 
 
 if __name__ == '__main__':
