@@ -180,7 +180,7 @@ inspired by Robert Kern's `line profiler
 `Tom <http://tomforb.es/>`_ added windows support and speed improvements via the
 `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
-`Victor <https://github.com/octavo>`_ added python3, bugfixes and general
+`Victor <https://github.com/octavo>`_ added python3 support, bugfixes and general
 cleanup.
 
 `Vlad Niculae <http://vene.ro/>`_ added the `%mprun` and `%memit` IPython magics.
