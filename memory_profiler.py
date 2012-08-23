@@ -5,7 +5,7 @@ __version__ = '0.16'
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os, pdb
-import warnings
+import warnings, multiprocessing
 import linecache
 import inspect
 
@@ -41,18 +41,17 @@ except ImportError:
                                   'platforms')
 
 
-
 def memory_usage(proc=-1, num=-1, interval=.1):
     """
     Return the memory usage of a process or piece of code
 
     Parameters
     ----------
-    proc : {int, string, tuple}
-        The process to monitor. Can be given by a PID or by a string
-        containing a filename. A tuple containing (f, args, kwargs) specifies
-        to run the function f(*args, **kwargs). Set to -1 (default)for
-        current process.
+    proc : {int, string, tuple}, optional
+        The process to monitor. Can be given by a PID, by a string
+        containing a filename or by a tuple. The tuple should contain
+        three values (f, args, kw) specifies to run the function
+        f(*args, **kw).  Set to -1 (default) for current process.
 
     interval : int, optional
 
@@ -61,8 +60,6 @@ def memory_usage(proc=-1, num=-1, interval=.1):
         to wait until the process has finished if proc is a string or
         to get just one if proc is an integer.
 
-    locals : dict
-        Local variables.
 
     Returns
     -------
@@ -71,29 +68,35 @@ def memory_usage(proc=-1, num=-1, interval=.1):
     """
     ret = []
 
+
     if str(proc).endswith('.py'):
         filename = _find_script(proc)
         with open(filename) as f:
             proc = f.read()
-
-        # TODO: make sure script's directory is on sys.path
-        def f_exec(x, locals):
-            # function interface for exec
-            exec(x, locals)
-        proc = (f_exec, (), {})
+        raise NotImplementedError
 
     if isinstance(proc, (list, tuple)):
-        from multiprocessing import Process
+
         if len(proc) == 1:
-            proc = (proc[0], (), {})
+            f, args, kw = (proc[0], (), {})
         elif len(proc) == 2:
-            proc = (proc[0], proc[1], {})
-        p = Process(target=proc[0], args=proc[1], kwargs=proc[2])
-        p.start()
-        while p.is_alive():  # FIXME: or num
-            ret.append(_get_memory(p.pid))
+            f, args, kw = (proc[0], proc[1], {})
+        elif len(proc) == 3:
+            f, args, kw = (proc[0], proc[1], proc[2])
+        else:
+            raise ValueError
+        main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
+        i = 0
+        max_iter = num if num > 0 else float("inf")
+        main_thread.start()
+        while i < max_iter and main_thread.is_alive():
+            m = _get_memory(main_thread.pid)
+            ret.append(m)
             time.sleep(interval)
+            i += 1
+        main_thread.join()
     else:
+        # external process
         if proc == -1:
             proc = os.getpid()
         if num == -1:

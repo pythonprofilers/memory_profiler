@@ -69,6 +69,34 @@ with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
 
+====
+API
+====
+
+memory_profiler exposes a number of functions to be used in third-party
+code.
+
+`memory_usage(proc=-1, num=-1, interval=.1)` returns the memory usage
+over a time interval. The first argument, `proc` represents what
+should be monitored.  This can either be the PID of a process (not
+necessarily a Python program), a string containing some python code to
+be evaluated or a tuple (f, args, kw) containing a function and its
+arguments to be evaluated as f(*args, **kw). For example::
+
+
+    >>> # define a simple function
+    >>> def f(a, n=100):
+        ...     import time
+        ...     time.sleep(2)
+        ...     b = [a] * n
+        ...     time.sleep(1)
+        ...     return b
+        ...
+    >>> from memory_profiler import memory_usage
+    >>> memory_usage((f, (1,), {'n' : int(1e6)}))
+
+
+
 
 ===================
 Ipython integration
