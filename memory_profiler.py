@@ -197,6 +197,7 @@ class LineProfiler:
     def runcall(self, func, *args, **kw):
         """ Profile a single function call.
         """
+        # XXX where is this used ? can be removed ?
         self.enable_by_count()
         try:
             return func(*args, **kw)
@@ -220,7 +221,7 @@ class LineProfiler:
                 self.disable()
 
     def trace_memory_usage(self, frame, event, arg):
-
+        """Callback for sys.settrace"""
         if event in ('line', 'return') and frame.f_code in self.code_map:
                 lineno = frame.f_lineno
                 if event == 'return':

@@ -169,8 +169,9 @@ For more details, see the docstrings of the magics.
       operating system kernel about the ammount of memory the current
       process has allocated, which might be slightly different from
       the ammount of memory that is actually used by the Python
-      interpreter. For this reason, the output is only an
-      approximation, and might vary between runs.
+      interpreter. Also, because of how the garbage collector works in
+      Python the result might be different between platforms and even
+      between runs.
 
     * Q: Does it work under windows ?
     * A: Yes, but you will need the
