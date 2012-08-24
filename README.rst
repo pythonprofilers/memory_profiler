@@ -142,9 +142,11 @@ this (If you already have other extensions, just add this one to the list)::
         'memory_profiler_ext',
     ]
 
-It then can be used directly from IPython to obtain a line-by-line report using
-the `%mprun` magic command. In this case, you can skip the `@profile` decorator
-and instead use the `-f` parameter, like this::
+It then can be used directly from IPython to obtain a line-by-line
+report using the `%mprun` magic command. In this case, you can skip
+the `@profile` decorator and instead use the `-f` parameter, like
+this. Note however that function my_func must be defined in a file
+(cannot have been defined interactively in the Python interpreter)::
 
     In [1] from example import my_func
 

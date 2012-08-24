@@ -5,7 +5,7 @@ __version__ = '0.16'
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os, pdb
-import warnings, multiprocessing
+import warnings
 import linecache
 import inspect
 
@@ -15,7 +15,12 @@ try:
 
     def _get_memory(pid):
         process = psutil.Process(pid)
-        return float(process.get_memory_info()[0]) / (1024 ** 2)
+        try:
+            mem = float(process.get_memory_info()[0] / (1024 ** 2))
+        except psutil.AccessDenied:
+            mem = -1
+        return mem
+
 
 except ImportError:
 
@@ -41,7 +46,7 @@ except ImportError:
                                   'platforms')
 
 
-def memory_usage(proc=-1, num=-1, interval=.1):
+def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -60,6 +65,11 @@ def memory_usage(proc=-1, num=-1, interval=.1):
         to wait until the process has finished if proc is a string or
         to get just one if proc is an integer.
 
+    run_in_place : boolean, optional. False by default
+        If False fork the process and retrieve timings from a different
+        process. You shouldn't need to change this unless you are affected
+        by this (http://blog.vene.ro/2012/07/04/on-why-my-memit-fails-on-osx)
+        bug.
 
     Returns
     -------
@@ -67,7 +77,6 @@ def memory_usage(proc=-1, num=-1, interval=.1):
         memory usage, in KB
     """
     ret = []
-
 
     if str(proc).endswith('.py'):
         filename = _find_script(proc)
@@ -85,12 +94,27 @@ def memory_usage(proc=-1, num=-1, interval=.1):
             f, args, kw = (proc[0], proc[1], proc[2])
         else:
             raise ValueError
-        main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
+        try:
+            import multiprocessing
+        except ImportError:
+            print ('WARNING: cannot import module `multiprocessing`. Forcing to'
+                   ' run inplace.')
+            # force inplace
+            run_in_place = True
+        if run_in_place:
+            import threading
+            main_thread = threading.Thread(target=f, args=args, kwargs=kw)
+        else:
+            main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
         i = 0
-        max_iter = num if num > 0 else float("inf")
+        if timeout is not None:
+            max_iter = timeout / interval
+        else:
+            max_iter = float('inf')
         main_thread.start()
+        pid = getattr(main_thread, 'pid', os.getpid())
         while i < max_iter and main_thread.is_alive():
-            m = _get_memory(main_thread.pid)
+            m = _get_memory(pid)
             ret.append(m)
             time.sleep(interval)
             i += 1
@@ -132,12 +156,10 @@ def _find_script(script_name):
 class LineProfiler:
     """ A profiler that records the amount of memory for each line """
 
-    def __init__(self, *functions, **kw):
-        self.functions = list(functions)
+    def __init__(self, **kw):
+        self.functions = list()
         self.code_map = {}
         self.enable_count = 0
-        for func in functions:
-            self.add_function(func)
         self.max_mem = kw.get('max_mem', None)
 
     def __call__(self, func):
@@ -391,7 +413,8 @@ def magic_mprun(self, parameter_s=''):
             raise UsageError('Could not find function %r.\n%s: %s' % (name,
                 e.__class__.__name__, e))
 
-    profile = LineProfiler(*funcs)
+    profile = LineProfiler()
+    map(profile, funcs)
     # Add the profiler to the builtins for @profile.
     import __builtin__
     if 'profile' in __builtin__.__dict__:
@@ -447,19 +470,11 @@ def magic_mprun(self, parameter_s=''):
 
     return return_value
 
-# utility function used in magic_memit
-# TODO: merge sith memory_usage
-def _get_usage(q, stmt, setup='pass', ns={}):
-    from memory_profiler import memory_usage as _mu
-    try:
-        exec(setup, ns)
-        _mu0 = _mu()[0]
-        exec(stmt, ns)
-        _mu1 = _mu()[0]
-        q.put(_mu1 - _mu0)
-    except Exception as e:
-        q.put(float('-inf'))
-        raise e
+
+def _func_exec(stmt, ns):
+    # helper for magic_memit, just a function proxy for the exec
+    # statement
+    exec(stmt, ns)
 
 # a timeit-style %memit magic for IPython
 def magic_memit(self, line=''):
@@ -511,50 +526,13 @@ def magic_memit(self, line=''):
         timeout = None
     run_in_place = hasattr(opts, 'i')
 
-    # Don't depend on multiprocessing:
-    try:
-        import multiprocessing as pr
-        from multiprocessing.queues import SimpleQueue
-        q = SimpleQueue()
-    except ImportError:
-        class ListWithPut(list):
-            "Just a list where the `append` method is aliased to `put`."
-            def put(self, x):
-                self.append(x)
-        q = ListWithPut()
-        print ('WARNING: cannot import module `multiprocessing`. Forcing the'
-               '`-i` option.')
-        run_in_place = True
+    mem_usage = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout,
+        run_in_place=run_in_place)
 
-    ns = self.shell.user_ns
-
-    if run_in_place:
-        for _ in xrange(repeat):
-            _get_usage(q, stmt, ns=ns)
+    if mem_usage:
+        print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
     else:
-        # run in consecutive subprocesses
-        at_least_one_worked = False
-        for _ in xrange(repeat):
-            p = pr.Process(target=_get_usage, args=(q, stmt, 'pass', ns))
-            p.start()
-            p.join(timeout=timeout)
-            if p.exitcode == 0:
-                at_least_one_worked = True
-            else:
-                p.terminate()
-                if p.exitcode == None:
-                    print('Subprocess timed out.')
-                else:
-                    print('Subprocess exited with code %d.' % p.exitcode)
-                q.put(float('-inf'))
-
-        if not at_least_one_worked:
-            print ('ERROR: all subprocesses exited unsuccessfully. Try again '
-                   'with the `-i` option.')
-
-    usages = [q.get() for _ in xrange(repeat)]
-    usage = max(usages)
-    print('maximum of %d: %f MB per loop' % (repeat, usage))
+        print('ERROR: could not read memory usage, try with a lower interval or more iterations')
 
 
 if __name__ == '__main__':
