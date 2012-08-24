@@ -58,12 +58,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         three values (f, args, kw) specifies to run the function
         f(*args, **kw).  Set to -1 (default) for current process.
 
-    interval : int, optional
+    interval : float, optional
 
-    num : int, optional
-        Maximum number of retrievals. In the case of -1, meaning
-        to wait until the process has finished if proc is a string or
-        to get just one if proc is an integer.
+    timeout : float, optional
+
 
     run_in_place : boolean, optional. False by default
         If False fork the process and retrieve timings from a different
