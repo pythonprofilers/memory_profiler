@@ -69,19 +69,18 @@ with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
 
-====
-API
-====
-
+=====
+ API
+=====
 memory_profiler exposes a number of functions to be used in third-party
 code.
 
-`memory_usage(proc=-1, interval=.1, timeout=None)` returns the memory usage
-over a time interval. The first argument, `proc` represents what
+``memory_usage(proc=-1, interval=.1, timeout=None)`` returns the memory usage
+over a time interval. The first argument, ``proc`` represents what
 should be monitored.  This can either be the PID of a process (not
 necessarily a Python program), a string containing some python code to
-be evaluated or a tuple (f, args, kw) containing a function and its
-arguments to be evaluated as f(*args, **kw). For example::
+be evaluated or a tuple ``(f, args, kw)`` containing a function and its
+arguments to be evaluated as ``f(*args, **kw)``. For example::
 
 
     >>> # define a simple function
@@ -98,10 +97,9 @@ arguments to be evaluated as f(*args, **kw). For example::
 
 
 
-===================
-Ipython integration
-===================
-
+=====================
+ Ipython integration
+=====================
 After installing the module, if you use IPython, you can set up the `%mprun`
 and `%memit` magics by following these steps.
 
@@ -165,7 +163,6 @@ For more details, see the docstrings of the magics.
 ============================
  Frequently Asked Questions
 ============================
-
     * Q: How accurate are the results ?
     * A: This module gets the memory consumption by querying the
       operating system kernel about the ammount of memory the current

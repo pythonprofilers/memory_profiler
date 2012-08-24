@@ -2,7 +2,7 @@ import memory_profiler
 from distutils.core import setup
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
 Intended Audience :: Developers
 License :: OSI Approved
@@ -24,5 +24,6 @@ setup(
     url='http://pypi.python.org/pypi/memory_profiler',
 	py_modules=['memory_profiler'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
+    license='Simplified BSD'
 
 )
