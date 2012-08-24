@@ -76,7 +76,7 @@ API
 memory_profiler exposes a number of functions to be used in third-party
 code.
 
-`memory_usage(proc=-1, num=-1, interval=.1)` returns the memory usage
+`memory_usage(proc=-1, interval=.1, timeout=None)` returns the memory usage
 over a time interval. The first argument, `proc` represents what
 should be monitored.  This can either be the PID of a process (not
 necessarily a Python program), a string containing some python code to
