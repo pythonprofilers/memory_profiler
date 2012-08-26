@@ -69,6 +69,9 @@ with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
 
+TODO: alternatives to decoation (for example when you don't want to modify
+the file where your function).
+
 =====
  API
 =====
@@ -188,6 +191,8 @@ Send issues, proposals, etc. to `github's issue tracker
 
 If you've got questions regarding development, you can email me
 directly at fabian@fseoane.net
+
+.. image:: http://fseoane.net/static/tux_memory_small.png
 
 
 =============
