@@ -69,7 +69,7 @@ with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
 
-TODO: alternatives to decoation (for example when you don't want to modify
+TODO: alternatives to decoration (for example when you don't want to modify
 the file where your function).
 
 =====
