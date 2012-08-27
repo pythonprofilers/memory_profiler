@@ -69,7 +69,7 @@ with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
 
-TODO: alternatives to decoation (for example when you don't want to modify
+TODO: alternatives to decoration (for example when you don't want to modify
 the file where your function).
 
 =====
@@ -168,7 +168,7 @@ For more details, see the docstrings of the magics.
 ============================
     * Q: How accurate are the results ?
     * A: This module gets the memory consumption by querying the
-      operating system kernel about the ammount of memory the current
+      operating system kernel about the amount of memory the current
       process has allocated, which might be slightly different from
       the ammount of memory that is actually used by the Python
       interpreter. Also, because of how the garbage collector works in
