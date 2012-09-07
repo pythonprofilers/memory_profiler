@@ -253,7 +253,7 @@ class LineProfiler:
 
     def trace_max_mem(self, frame, event, arg):
         # run into PDB as soon as memory is higher than MAX_MEM
-        if event in ('line', 'return'):
+        if event in ('line', 'return') and frame.f_code in self.code_map:
             c = _get_memory(os.getpid())
             if c >= self.max_mem:
                 t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
