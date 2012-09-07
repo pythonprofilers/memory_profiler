@@ -101,7 +101,7 @@ arguments to be evaluated as ``f(*args, **kw)``. For example::
 
 
 =====================
- Ipython integration
+ IPython integration
 =====================
 After installing the module, if you use IPython, you can set up the `%mprun`
 and `%memit` magics by following these steps.
