@@ -76,6 +76,15 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
     """
     ret = []
 
+    if timeout is not None:
+        max_iter = timeout / interval
+    elif isinstance(proc, int):
+        # external process and no timeout
+        max_iter = 1
+    else:
+        # for a Python function wait until it finishes
+        max_iter = float('inf')
+
     if str(proc).endswith('.py'):
         filename = _find_script(proc)
         with open(filename) as f:
@@ -105,10 +114,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         else:
             main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
         i = 0
-        if timeout is not None:
-            max_iter = timeout / interval
-        else:
-            max_iter = float('inf')
         main_thread.start()
         pid = getattr(main_thread, 'pid', os.getpid())
         while i < max_iter and main_thread.is_alive():
@@ -121,9 +126,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         # external process
         if proc == -1:
             proc = os.getpid()
-        if num == -1:
-            num = 1
-        for _ in range(num):
+        if max_iter == -1:
+            max_iter = 1
+        for _ in range(max_iter):
             ret.append(_get_memory(proc))
             time.sleep(interval)
     return ret
