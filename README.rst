@@ -68,9 +68,23 @@ Python interpreter after that line has been executed. The third column
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
+Setting debugger breakpoints
+=============================
+It is possible to set breakpoints depending on the amount of memory used.
+That is, you can specify a threshold and as soon as the program uses more
+memory than what is specified in the threshold it will stop execution
+and run into the pdb debugger. To use it, you will have to decorate
+the function as done in the previous section with ``@profile`` and then
+run your script with the option ``-m memory_profiler --pdb-mmem=X``,
+where X is a number representing the memory threshold in MB. For example::
 
-TODO: alternatives to decoration (for example when you don't want to modify
-the file where your function).
+    $ python -m memory_profiler --pdb-mmem=100 my_script.py
+
+will run ``my_script.py`` and step into the pdb debugger as soon as the code
+uses more than 100 MB in the decorated function.
+
+.. TODO: alternatives to decoration (for example when you don't want to modify
+    the file where your function lives).
 
 =====
  API
