@@ -68,23 +68,34 @@ Python interpreter after that line has been executed. The third column
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
-Setting debugger breakpoints
-=============================
-It is possible to set breakpoints depending on the amount of memory used.
-That is, you can specify a threshold and as soon as the program uses more
-memory than what is specified in the threshold it will stop execution
-and run into the pdb debugger. To use it, you will have to decorate
-the function as done in the previous section with ``@profile`` and then
-run your script with the option ``-m memory_profiler --pdb-mmem=X``,
-where X is a number representing the memory threshold in MB. For example::
 
-    $ python -m memory_profiler --pdb-mmem=100 my_script.py
+The second usage pattern is to omit the decorator and to add command
+line options for target-file and target-function::
 
-will run ``my_script.py`` and step into the pdb debugger as soon as the code
-uses more than 100 MB in the decorated function.
+    $ python -m memory_profiler example_undecorated.py --target-file=example_undecorated.py --target-function=another_func
 
-.. TODO: alternatives to decoration (for example when you don't want to modify
-    the file where your function lives).
+
+    Line #    Mem usage    Increment   Line Contents
+    ================================================
+         2                             def another_func():
+         3      8.00 MB      0.00 MB       """Undecorated function that allocates memory"""
+         4     16.00 MB      8.00 MB       c = [1] * (10 ** 6)
+         5     92.00 MB     76.00 MB       d = [1] * (10 ** 7)
+         6     92.00 MB      0.00 MB       return c, d
+
+
+Note that you can either profile using the decorator (or many decorators) 
+OR with one named file and function. You cannot mix the two approaches
+and you cannot profile more than one file and function.
+
+TODO: allow multiple files and functions rather than just one (convert
+the named variables into a list internally and iterate on the list)
+
+TODO: the current named file approach would be confused if two files in 
+different directories shared the same name, and both had the same named
+function. Rather than checking named files we should check for modules
+in their namespace (e.g. rather than module1/afile.py and some_function, 
+we should check for module1.afile.some_function to remove ambiguity).
 
 =====
  API
@@ -115,7 +126,7 @@ arguments to be evaluated as ``f(*args, **kw)``. For example::
 
 
 =====================
- IPython integration
+ Ipython integration
 =====================
 After installing the module, if you use IPython, you can set up the `%mprun`
 and `%memit` magics by following these steps.
@@ -182,7 +193,7 @@ For more details, see the docstrings of the magics.
 ============================
     * Q: How accurate are the results ?
     * A: This module gets the memory consumption by querying the
-      operating system kernel about the amount of memory the current
+      operating system kernel about the ammount of memory the current
       process has allocated, which might be slightly different from
       the ammount of memory that is actually used by the Python
       interpreter. Also, because of how the garbage collector works in

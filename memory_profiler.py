@@ -1,6 +1,6 @@
 """Profile the memory usage of a Python program"""
 
-__version__ = '0.18'
+__version__ = '0.17'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -16,7 +16,7 @@ try:
     def _get_memory(pid):
         process = psutil.Process(pid)
         try:
-            mem = float(process.get_memory_info()[0]) / (1024 ** 2)
+            mem = float(process.get_memory_info()[0] / (1024 ** 2))
         except psutil.AccessDenied:
             mem = -1
         return mem
@@ -76,15 +76,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
     """
     ret = []
 
-    if timeout is not None:
-        max_iter = timeout / interval
-    elif isinstance(proc, int):
-        # external process and no timeout
-        max_iter = 1
-    else:
-        # for a Python function wait until it finishes
-        max_iter = float('inf')
-
     if str(proc).endswith('.py'):
         filename = _find_script(proc)
         with open(filename) as f:
@@ -114,6 +105,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         else:
             main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
         i = 0
+        if timeout is not None:
+            max_iter = timeout / interval
+        else:
+            max_iter = float('inf')
         main_thread.start()
         pid = getattr(main_thread, 'pid', os.getpid())
         while i < max_iter and main_thread.is_alive():
@@ -126,9 +121,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         # external process
         if proc == -1:
             proc = os.getpid()
-        if max_iter == -1:
-            max_iter = 1
-        for _ in range(max_iter):
+        if num == -1:
+            num = 1
+        for _ in range(num):
             ret.append(_get_memory(proc))
             time.sleep(interval)
     return ret
@@ -164,6 +159,13 @@ class LineProfiler:
         self.code_map = {}
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
+        self.target_file = kw.get('target_file', None)
+        self.target_function = kw.get('target_function', None)
+        if self.target_file:
+            # if we're tracking a file+function rather than using a
+            # decorator then we enable settrace for all lines of code
+            self.enable()
+
 
     def __call__(self, func):
         self.add_function(func)
@@ -247,7 +249,27 @@ class LineProfiler:
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if event in ('line', 'return') and frame.f_code in self.code_map:
+
+        # if we're profiling a named file and function then
+        # check this trace event to see if it matches our pattern
+        profile_this = False
+        if self.target_file:
+            co = frame.f_code
+            func_name = co.co_name
+            func_filename = co.co_filename
+            if self.target_file in func_filename:
+                if self.target_function == func_name:
+                    if frame.f_code not in self.code_map:
+                        # if we've not yet encountered this function (and it is
+                        # the one we want to trace) then we add it to
+                        # the code_map
+                        self.code_map[frame.f_code] = {}
+                    profile_this = True
+
+        # if we've been called on our decorated function
+        # OR we've matched the named file and function
+        # then track the memory usage
+        if event in ('line', 'return') and (frame.f_code in self.code_map or profile_this):
                 lineno = frame.f_lineno
                 if event == 'return':
                     lineno += 1
@@ -258,7 +280,7 @@ class LineProfiler:
 
     def trace_max_mem(self, frame, event, arg):
         # run into PDB as soon as memory is higher than MAX_MEM
-        if event in ('line', 'return') and frame.f_code in self.code_map:
+        if event in ('line', 'return'):
             c = _get_memory(os.getpid())
             if c >= self.max_mem:
                 t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
@@ -290,7 +312,12 @@ class LineProfiler:
 
     def disable(self):
         self.last_time = {}
-        sys.settrace(None)
+        if self.target_file is None:
+            # if target_file is None then we're using the decorator
+            # and it is safe to disable settrace
+            # if target_file is not None then we're running settrace
+            # on every line of code so we can't disable the trace
+            sys.settrace(None)
 
 
 def show_results(prof, stream=None):
@@ -544,6 +571,12 @@ if __name__ == '__main__':
     parser.add_option("--pdb-mmem", dest="max_mem", metavar="MAXMEM",
         type="float", action="store",
         help="step into the debugger when memory exceeds MAXMEM")
+    parser.add_option("--target-file", dest="target_file",
+        type="str", action="store", default=None,
+        help="Traces this file (requires target-function), disables @profile tracing")
+    parser.add_option("--target-function", dest="target_function",
+        type="str", action="store", default=None,
+        help="Traces this function (requires target-file), disables @profile tracing")
 
     if not sys.argv[1:]:
         parser.print_help()
@@ -551,7 +584,15 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    prof = LineProfiler(max_mem=options.max_mem)
+    # check that if the user wants to memory_profile without a decorator
+    # then they've specified both of the required options
+    if options.target_file or options.target_function:
+        if not (options.target_file and options.target_function):
+            print "Error: Both --target-file and --target-function are required"
+            raise SystemExit(1)
+
+    # hardcoded module name and function name
+    prof = LineProfiler(max_mem=options.max_mem, target_file=options.target_file, target_function=options.target_function)
     __file__ = _find_script(args[0])
     if sys.version_info[0] < 3:
         import __builtin__
