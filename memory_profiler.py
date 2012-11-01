@@ -538,6 +538,15 @@ def magic_memit(self, line=''):
         print('ERROR: could not read memory usage, try with a lower interval or more iterations')
 
 
+def profile(func):
+    def wrapper(*args, **kwargs):
+        prof = LineProfiler()
+        val = prof(func)(*args, **kwargs)
+        show_results(prof)
+        return val
+    return wrapper
+
+
 if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage=_CMD_USAGE, version=__version__)

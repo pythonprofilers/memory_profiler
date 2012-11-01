@@ -68,6 +68,20 @@ Python interpreter after that line has been executed. The third column
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
+Decorator
+=========
+
+A function decorator is also available.  Use as follows::
+
+    from memory_profiler import profile
+
+    @profile
+    def my_func():
+        a = [1] * (10 ** 6)
+        b = [2] * (2 * 10 ** 7)
+        del b
+        return a
+
 Setting debugger breakpoints
 =============================
 It is possible to set breakpoints depending on the amount of memory used.
