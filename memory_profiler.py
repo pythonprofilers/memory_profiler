@@ -550,6 +550,7 @@ def profile(func, stream=None):
 if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage=_CMD_USAGE, version=__version__)
+    parser.disable_interspersed_args()
     parser.add_option("--pdb-mmem", dest="max_mem", metavar="MAXMEM",
         type="float", action="store",
         help="step into the debugger when memory exceeds MAXMEM")
