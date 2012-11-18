@@ -538,11 +538,11 @@ def magic_memit(self, line=''):
         print('ERROR: could not read memory usage, try with a lower interval or more iterations')
 
 
-def profile(func):
+def profile(func, stream=None):
     def wrapper(*args, **kwargs):
         prof = LineProfiler()
         val = prof(func)(*args, **kwargs)
-        show_results(prof)
+        show_results(prof, stream=stream)
         return val
     return wrapper
 
