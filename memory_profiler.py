@@ -109,10 +109,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         n_args = len(aspec.args)
         if aspec.defaults is not None:
             n_args -= len(aspec.defaults)
-        if len(aspec.args) != len(args):
+        if n_args != len(args):
             raise ValueError(
             'Function expects %s value(s) but %s where given'
-            % (len(aspec.args), len(args)))
+            % (n_args, len(args)))
 
         try:
             import multiprocessing
