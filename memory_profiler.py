@@ -53,14 +53,17 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
     Parameters
     ----------
     proc : {int, string, tuple}, optional
-        The process to monitor. Can be given by a PID, by a string
-        containing a filename or by a tuple. The tuple should contain
-        three values (f, args, kw) specifies to run the function
-        f(*args, **kw).  Set to -1 (default) for current process.
+        The process to monitor. Can be given by an integer
+        representing a PID or by a tuple representing a Python
+        function. The tuple contains three values (f, args, kw) and
+        specifies to run the function f(*args, **kw).  Set to -1
+        (default) for current process.
 
     interval : float, optional
+        Interval at which measurements are collected.
 
     timeout : float, optional
+        Maximum amount of time (in seconds) to wait before returning.
 
     run_in_place : boolean, optional. False by default
         If False fork the process and retrieve timings from a different
@@ -70,8 +73,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
 
     Returns
     -------
-    mm : list of integers, size less than num
-        memory usage, in KB
+    mem_usage : list of floating-poing values
+        memory usage, in MB. It's length is always < timeout / interval
     """
     ret = []
 
@@ -88,6 +91,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         filename = _find_script(proc)
         with open(filename) as f:
             proc = f.read()
+        # XXX TODO
         raise NotImplementedError
 
     if isinstance(proc, (list, tuple)):
