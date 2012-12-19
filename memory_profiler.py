@@ -62,7 +62,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
 
     timeout : float, optional
 
-
     run_in_place : boolean, optional. False by default
         If False fork the process and retrieve timings from a different
         process. You shouldn't need to change this unless you are affected
@@ -101,6 +100,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
             f, args, kw = (proc[0], proc[1], proc[2])
         else:
             raise ValueError
+
+        aspec = inspect.getargspec(f)
+        if len(aspec.args) != len(args):
+            raise ValueError(
+            'Function expects %s value(s) but %s where given'
+            % (len(aspec.args), len(args)))
+
         try:
             import multiprocessing
         except ImportError:
@@ -118,10 +124,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         pid = getattr(main_thread, 'pid', os.getpid())
         while i < max_iter and main_thread.is_alive():
             m = _get_memory(pid)
+            if m == -1:
+                # this means the thread has finished
+                break
             ret.append(m)
             time.sleep(interval)
             i += 1
-        main_thread.join()
+        main_thread.join(1.)
     else:
         # external process
         if proc == -1:
@@ -135,7 +144,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
 
 # ..
 # .. utility functions for line-by-line ..
-
 
 def _find_script(script_name):
     """ Find the script.
@@ -452,12 +460,6 @@ def magic_mprun(self, parameter_s=''):
     else:
         page(output)
     print(message,)
-
-#    dump_file = opts.D[0]
-#    if dump_file:
-#        profile.dump_stats(dump_file)
-#        print '\n*** Profile stats pickled to file',\
-#              `dump_file` + '.', message
 
     text_file = opts.T[0]
     if text_file:
