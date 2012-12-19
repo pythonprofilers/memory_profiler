@@ -106,6 +106,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
             raise ValueError
 
         aspec = inspect.getargspec(f)
+        n_args = len(aspec.args)
+        if aspec.defaults is not None:
+            n_args -= len(aspec.defaults)
         if len(aspec.args) != len(args):
             raise ValueError(
             'Function expects %s value(s) but %s where given'
