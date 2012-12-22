@@ -45,6 +45,30 @@ except ImportError:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
 
+try:
+    from multiprocessing import Process, Event, Queue
+except ImportError:
+    from threading import Thread, Event, Queue
+    Process = Thread
+
+class Timer(Process):
+    """
+    Fetch memory consumption from over a time interval
+    """
+
+    def __init__(self, monitor_pid, interval, event, queue, *args, **kw):
+        self.monitor_pid = monitor_pid
+        self.q = queue
+        self.interval = interval
+        self.cont = True
+        self.e = event
+        super(Timer, self).__init__(*args, **kw)
+
+    def run(self):
+        while not self.e.is_set():
+            m = _get_memory(self.monitor_pid)
+            self.q.put(m)
+            time.sleep(self.interval)
 
 def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
     """
@@ -87,13 +111,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
         # for a Python function wait until it finishes
         max_iter = float('inf')
 
-    if str(proc).endswith('.py'):
-        filename = _find_script(proc)
-        with open(filename) as f:
-            proc = f.read()
-        # XXX TODO
-        raise NotImplementedError
-
     if isinstance(proc, (list, tuple)):
 
         if len(proc) == 1:
@@ -114,30 +131,17 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
             'Function expects %s value(s) but %s where given'
             % (n_args, len(args)))
 
-        try:
-            import multiprocessing
-        except ImportError:
-            print ('WARNING: cannot import module `multiprocessing`. Forcing to'
-                   ' run inplace.')
-            # force inplace
-            run_in_place = True
-        if run_in_place:
-            import threading
-            main_thread = threading.Thread(target=f, args=args, kwargs=kw)
-        else:
-            main_thread = multiprocessing.Process(target=f, args=args, kwargs=kw)
-        i = 0
-        main_thread.start()
-        pid = getattr(main_thread, 'pid', os.getpid())
-        while i < max_iter and main_thread.is_alive():
-            m = _get_memory(pid)
-            if m == -1:
-                # this means the thread has finished
-                break
-            ret.append(m)
-            time.sleep(interval)
-            i += 1
-        main_thread.join(1.)
+        e = Event() # this will tell Timer when to stop measuring
+        q = Queue() # this will store Timer's results
+        p = Timer(os.getpid(), interval, e, q)
+        p.start()
+        f(*args, **kw)
+        e.set()
+        p.join(5 * interval)
+        ret = []
+        while not q.empty():
+            ret.append(q.get_nowait())
+
     else:
         # external process
         if proc == -1:
