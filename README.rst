@@ -106,12 +106,35 @@ uses more than 100 MB in the decorated function.
 memory_profiler exposes a number of functions to be used in third-party
 code.
 
+
+
 ``memory_usage(proc=-1, interval=.1, timeout=None)`` returns the memory usage
 over a time interval. The first argument, ``proc`` represents what
 should be monitored.  This can either be the PID of a process (not
 necessarily a Python program), a string containing some python code to
 be evaluated or a tuple ``(f, args, kw)`` containing a function and its
-arguments to be evaluated as ``f(*args, **kw)``. For example::
+arguments to be evaluated as ``f(*args, **kw)``. For example,
+
+
+    >>> from memory_profiler import memory_usage
+    >>> mem_usage = memory_usage(-1, interval=.2, timeout=1)
+    >>> print(mem_usage)
+	[7.296875, 7.296875, 7.296875, 7.296875, 7.296875]
+
+
+Here I've told memory_profiler to get the memory consumption of the
+current process over a period of 1 second with a time interval of 0.2
+seconds. As PID I've given it -1, which is a special number (PIDs are
+usually positive) that means current process, that is, I'm getting the
+memory usage of the current Python interpreter. Thus I'm getting
+around 7MB of memory usage from a plain python interpreter. If I try
+the same thing on IPython (console) I get 29MB, and if I try the same
+thing on the IPython notebook it scales up to 44MB.
+
+
+If you'd like to get the memory consumption of a Python function, then
+you should specify the function and its arguments in the tuple ``(f,
+args, kw)``. For example::
 
 
     >>> # define a simple function
@@ -125,7 +148,8 @@ arguments to be evaluated as ``f(*args, **kw)``. For example::
     >>> from memory_profiler import memory_usage
     >>> memory_usage((f, (1,), {'n' : int(1e6)}))
 
-
+This will execute the code `f(1, n=int(1e6))` and return the memory
+consumption during this execution.
 
 
 =====================
