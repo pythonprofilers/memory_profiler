@@ -56,21 +56,24 @@ class Timer(Process):
     Fetch memory consumption from over a time interval
     """
 
-    def __init__(self, monitor_pid, interval, event, queue, *args, **kw):
+    def __init__(self, monitor_pid, interval, queue, *args, **kw):
         self.monitor_pid = monitor_pid
         self.q = queue
         self.interval = interval
         self.cont = True
-        self.e = event
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
-        while not self.e.is_set():
+        while self.cont:
             m = _get_memory(self.monitor_pid)
             self.q.put(m)
             time.sleep(self.interval)
 
-def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
+    def join(self, timeout=None):
+        self.cont = False
+        super(Timer, self).join(timeout=timeout)
+
+def memory_usage(proc=-1, interval=.1, timeout=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -88,12 +91,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
 
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
-
-    run_in_place : boolean, optional. False by default
-        If False fork the process and retrieve timings from a different
-        process. You shouldn't need to change this unless you are affected
-        by this (http://blog.vene.ro/2012/07/04/on-why-my-memit-fails-on-osx)
-        bug.
 
     Returns
     -------
@@ -131,14 +128,12 @@ def memory_usage(proc=-1, interval=.1, timeout=None, run_in_place=False):
             'Function expects %s value(s) but %s where given'
             % (n_args, len(args)))
 
-        e = Event() # this will tell Timer when to stop measuring
         q = Queue() # this will store Timer's results
-        p = Timer(os.getpid(), interval, e, q)
+        p = Timer(os.getpid(), interval, q)
         p.start()
+        ret = [q.get()] # wait for timer to start measuring
         f(*args, **kw)
-        e.set()
         p.join(5 * interval)
-        ret = []
         while not q.empty():
             ret.append(q.get_nowait())
 
@@ -503,10 +498,6 @@ def magic_memit(self, line=''):
     -r<R>: repeat the loop iteration <R> times and take the best result.
     Default: 1
 
-    -i: run the code in the current environment, without forking a new process.
-    This is required on some MacOS versions of Accelerate if your line contains
-    a call to `np.dot`.
-
     -t<T>: timeout after <T> seconds. Unused if `-i` is active. Default: None
 
     Examples
@@ -540,10 +531,8 @@ def magic_memit(self, line=''):
     timeout = int(getattr(opts, 't', 0))
     if timeout <= 0:
         timeout = None
-    run_in_place = hasattr(opts, 'i')
 
-    mem_usage = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout,
-        run_in_place=run_in_place)
+    mem_usage = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
 
     if mem_usage:
         print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
