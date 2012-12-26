@@ -10,6 +10,13 @@ import linecache
 import inspect
 
 
+# TODO: provide alternative when multprocessing is not available
+try:
+    from multiprocessing import Process, Pipe
+except ImportError:
+    from multiprocessing.dummy import Process, Pipe
+
+
 try:
     import psutil
 
@@ -45,33 +52,28 @@ except ImportError:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
 
-try:
-    from multiprocessing import Process, Event, Queue
-except ImportError:
-    from threading import Thread, Event, Queue
-    Process = Thread
 
 class Timer(Process):
     """
     Fetch memory consumption from over a time interval
     """
 
-    def __init__(self, monitor_pid, interval, queue, *args, **kw):
+    def __init__(self, monitor_pid, interval, pipe, *args, **kw):
         self.monitor_pid = monitor_pid
-        self.q = queue
         self.interval = interval
+        self.pipe = pipe
         self.cont = True
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
-        while self.cont:
+        m = _get_memory(self.monitor_pid)
+        timings = [m]
+        self.pipe.send(0) # we're ready
+        while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid)
-            self.q.put(m)
-            time.sleep(self.interval)
+            timings.append(m)
+        self.pipe.send(timings)
 
-    def join(self, timeout=None):
-        self.cont = False
-        super(Timer, self).join(timeout=timeout)
 
 def memory_usage(proc=-1, interval=.1, timeout=None):
     """
@@ -128,15 +130,14 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             'Function expects %s value(s) but %s where given'
             % (n_args, len(args)))
 
-        q = Queue() # this will store Timer's results
-        p = Timer(os.getpid(), interval, q)
+        a, b =  Pipe() # this will store Timer's results
+        p = Timer(os.getpid(), interval, a)
         p.start()
-        ret = [q.get()] # wait for timer to start measuring
+        b.recv() # wait until we start getting memory
         f(*args, **kw)
+        b.send(0) # finish timing
+        ret = b.recv()
         p.join(5 * interval)
-        while not q.empty():
-            ret.append(q.get_nowait())
-
     else:
         # external process
         if proc == -1:
