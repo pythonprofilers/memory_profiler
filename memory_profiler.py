@@ -1,6 +1,6 @@
 """Profile the memory usage of a Python program"""
 
-__version__ = '0.20'
+__version__ = '0.21'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
