@@ -179,6 +179,7 @@ class LineProfiler:
         self.code_map = {}
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
+        self.enable_global = kw.get('enable_global', False)
 
     def __call__(self, func):
         self.add_function(func)
@@ -262,7 +263,12 @@ class LineProfiler:
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if event in ('line', 'return') and frame.f_code in self.code_map:
+        if event in ('line', 'return'):
+            f_code = frame.f_code
+            if self.enable_global and f_code not in self.code_map:
+                self.code_map[f_code] = {}
+            
+            if self.enable_global or f_code in self.code_map:
                 lineno = frame.f_lineno
                 if event == 'return':
                     lineno += 1
