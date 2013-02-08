@@ -308,7 +308,7 @@ class LineProfiler:
         sys.settrace(None)
 
 
-def show_results(prof, stream=None):
+def show_results(prof, stream=None, precision=3):
     if stream is None:
         stream = sys.stdout
     template = '{0:>6} {1:>12} {2:>12}   {3:<}'
@@ -356,6 +356,8 @@ def show_results(prof, stream=None):
 
         first_line = sorted(lines_normalized.keys())[0]
         mem_old = max(lines_normalized[first_line])
+        precision = int(precision)
+        template_mem = '{{0:{0}.{1}'.format(precision + 6, precision) + 'f} MB'
         for i, l in enumerate(linenos):
             mem = ''
             inc = ''
@@ -363,8 +365,8 @@ def show_results(prof, stream=None):
                 mem = max(lines_normalized[l])
                 inc = mem - mem_old
                 mem_old = mem
-                mem = '{0:9.6f} MB'.format(mem)
-                inc = '{0:9.6f} MB'.format(inc)
+                mem = template_mem.format(mem)
+                inc = template_mem.format(inc)
             stream.write(template.format(l, mem, inc, sub_lines[i]))
         stream.write('\n\n')
 
@@ -542,6 +544,9 @@ def magic_memit(self, line=''):
 
 
 def profile(func, stream=None):
+    """
+    Decorator that will run the function and print a line-by-line profile
+    """
     def wrapper(*args, **kwargs):
         prof = LineProfiler()
         val = prof(func)(*args, **kwargs)
@@ -557,6 +562,9 @@ if __name__ == '__main__':
     parser.add_option("--pdb-mmem", dest="max_mem", metavar="MAXMEM",
         type="float", action="store",
         help="step into the debugger when memory exceeds MAXMEM")
+    parser.add_option('--precision', dest="precision", type="int",
+        action="store", default=3,
+        help="precision of memory output in number of significant digits")
 
     if not sys.argv[1:]:
         parser.print_help()
@@ -566,14 +574,19 @@ if __name__ == '__main__':
 
     prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
-    if sys.version_info[0] < 3:
-        import __builtin__
-        __builtin__.__dict__['profile'] = prof
-        execfile(__file__, locals(), locals())
-    else:
-        import builtins
-        builtins.__dict__['profile'] = prof
-        exec(compile(open(__file__).read(), __file__, 'exec'), locals(),
-                                                               globals())
-
-    show_results(prof)
+    try:
+        if sys.version_info[0] < 3:
+            import __builtin__
+            __builtin__.__dict__['profile'] = prof
+            ns = locals()
+            ns['profile'] = prof # shadow the profile decorator defined above
+            execfile(__file__, ns, ns)
+        else:
+            import builtins
+            builtins.__dict__['profile'] = prof
+            ns = locals()
+            ns['profile'] = prof # shadow the profile decorator defined above
+            exec(compile(open(__file__).read(), __file__, 'exec'), ns,
+                                                                   globals())
+    finally:
+        show_results(prof, precision=options.precision)
