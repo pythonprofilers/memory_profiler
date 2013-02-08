@@ -68,6 +68,24 @@ Python interpreter after that line has been executed. The third column
 with respect to the last one. The last column (*Line Contents*) prints
 the code that has been profiled.
 
+Options
+=======
+
+Run ``python -m memory_profiler`` without arguments to see a complete
+list of options::
+
+    $ python -m memory_profiler                                                                                                                                                       [9:30:48]
+    Usage: python -m memory_profiler script_file.py
+
+    Options:
+      --version             show program's version number and exit
+      -h, --help            show this help message and exit
+      --pdb-mmem=MAXMEM     step into the debugger when memory exceeds MAXMEM
+      --precision=PRECISION
+                            precision of memory output in number of significant
+                            digits
+
+
 Decorator
 =========
 
@@ -106,20 +124,18 @@ uses more than 100 MB in the decorated function.
 memory_profiler exposes a number of functions to be used in third-party
 code.
 
-
-
 ``memory_usage(proc=-1, interval=.1, timeout=None)`` returns the memory usage
 over a time interval. The first argument, ``proc`` represents what
 should be monitored.  This can either be the PID of a process (not
 necessarily a Python program), a string containing some python code to
 be evaluated or a tuple ``(f, args, kw)`` containing a function and its
-arguments to be evaluated as ``f(*args, **kw)``. For example,
+arguments to be evaluated as ``f(*args, **kw)``. For example::
 
 
     >>> from memory_profiler import memory_usage
     >>> mem_usage = memory_usage(-1, interval=.2, timeout=1)
     >>> print(mem_usage)
-	[7.296875, 7.296875, 7.296875, 7.296875, 7.296875]
+    [7.296875, 7.296875, 7.296875, 7.296875, 7.296875]
 
 
 Here I've told memory_profiler to get the memory consumption of the
@@ -149,7 +165,9 @@ args, kw)``. For example::
     >>> memory_usage((f, (1,), {'n' : int(1e6)}))
 
 This will execute the code `f(1, n=int(1e6))` and return the memory
-consumption during this execution.
+consumption during this execution. See
+`this post <http://fseoane.net/blog/2013/memory-plots-with-memory_profiler/>`_
+for some more examples.
 
 
 =====================
@@ -230,6 +248,16 @@ For more details, see the docstrings of the magics.
     * Q: Does it work under windows ?
     * A: Yes, but you will need the
       `psutil <http://pypi.python.org/pypi/psutil>`_ module.
+
+    * Q: Does memory_profiler show memory consumption for temporary
+      objects, i.e. objects that are created and destroyed within
+      one line in the line-by-line profile?
+    * A: No, memory_profiler fetches memory at the end of each line,
+      so objects that are destroyed before the end for the line
+      will not appear in the line-by-line profile. If you would like to se
+      the impact of these instructions they will have to be put into different
+      lines. See of example
+      `this stack overflow question <http://stackoverflow.com/questions/14688510/why-does-this-python-logical-indexing-take-up-so-much-memory>`_.
 
 
 
