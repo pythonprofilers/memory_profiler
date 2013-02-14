@@ -543,6 +543,12 @@ def magic_memit(self, line=''):
         print('ERROR: could not read memory usage, try with a lower interval or more iterations')
 
 
+def load_ipython_extension(ip):
+    """This is called to load the module as an IPython extension."""
+    ip.define_magic('mprun', magic_mprun)
+    ip.define_magic('memit', magic_memit)
+
+
 def profile(func, stream=None):
     """
     Decorator that will run the function and print a line-by-line profile
