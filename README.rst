@@ -155,45 +155,23 @@ consumption during this execution.
 =====================
  IPython integration
 =====================
-After installing the module, if you use IPython, you can set up the `%mprun`
-and `%memit` magics by following these steps.
+After installing the module, if you use IPython, you can use the `%mprun`
+and `%memit` magics.
 
-For IPython 0.10, you can install it by editing the IPython configuration
-file ~/.ipython/ipy_user_conf.py to add the following lines::
+For IPython 0.11+, you can use the module directly as an extension, with
+``%load_ext memory_profiler``.
 
-    # These two lines are standard and probably already there.
-    import IPython.ipapi
-    ip = IPython.ipapi.get()
+To activate it whenever you start IPython, edit the configuration file for your
+IPython profile, ~/.ipython/profile_default/ipython_config.py, to register the
+extension like this (If you already have other extensions, just add this one to
+the list)::
 
-    # These two are the important ones.
-    import memory_profiler
-    ip.expose_magic('mprun', memory_profiler.magic_mprun)
-    ip.expose_magic('memit', memory_profiler.magic_memit)
-
-For IPython 0.11+, you have to edit the file
-~/.ipython/extensions/memory_profiler_ext.py with the following content::
-
-    import memory_profiler
-
-    def load_ipython_extension(ip):
-        ip.define_magic('mprun', memory_profiler.magic_mprun)
-        ip.define_magic('memit', memory_profiler.magic_memit)
-
-If you don't have an IPython profile already set up, create one using the
-following command::
-
-    $ ipython profile create
-
-Then, edit the configuration file for your IPython profile,
-~/.ipython/profile_default/ipython_config.py, to register the extension like
-this (If you already have other extensions, just add this one to the list)::
-
-    c.TerminalIPythonApp.extensions = [
-        'memory_profiler_ext',
-    ]
     c.InteractiveShellApp.extensions = [
-        'memory_profiler_ext',
+        'memory_profiler',
     ]
+
+(If the config file doesn't already exist, run ``ipython profile create`` in
+a terminal.)
 
 It then can be used directly from IPython to obtain a line-by-line
 report using the `%mprun` magic command. In this case, you can skip
@@ -214,6 +192,18 @@ Another useful magic that we define is `%memit`, which is analogous to
     maximum of 3: 76.402344 MB per loop
 
 For more details, see the docstrings of the magics.
+
+For IPython 0.10, you can install it by editing the IPython configuration
+file ~/.ipython/ipy_user_conf.py to add the following lines::
+
+    # These two lines are standard and probably already there.
+    import IPython.ipapi
+    ip = IPython.ipapi.get()
+
+    # These two are the important ones.
+    import memory_profiler
+    ip.expose_magic('mprun', memory_profiler.magic_mprun)
+    ip.expose_magic('memit', memory_profiler.magic_memit)
 
 ============================
  Frequently Asked Questions
