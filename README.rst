@@ -260,6 +260,8 @@ cleanup.
 
 `Vlad Niculae <http://vene.ro/>`_ added the `%mprun` and `%memit` IPython magics.
 
+`Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
+
 
 
 =========
