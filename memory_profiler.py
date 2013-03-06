@@ -8,7 +8,7 @@ import time, sys, os, pdb
 import warnings
 import linecache
 import inspect
-
+import subprocess
 
 # TODO: provide alternative when multprocessing is not available
 try:
@@ -138,6 +138,15 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         parent_conn.send(0)  # finish timing
         ret = parent_conn.recv()
         p.join(5 * interval)
+    elif isinstance(proc, subprocess.Popen):
+        # external process
+        if max_iter == -1:
+            max_iter = 1
+        for _ in range(max_iter):
+            ret.append(_get_memory(proc.pid))
+            time.sleep(interval)
+            if proc.poll() is not None:
+                break
     else:
         # external process
         if proc == -1:
