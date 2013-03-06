@@ -68,7 +68,7 @@ class Timer(Process):
     def run(self):
         m = _get_memory(self.monitor_pid)
         timings = [m]
-        self.pipe.send(0) # we're ready
+        self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid)
             timings.append(m)
@@ -130,13 +130,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             'Function expects %s value(s) but %s where given'
             % (n_args, len(args)))
 
-        a, b =  Pipe() # this will store Timer's results
-        p = Timer(os.getpid(), interval, a)
+        child_conn, parent_conn = Pipe()  # this will store Timer's results
+        p = Timer(os.getpid(), interval, child_conn)
         p.start()
-        b.recv() # wait until we start getting memory
+        parent_conn.recv()  # wait until we start getting memory
         f(*args, **kw)
-        b.send(0) # finish timing
-        ret = b.recv()
+        parent_conn.send(0)  # finish timing
+        ret = parent_conn.recv()
         p.join(5 * interval)
     else:
         # external process
@@ -160,10 +160,10 @@ def _find_script(script_name):
     if os.path.isfile(script_name):
         return script_name
     path = os.getenv('PATH', os.defpath).split(os.pathsep)
-    for dir in path:
-        if dir == '':
+    for folder in path:
+        if folder == '':
             continue
-        fn = os.path.join(dir, script_name)
+        fn = os.path.join(folder, script_name)
         if os.path.isfile(fn):
             return fn
 
@@ -221,8 +221,8 @@ class LineProfiler:
         """ Profile a single executable statment in the main namespace.
         """
         import __main__
-        dict = __main__.__dict__
-        return self.runctx(cmd, dict, dict)
+        main_dict = __main__.__dict__
+        return self.runctx(cmd, main_dict, main_dict)
 
     def runctx(self, cmd, globals, locals):
         """ Profile a single executable statement in the given namespaces.
@@ -263,11 +263,11 @@ class LineProfiler:
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
         if event in ('line', 'return') and frame.f_code in self.code_map:
-                lineno = frame.f_lineno
-                if event == 'return':
-                    lineno += 1
-                entry = self.code_map[frame.f_code].setdefault(lineno, [])
-                entry.append(_get_memory(os.getpid()))
+            lineno = frame.f_lineno
+            if event == 'return':
+                lineno += 1
+            entry = self.code_map[frame.f_code].setdefault(lineno, [])
+            entry.append(_get_memory(os.getpid()))
 
         return self.trace_memory_usage
 
@@ -472,9 +472,8 @@ def magic_mprun(self, parameter_s=''):
 
     text_file = opts.T[0]
     if text_file:
-        pfile = open(text_file, 'w')
-        pfile.write(output)
-        pfile.close()
+        with open(text_file, 'w') as pfile:
+            pfile.write(output)
         print('\n*** Profile printout saved to text file %s. %s' % (text_file,
                                                                     message))
 
