@@ -324,7 +324,7 @@ def show_results(prof, stream=None, precision=3):
         stream.write('Filename: ' + filename + '\n\n')
         if not os.path.exists(filename):
             stream.write('ERROR: Could not find file ' + filename + '\n')
-            if filename.startswith("ipython-input"):
+            if filename.startswith("ipython-input") or filename.startswith("<ipython-input"):
                 print("NOTE: %mprun can only be used on functions defined in "
                       "physical files, and not in the IPython environment.")
             continue
