@@ -33,7 +33,6 @@ except ImportError:
 
     warnings.warn("psutil module not found. memory_profiler will be slow")
 
-    import subprocess
     if os.name == 'posix':
         def _get_memory(pid):
             # ..
@@ -139,10 +138,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         ret = parent_conn.recv()
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
-        # external process
-        if max_iter == -1:
-            max_iter = 1
-        for _ in range(max_iter):
+        # external process, launched from Python
+        while True:
             ret.append(_get_memory(proc.pid))
             time.sleep(interval)
             if proc.poll() is not None:
