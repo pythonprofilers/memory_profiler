@@ -167,7 +167,7 @@ def _find_script(script_name):
         if os.path.isfile(fn):
             return fn
 
-    print >> sys.stderr, 'Could not find script {0}'.format(script_name)
+    sys.stderr.write('Could not find script {0}\n'.format(script_name))
     raise SystemExit(1)
 
 
@@ -401,7 +401,10 @@ def magic_mprun(self, parameter_s=''):
 
     -r: return the LineProfiler object after it has completed profiling.
     """
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError: # Python 3.x
+        from io import StringIO
 
     # Local imports to avoid hard dependency.
     from distutils.version import LooseVersion
@@ -434,16 +437,22 @@ def magic_mprun(self, parameter_s=''):
                 e.__class__.__name__, e))
 
     profile = LineProfiler()
-    map(profile, funcs)
+    for func in funcs:
+        profile(func)
+
     # Add the profiler to the builtins for @profile.
-    import __builtin__
-    if 'profile' in __builtin__.__dict__:
+    try:
+        import builtins
+    except ImportError: # Python 3x
+        import __builtin__ as builtins
+
+    if 'profile' in builtins.__dict__:
         had_profile = True
-        old_profile = __builtin__.__dict__['profile']
+        old_profile = builtins.__dict__['profile']
     else:
         had_profile = False
         old_profile = None
-    __builtin__.__dict__['profile'] = profile
+    builtins.__dict__['profile'] = profile
 
     try:
         try:
@@ -456,7 +465,7 @@ def magic_mprun(self, parameter_s=''):
                 "profiled.")
     finally:
         if had_profile:
-            __builtin__.__dict__['profile'] = old_profile
+            builtins.__dict__['profile'] = old_profile
 
     # Trap text output.
     stdout_trap = StringIO()
