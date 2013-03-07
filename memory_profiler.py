@@ -80,12 +80,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
 
     Parameters
     ----------
-    proc : {int, string, tuple}, optional
-        The process to monitor. Can be given by an integer
-        representing a PID or by a tuple representing a Python
-        function. The tuple contains three values (f, args, kw) and
-        specifies to run the function f(*args, **kw).  Set to -1
-        (default) for current process.
+    proc : {int, string, tuple, subprocess.Popen}, optional
+        The process to monitor. Can be given by an integer/string
+        representing a PID, by a Popen object or by a tuple
+        representing a Python function. The tuple contains three
+        values (f, args, kw) and specifies to run the function
+        f(*args, **kw).
+        Set to -1 (default) for current process.
 
     interval : float, optional
         Interval at which measurements are collected.
@@ -142,6 +143,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         while True:
             ret.append(_get_memory(proc.pid))
             time.sleep(interval)
+            if timeout is not None:
+                max_iter -= 1
+                if max_iter == 0:
+                    break
             if proc.poll() is not None:
                 break
     else:
