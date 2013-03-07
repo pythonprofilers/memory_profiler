@@ -144,7 +144,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             proc = os.getpid()
         if max_iter == -1:
             max_iter = 1
-        for _ in range(max_iter):
+        counter = 0
+        while counter < max_iter:
+            counter += 1
             ret.append(_get_memory(proc))
             time.sleep(interval)
     return ret
@@ -443,7 +445,7 @@ def magic_mprun(self, parameter_s=''):
     # Add the profiler to the builtins for @profile.
     try:
         import builtins
-    except ImportError: # Python 3x
+    except ImportError:  # Python 3x
         import __builtin__ as builtins
 
     if 'profile' in builtins.__dict__:
