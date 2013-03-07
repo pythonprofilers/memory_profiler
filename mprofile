@@ -1,0 +1,26 @@
+#! /usr/bin/env python
+import subprocess
+import memory_profiler as mp
+import os.path as osp
+import time
+import sys
+
+if len(sys.argv) < 2:
+    print("""Memory usage monitoring
+Usage: %s <command> <argument> ... <argument>
+
+Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
+<YYYYMMDDhhmmss> is the date-time of the program start) in the current
+directory. This file contains the process memory consumption, in Mb (one
+value per line). Memory is sampled twice each second."""
+          % osp.basename(sys.argv[0])
+          )
+    sys.exit(1)
+
+outfilename = "mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime())
+
+p = subprocess.Popen(sys.argv[1:])
+mu = mp.memory_usage(proc=p, interval=0.5)
+with open(outfilename, "w") as f:
+    for m in mu:
+        f.write(str(m) + "\n")
