@@ -67,7 +67,7 @@ class Timer(Process):
     def run(self):
         m = _get_memory(self.monitor_pid)
         timings = [m]
-        self.pipe.send(0) # we're ready
+        self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid)
             timings.append(m)
@@ -130,13 +130,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             'Function expects %s value(s) but %s where given'
             % (n_args, len(args)))
 
-        a, b =  Pipe() # this will store Timer's results
-        p = Timer(os.getpid(), interval, a)
+        child_conn, parent_conn = Pipe()  # this will store Timer's results
+        p = Timer(os.getpid(), interval, child_conn)
         p.start()
-        b.recv() # wait until we start getting memory
+        parent_conn.recv()  # wait until we start getting memory
         f(*args, **kw)
-        b.send(0) # finish timing
-        ret = b.recv()
+        parent_conn.send(0)  # finish timing
+        ret = parent_conn.recv()
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
@@ -155,7 +155,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             proc = os.getpid()
         if max_iter == -1:
             max_iter = 1
-        for _ in range(max_iter):
+        counter = 0
+        while counter < max_iter:
+            counter += 1
             ret.append(_get_memory(proc))
             time.sleep(interval)
     return ret
@@ -171,14 +173,14 @@ def _find_script(script_name):
     if os.path.isfile(script_name):
         return script_name
     path = os.getenv('PATH', os.defpath).split(os.pathsep)
-    for dir in path:
-        if dir == '':
+    for folder in path:
+        if folder == '':
             continue
-        fn = os.path.join(dir, script_name)
+        fn = os.path.join(folder, script_name)
         if os.path.isfile(fn):
             return fn
 
-    print >> sys.stderr, 'Could not find script {0}'.format(script_name)
+    sys.stderr.write('Could not find script {0}\n'.format(script_name))
     raise SystemExit(1)
 
 
@@ -232,8 +234,8 @@ class LineProfiler:
         """ Profile a single executable statment in the main namespace.
         """
         import __main__
-        dict = __main__.__dict__
-        return self.runctx(cmd, dict, dict)
+        main_dict = __main__.__dict__
+        return self.runctx(cmd, main_dict, main_dict)
 
     def runctx(self, cmd, globals, locals):
         """ Profile a single executable statement in the given namespaces.
@@ -274,11 +276,11 @@ class LineProfiler:
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
         if event in ('line', 'return') and frame.f_code in self.code_map:
-                lineno = frame.f_lineno
-                if event == 'return':
-                    lineno += 1
-                entry = self.code_map[frame.f_code].setdefault(lineno, [])
-                entry.append(_get_memory(os.getpid()))
+            lineno = frame.f_lineno
+            if event == 'return':
+                lineno += 1
+            entry = self.code_map[frame.f_code].setdefault(lineno, [])
+            entry.append(_get_memory(os.getpid()))
 
         return self.trace_memory_usage
 
@@ -335,7 +337,7 @@ def show_results(prof, stream=None, precision=3):
         stream.write('Filename: ' + filename + '\n\n')
         if not os.path.exists(filename):
             stream.write('ERROR: Could not find file ' + filename + '\n')
-            if filename.startswith("ipython-input"):
+            if filename.startswith("ipython-input") or filename.startswith("<ipython-input"):
                 print("NOTE: %mprun can only be used on functions defined in "
                       "physical files, and not in the IPython environment.")
             continue
@@ -412,7 +414,10 @@ def magic_mprun(self, parameter_s=''):
 
     -r: return the LineProfiler object after it has completed profiling.
     """
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError: # Python 3.x
+        from io import StringIO
 
     # Local imports to avoid hard dependency.
     from distutils.version import LooseVersion
@@ -445,16 +450,22 @@ def magic_mprun(self, parameter_s=''):
                 e.__class__.__name__, e))
 
     profile = LineProfiler()
-    map(profile, funcs)
+    for func in funcs:
+        profile(func)
+
     # Add the profiler to the builtins for @profile.
-    import __builtin__
-    if 'profile' in __builtin__.__dict__:
+    try:
+        import builtins
+    except ImportError:  # Python 3x
+        import __builtin__ as builtins
+
+    if 'profile' in builtins.__dict__:
         had_profile = True
-        old_profile = __builtin__.__dict__['profile']
+        old_profile = builtins.__dict__['profile']
     else:
         had_profile = False
         old_profile = None
-    __builtin__.__dict__['profile'] = profile
+    builtins.__dict__['profile'] = profile
 
     try:
         try:
@@ -467,7 +478,7 @@ def magic_mprun(self, parameter_s=''):
                 "profiled.")
     finally:
         if had_profile:
-            __builtin__.__dict__['profile'] = old_profile
+            builtins.__dict__['profile'] = old_profile
 
     # Trap text output.
     stdout_trap = StringIO()
@@ -483,9 +494,8 @@ def magic_mprun(self, parameter_s=''):
 
     text_file = opts.T[0]
     if text_file:
-        pfile = open(text_file, 'w')
-        pfile.write(output)
-        pfile.close()
+        with open(text_file, 'w') as pfile:
+            pfile.write(output)
         print('\n*** Profile printout saved to text file %s. %s' % (text_file,
                                                                     message))
 
