@@ -212,7 +212,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
     * A: This module gets the memory consumption by querying the
       operating system kernel about the amount of memory the current
       process has allocated, which might be slightly different from
-      the ammount of memory that is actually used by the Python
+      the amount of memory that is actually used by the Python
       interpreter. Also, because of how the garbage collector works in
       Python the result might be different between platforms and even
       between runs.
