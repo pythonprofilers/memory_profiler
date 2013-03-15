@@ -28,7 +28,7 @@ setup(
     author_email='fabian@fseoane.net',
     url='http://pypi.python.org/pypi/memory_profiler',
     py_modules=['memory_profiler'],
-    scripts=["mprofile"],
+    scripts=["mprofile", "mplot"],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='Simplified BSD'
 
