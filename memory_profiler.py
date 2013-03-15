@@ -387,7 +387,7 @@ def show_results(prof, stream=None, precision=3):
 # A lprun-style %mprun magic for IPython.
 def magic_mprun(self, parameter_s=''):
     """ Execute a statement under the line-by-line memory profiler from the
-    memory_profilser module.
+    memory_profiler module.
 
     Usage:
       %mprun -f func1 -f func2 <statement>
@@ -592,7 +592,9 @@ if __name__ == '__main__':
     parser.add_option('--precision', dest="precision", type="int",
         action="store", default=3,
         help="precision of memory output in number of significant digits")
-
+    parser.add_option("-o", dest="out_filename", type="str",
+                      action="store", default=None,
+                      help="path to a file where results will be written")
     if not sys.argv[1:]:
         parser.print_help()
         sys.exit(2)
@@ -616,4 +618,9 @@ if __name__ == '__main__':
             exec(compile(open(__file__).read(), __file__, 'exec'), ns,
                                                                    globals())
     finally:
-        show_results(prof, precision=options.precision)
+        if options.out_filename is not None:
+            out_file = open(options.out_filename, "w")
+        else:
+            out_file = sys.stdout
+
+        show_results(prof, precision=options.precision, stream=out_file)
