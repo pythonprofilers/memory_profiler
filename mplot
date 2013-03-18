@@ -1,43 +1,89 @@
 #! /usr/bin/env python
 import pylab as pl
+import math
 import sys
 import glob
 import time
 import os
+import os.path as osp
 
-profiles = glob.glob("mprofile_*.dat")
+
+def read_timestamp_file(ts_filename):
+    """Return content of ts_filename or None, if ts_filename
+    is invalid or does not exist"""
+    if not osp.isfile(ts_filename):
+        return None
+
+    ret = {}
+    f = open(ts_filename)
+    for l in f:
+        f_name, start, end = l.split()
+        ts = ret.get(f_name, [])
+        ts.append([float(start), float(end)])
+        ret[f_name] = ts
+    f.close()
+    return ret
+
+
+profiles = glob.glob("mprofile_??????????????.dat")
 profiles.sort()
 
 if len(sys.argv) == 1:
     filename = profiles[-1]
 else:
     filename = sys.argv[1]
-    if not os.path.exists(filename):
+    if not osp.exists(filename):
         try:
             n = int(filename)
         except ValueError:
             print("Input file not found: " + filename)
         filename = profiles[n]
 
-datetime = time.strptime(filename, "mprofile_%Y%m%d%H%M%S.dat")
+# Check for a timestamp file
+file_parts = osp.splitext(filename)
+ts_filename = file_parts[0] + "_ts" + file_parts[1]
+ts = read_timestamp_file(ts_filename)
+
 mdata = pl.loadtxt(filename)
+global_start = float(mdata[0, 1])
+
 mem = mdata[:, 0]
 max_mem = mem.max()
 max_mem_ind = mem.argmax()
 sampling_period = 0.5
 t = pl.r_[:len(mem)] * sampling_period
 
+all_colors=("g", "b", "k", "r")
+
 pl.figure()
 pl.plot(t, mem)
+
+bottom, top = pl.ylim()
+bottom += 0.001
+top -= 0.001
+
+# plot timestamps, if any
+if ts is not None:
+    func_num = 0
+    for f, exec_ts in ts.iteritems():
+        for execution in exec_ts:
+            pl.vlines([ts - global_start for ts in execution],
+                      bottom, top,
+                      colors=all_colors[func_num % len(all_colors)],
+                      label=f.split(".")[-1])
+        func_num += 1
+    pl.legend()
+
 pl.hlines(max_mem,
           pl.xlim()[0] + 0.001, pl.xlim()[1] - 0.001,
           colors="r", linestyles="--")
-pl.vlines(t[max_mem_ind],
-          pl.ylim()[0] + 0.001, pl.ylim()[1] - 0.001,
+pl.vlines(t[max_mem_ind], bottom, top,
           colors="r", linestyles="--")
 pl.xlabel("time [s]")
 pl.ylabel("memory used [Mb]")
-pl.title(time.strftime("%d / %m / %Y - start at %H:%M:%S", datetime))
+title = time.strftime("%d / %m / %Y - start at %H:%M:%S", time.localtime(global_start)) \
+                          + ".{0:03d}".format(int(round(math.modf(global_start)[0]*1000)))
+pl.title(title)
 pl.grid()
 pl.show()
 
