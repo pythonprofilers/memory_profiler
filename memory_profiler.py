@@ -8,7 +8,7 @@ import time, sys, os, pdb
 import warnings
 import linecache
 import inspect
-
+import subprocess
 
 # TODO: provide alternative when multprocessing is not available
 try:
@@ -33,7 +33,6 @@ except ImportError:
 
     warnings.warn("psutil module not found. memory_profiler will be slow")
 
-    import subprocess
     if os.name == 'posix':
         def _get_memory(pid):
             # ..
@@ -81,12 +80,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
 
     Parameters
     ----------
-    proc : {int, string, tuple}, optional
-        The process to monitor. Can be given by an integer
-        representing a PID or by a tuple representing a Python
-        function. The tuple contains three values (f, args, kw) and
-        specifies to run the function f(*args, **kw).  Set to -1
-        (default) for current process.
+    proc : {int, string, tuple, subprocess.Popen}, optional
+        The process to monitor. Can be given by an integer/string
+        representing a PID, by a Popen object or by a tuple
+        representing a Python function. The tuple contains three
+        values (f, args, kw) and specifies to run the function
+        f(*args, **kw).
+        Set to -1 (default) for current process.
 
     interval : float, optional
         Interval at which measurements are collected.
@@ -138,6 +138,17 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         parent_conn.send(0)  # finish timing
         ret = parent_conn.recv()
         p.join(5 * interval)
+    elif isinstance(proc, subprocess.Popen):
+        # external process, launched from Python
+        while True:
+            ret.append(_get_memory(proc.pid))
+            time.sleep(interval)
+            if timeout is not None:
+                max_iter -= 1
+                if max_iter == 0:
+                    break
+            if proc.poll() is not None:
+                break
     else:
         # external process
         if proc == -1:
@@ -171,6 +182,51 @@ def _find_script(script_name):
 
     sys.stderr.write('Could not find script {0}\n'.format(script_name))
     raise SystemExit(1)
+
+
+class TimeStamper:
+    """ A profiler that just records start and end execution times for
+    any decorated function.
+    """
+    def __init__(self):
+        self.functions = {}
+
+    def __call__(self, func):
+        self.add_function(func)
+        f = self.wrap_function(func)
+        f.__module__ = func.__module__
+        f.__name__ = func.__name__
+        f.__doc__ = func.__doc__
+        f.__dict__.update(getattr(func, '__dict__', {}))
+        return f
+
+    def add_function(self, func):
+        if not func in self.functions:
+            self.functions[func] = []
+
+    def wrap_function(self, func):
+        """ Wrap a function to timestamp it.
+        """
+        def f(*args, **kwds):
+            # Start time
+            timestamps = [time.time()]
+            self.functions[func].append(timestamps)
+            try:
+                result = func(*args, **kwds)
+            finally:
+                # end time
+                timestamps.append(time.time())
+            return result
+        return f
+
+    def show_results(self, stream=None):
+        if stream is None:
+            stream = sys.stdout
+
+        for func, timestamps in self.functions.iteritems():
+            function_name = "%s.%s" % (func.__module__, func.__name__)
+            for ts in timestamps:
+                stream.write("%s %.4f %.4f\n" % (function_name, ts[0], ts[1]))
 
 
 class LineProfiler:
@@ -376,7 +432,7 @@ def show_results(prof, stream=None, precision=3):
 # A lprun-style %mprun magic for IPython.
 def magic_mprun(self, parameter_s=''):
     """ Execute a statement under the line-by-line memory profiler from the
-    memory_profilser module.
+    memory_profiler module.
 
     Usage:
       %mprun -f func1 -f func2 <statement>
@@ -581,6 +637,13 @@ if __name__ == '__main__':
     parser.add_option('--precision', dest="precision", type="int",
         action="store", default=3,
         help="precision of memory output in number of significant digits")
+    parser.add_option("-o", dest="out_filename", type="str",
+                      action="store", default=None,
+                      help="path to a file where results will be written")
+    parser.add_option("--timestamp", dest="timestamp", default=False,
+                      action="store_true",
+                      help="""print timestamp instead of memory measurement for
+                      decorated functions""")
 
     if not sys.argv[1:]:
         parser.print_help()
@@ -588,7 +651,10 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    prof = LineProfiler(max_mem=options.max_mem)
+    if options.timestamp:
+        prof = TimeStamper()
+    else:
+        prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
@@ -605,4 +671,12 @@ if __name__ == '__main__':
             exec(compile(open(__file__).read(), __file__, 'exec'), ns,
                                                                    globals())
     finally:
-        show_results(prof, precision=options.precision)
+        if options.out_filename is not None:
+            out_file = open(options.out_filename, "w")
+        else:
+            out_file = sys.stdout
+
+        if options.timestamp:
+            prof.show_results(stream=out_file)
+        else:
+            show_results(prof, precision=options.precision, stream=out_file)

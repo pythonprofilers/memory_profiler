@@ -1,0 +1,50 @@
+#! /usr/bin/env python
+import subprocess
+import memory_profiler as mp
+import os.path as osp
+import time
+import sys
+
+from optparse import OptionParser
+
+parser = OptionParser(version=mp.__version__)
+parser.disable_interspersed_args()
+parser.add_option("--python", dest="python", default=False,
+                  action="store_true",
+                  help="""Activates extra features when the profiled executable is
+                  a Python program (currently: function timestamping.)""")
+
+(options, args) = parser.parse_args()
+if len(args) == 0:
+    print("A program to run must be provided. Use -h for help")
+    sys.exit(1)
+
+## if len(sys.argv) < 2:
+##     print("""Memory usage monitoring
+## Usage: %s <command> <argument> ... <argument>
+
+## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
+## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
+## directory. This file contains the process memory consumption, in Mb (one
+## value per line). Memory is sampled twice each second."""
+##           % osp.basename(sys.argv[0])
+##           )
+##     sys.exit(1)
+
+suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
+mprofile_output = "mprofile_%s.dat" % suffix
+
+if options.python:
+    print("running as a Python program...")
+    timestamp_output = "mprofile_%s_ts.dat" % suffix
+    if not args[0].startswith("python"):
+        args.insert(0, "python")
+    args[1:1] = ("-m", "memory_profiler", "--timestamp", "-o", timestamp_output)
+    p = subprocess.Popen(args)
+else:
+    p = subprocess.Popen(args)
+
+mu = mp.memory_usage(proc=p, interval=0.5)
+with open(mprofile_output, "w") as f:
+    for m in mu:
+        f.write(str(m) + "\n")
