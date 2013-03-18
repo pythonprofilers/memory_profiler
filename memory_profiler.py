@@ -199,6 +199,51 @@ def _find_script(script_name):
     raise SystemExit(1)
 
 
+class TimeStamper:
+    """ A profiler that just records start and end execution times for
+    any decorated function.
+    """
+    def __init__(self):
+        self.functions = {}
+
+    def __call__(self, func):
+        self.add_function(func)
+        f = self.wrap_function(func)
+        f.__module__ = func.__module__
+        f.__name__ = func.__name__
+        f.__doc__ = func.__doc__
+        f.__dict__.update(getattr(func, '__dict__', {}))
+        return f
+
+    def add_function(self, func):
+        if not func in self.functions:
+            self.functions[func] = []
+
+    def wrap_function(self, func):
+        """ Wrap a function to timestamp it.
+        """
+        def f(*args, **kwds):
+            # Start time
+            timestamps = [time.time()]
+            self.functions[func].append(timestamps)
+            try:
+                result = func(*args, **kwds)
+            finally:
+                # end time
+                timestamps.append(time.time())
+            return result
+        return f
+
+    def show_results(self, stream=None):
+        if stream is None:
+            stream = sys.stdout
+
+        for func, timestamps in self.functions.iteritems():
+            function_name = "%s.%s" % (func.__module__, func.__name__)
+            for ts in timestamps:
+                stream.write("%s %.4f %.4f\n" % (function_name, ts[0], ts[1]))
+
+
 class LineProfiler:
     """ A profiler that records the amount of memory for each line """
 
@@ -610,13 +655,21 @@ if __name__ == '__main__':
     parser.add_option("-o", dest="out_filename", type="str",
                       action="store", default=None,
                       help="path to a file where results will be written")
+    parser.add_option("--timestamp", dest="timestamp", default=False,
+                      action="store_true",
+                      help="""print timestamp instead of memory measurement for
+                      decorated functions""")
+
     if not sys.argv[1:]:
         parser.print_help()
         sys.exit(2)
 
     (options, args) = parser.parse_args()
 
-    prof = LineProfiler(max_mem=options.max_mem)
+    if options.timestamp:
+        prof = TimeStamper()
+    else:
+        prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
@@ -638,4 +691,7 @@ if __name__ == '__main__':
         else:
             out_file = sys.stdout
 
-        show_results(prof, precision=options.precision, stream=out_file)
+        if options.timestamp:
+            prof.show_results(stream=out_file)
+        else:
+            show_results(prof, precision=options.precision, stream=out_file)
