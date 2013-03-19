@@ -207,6 +207,9 @@ class TimeStamper:
         self.functions = {}
 
     def __call__(self, func):
+        if not hasattr(func, "__call__"):
+            raise ValueError("Value must be callable")
+
         self.add_function(func)
         f = self.wrap_function(func)
         f.__module__ = func.__module__
