@@ -20,13 +20,16 @@ except ImportError:
 try:
     import psutil
 
-    def _get_memory(pid):
+    def _get_memory(pid, timestamps=False):
         process = psutil.Process(pid)
         try:
             mem = float(process.get_memory_info()[0]) / (1024 ** 2)
         except psutil.AccessDenied:
             mem = -1
-        return mem
+        if timestamps:
+            return (mem, time.time())
+        else:
+            return mem
 
 
 except ImportError:
@@ -34,7 +37,7 @@ except ImportError:
     warnings.warn("psutil module not found. memory_profiler will be slow")
 
     if os.name == 'posix':
-        def _get_memory(pid):
+        def _get_memory(pid, timestamps=False):
             # ..
             # .. memory usage in MB ..
             # .. this should work on both Mac and Linux ..
@@ -44,9 +47,16 @@ except ImportError:
                   stdout=subprocess.PIPE).communicate()[0].split(b'\n')
             try:
                 vsz_index = out[0].split().index(b'RSS')
-                return float(out[1].split()[vsz_index]) / 1024
+                mem = float(out[1].split()[vsz_index]) / 1024
+                if timestamps:
+                    return(mem, time.time())
+                else:
+                    return mem
             except:
-                return -1
+                if timestamps:
+                    return (-1, time.time())
+                else:
+                    return -1
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
@@ -62,19 +72,24 @@ class Timer(Process):
         self.interval = interval
         self.pipe = pipe
         self.cont = True
+        if "timestamps" in kw:
+            self.timestamps = kw["timestamps"]
+            del kw["timestamps"]
+        else:
+            self.timestamps = False
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
-        m = _get_memory(self.monitor_pid)
+        m = _get_memory(self.monitor_pid, timestamps=self.timestamps)
         timings = [m]
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
-            m = _get_memory(self.monitor_pid)
+            m = _get_memory(self.monitor_pid, timestamps=self.timestamps)
             timings.append(m)
         self.pipe.send(timings)
 
 
-def memory_usage(proc=-1, interval=.1, timeout=None):
+def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -131,7 +146,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(os.getpid(), interval, child_conn)
+        p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
         f(*args, **kw)
@@ -141,7 +156,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         while True:
-            ret.append(_get_memory(proc.pid))
+            ret.append(_get_memory(proc.pid, timestamps=timestamps))
             time.sleep(interval)
             if timeout is not None:
                 max_iter -= 1
@@ -158,7 +173,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         counter = 0
         while counter < max_iter:
             counter += 1
-            ret.append(_get_memory(proc))
+            ret.append(_get_memory(proc, timestamps=timestamps))
             time.sleep(interval)
     return ret
 

@@ -20,7 +20,7 @@ value per line). Memory is sampled twice each second."""
 outfilename = "mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 p = subprocess.Popen(sys.argv[1:])
-mu = mp.memory_usage(proc=p, interval=0.5)
+mu = mp.memory_usage(proc=p, interval=0.5, timestamps=True)
 with open(outfilename, "w") as f:
-    for m in mu:
-        f.write(str(m) + "\n")
+    for m, t in mu:
+        f.write("{0:.6f} {1:.4f}".format(m, t) + "\n")
