@@ -1,0 +1,43 @@
+#! /usr/bin/env python
+import pylab as pl
+import sys
+import glob
+import time
+import os
+
+profiles = glob.glob("mprofile_*.dat")
+profiles.sort()
+
+if len(sys.argv) == 1:
+    filename = profiles[-1]
+else:
+    filename = sys.argv[1]
+    if not os.path.exists(filename):
+        try:
+            n = int(filename)
+        except ValueError:
+            print("Input file not found: " + filename)
+        filename = profiles[n]
+
+datetime = time.strptime(filename, "mprofile_%Y%m%d%H%M%S.dat")
+mdata = pl.loadtxt(filename)
+mem = mdata[:, 0]
+max_mem = mem.max()
+max_mem_ind = mem.argmax()
+sampling_period = 0.5
+t = pl.r_[:len(mem)] * sampling_period
+
+pl.figure()
+pl.plot(t, mem)
+pl.hlines(max_mem,
+          pl.xlim()[0] + 0.001, pl.xlim()[1] - 0.001,
+          colors="r", linestyles="--")
+pl.vlines(t[max_mem_ind],
+          pl.ylim()[0] + 0.001, pl.ylim()[1] - 0.001,
+          colors="r", linestyles="--")
+pl.xlabel("time [s]")
+pl.ylabel("memory used [Mb]")
+pl.title(time.strftime("%d / %m / %Y - start at %H:%M:%S", datetime))
+pl.grid()
+pl.show()
+
