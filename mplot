@@ -13,6 +13,42 @@ import os
 import os.path as osp
 
 
+def add_bracket(xloc, t, mem, color="r", label=None):
+    """Add two brackets on the memory line plot.
+
+    This function uses the current figure.
+
+    Parameters
+    ==========
+    xloc: {tuple with 2 values}
+        bracket location (on horizontal axis).
+    t, mem:
+        memory usage curve. Used to place bracket at the correct location.
+    """
+
+    height_ratio = 20.
+    yloc = pl.interp(xloc, t, mem)
+    vsize = (pl.ylim()[1] - pl.ylim()[0]) / height_ratio
+    hsize = (pl.xlim()[1] - pl.xlim()[0]) / (3.*height_ratio)
+
+    bracket_x = pl.asarray([hsize, 0, 0, hsize])
+    bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
+
+    pl.plot(bracket_x + xloc[0], bracket_y + yloc[0],
+            "-" + color, linewidth=2, label=label)
+    pl.plot(-bracket_x + xloc[1], bracket_y + yloc[1],
+            "-" + color, linewidth=2 )
+
+    # TODO: use matplotlib.patches.Polygon to draw a colored background for
+    # each function.
+
+    # with maplotlib 1.2, use matplotlib.path.Path to create proper markers
+    # see http://matplotlib.org/examples/pylab_examples/marker_path.html
+    # This works with matplotlib 0.99.1
+    ## pl.plot(xloc[0], yloc[0], "<"+color, markersize=7, label=label)
+    ## pl.plot(xloc[1], yloc[1], ">"+color, markersize=7)
+
+
 def read_timestamp_file(ts_filename):
     """Return content of ts_filename or None, if ts_filename
     is invalid or does not exist"""
@@ -59,13 +95,13 @@ global_start = float(mdata[0, 1])
 mem = mdata[:, 0]
 max_mem = mem.max()
 max_mem_ind = mem.argmax()
-sampling_period = 0.5
-t = pl.r_[:len(mem)] * sampling_period
 
-all_colors=("g", "b", "k", "r")
+t = mdata[:, 1] - global_start
+
+all_colors=("c", "y", "g", "r", "b")
 
 pl.figure()
-pl.plot(t, mem)
+pl.plot(t, mem, "b+-")
 
 bottom, top = pl.ylim()
 bottom += 0.001
@@ -76,12 +112,16 @@ if ts is not None:
     func_num = 0
     for f, exec_ts in ts.iteritems():
         for execution in exec_ts:
-            pl.vlines([ts - global_start for ts in execution],
-                      bottom, top,
-                      colors=all_colors[func_num % len(all_colors)],
-                      label=f.split(".")[-1])
+            add_bracket([ts - global_start for ts in execution], t, mem,
+                        color= all_colors[func_num % len(all_colors)],
+                        label=f.split(".")[-1] + " %.3fs" % (execution[1] - execution[0]))
+            ## pl.vlines([ts - global_start for ts in execution],
+            ##           bottom, top,
+            ##           colors=all_colors[func_num % len(all_colors)],
+            ##           linestyles="dashdot",
+            ##           label=f.split(".")[-1] + " %.3fs" % (execution[1] - execution[0]))
         func_num += 1
-    pl.legend()
+    pl.legend(loc=0)
 
 pl.hlines(max_mem,
           pl.xlim()[0] + 0.001, pl.xlim()[1] - 0.001,
@@ -89,7 +129,7 @@ pl.hlines(max_mem,
 pl.vlines(t[max_mem_ind], bottom, top,
           colors="r", linestyles="--")
 pl.xlabel("time [s]")
-pl.ylabel("memory used [Mb]")
+pl.ylabel("memory used [MB]")
 title = time.strftime("%d / %m / %Y - start at %H:%M:%S", time.localtime(global_start)) \
                           + ".{0:03d}".format(int(round(math.modf(global_start)[0]*1000)))
 pl.title(title)
