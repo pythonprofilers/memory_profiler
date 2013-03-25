@@ -89,12 +89,14 @@ file_parts = osp.splitext(filename)
 ts_filename = file_parts[0] + "_ts" + file_parts[1]
 ts = read_timestamp_file(ts_filename)
 
-mdata = pl.loadtxt(filename)
+mdata = pl.atleast_2d(pl.loadtxt(filename))
+
 global_start = float(mdata[0, 1])
 
 mem = mdata[:, 0]
 max_mem = mem.max()
 max_mem_ind = mem.argmax()
+
 
 t = mdata[:, 1] - global_start
 
