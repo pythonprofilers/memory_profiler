@@ -16,6 +16,9 @@ parser.add_option("--python", dest="python", default=False,
 parser.add_option("--interval", "-T", dest="interval", default="0.5",
                   type="float", action="store",
                   help="Sampling period (in seconds)")
+parser.add_option("--include-children", "-C", dest="include_children", default=False,
+                  action="store_true",
+                  help="""Monitors forked processes as well (sum up all process memory)""")
 
 (options, args) = parser.parse_args()
 print("{1}: Sampling memory every {0.interval}s".format(options, osp.basename(sys.argv[0])))
@@ -50,7 +53,8 @@ if options.python:
 else:
     p = subprocess.Popen(args)
 
-mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True)
+mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
+                     include_children=options.include_children)
 with open(mprofile_output, "w") as f:
     for m, t in mu:
         f.write("{0:.6f} {1:.4f}".format(m, t) + "\n")

@@ -20,10 +20,14 @@ except ImportError:
 try:
     import psutil
 
-    def _get_memory(pid, timestamps=False):
+    def _get_memory(pid, timestamps=False, include_children=False):
         process = psutil.Process(pid)
         try:
-            mem = float(process.get_memory_info()[0]) / (1024 ** 2)
+            mem = float(process.get_memory_info()[0]) / 1048576.
+            if include_children:
+                for p in process.get_children(recursive=True):
+                    mem += p.get_memory_info()[0] / 1048576.
+
         except psutil.AccessDenied:
             mem = -1
         if timestamps:
@@ -31,9 +35,7 @@ try:
         else:
             return mem
 
-
 except ImportError:
-
     warnings.warn("psutil module not found. memory_profiler will be slow")
 
     if os.name == 'posix':
@@ -77,19 +79,28 @@ class Timer(Process):
             del kw["timestamps"]
         else:
             self.timestamps = False
+        if "include_children" in kw:
+            self.include_children = kw["include_children"]
+            del kw["include_children"]
+        else:
+            self.include_children = False
+
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
-        m = _get_memory(self.monitor_pid, timestamps=self.timestamps)
+        m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
+                        include_children=self.include_children)
         timings = [m]
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
-            m = _get_memory(self.monitor_pid, timestamps=self.timestamps)
+            m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
+                            include_children=self.include_children)
             timings.append(m)
         self.pipe.send(timings)
 
 
-def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False):
+def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
+                 include_children=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -156,7 +167,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False):
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         while True:
-            ret.append(_get_memory(proc.pid, timestamps=timestamps))
+            ret.append(_get_memory(proc.pid, timestamps=timestamps,
+                                   include_children=include_children))
             time.sleep(interval)
             if timeout is not None:
                 max_iter -= 1
@@ -173,7 +185,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False):
         counter = 0
         while counter < max_iter:
             counter += 1
-            ret.append(_get_memory(proc, timestamps=timestamps))
+            ret.append(_get_memory(proc, timestamps=timestamps,
+                                   include_children=include_children))
             time.sleep(interval)
     return ret
 
