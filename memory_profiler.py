@@ -517,7 +517,7 @@ def magic_memit(self, line=''):
     """Measure memory usage of a Python statement
 
     Usage, in line mode:
-      %memit [-ir<R>t<T>] statement
+      %memit [-r<R>t<T>] statement
 
     Options:
     -r<R>: repeat the loop iteration <R> times and take the best result.
@@ -557,7 +557,10 @@ def magic_memit(self, line=''):
     if timeout <= 0:
         timeout = None
 
-    mem_usage = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
+    mem_usage = []
+    for _ in range(repeat):
+        tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
+        mem_usage.extend(tmp)
 
     if mem_usage:
         print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
