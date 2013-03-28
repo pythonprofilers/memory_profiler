@@ -110,8 +110,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         # for a Python function wait until it finishes
         max_iter = float('inf')
 
+    if hasattr(proc, '__call__'):
+        proc = (proc, (), {})
     if isinstance(proc, (list, tuple)):
-
         if len(proc) == 1:
             f, args, kw = (proc[0], (), {})
         elif len(proc) == 2:
