@@ -523,7 +523,7 @@ def magic_memit(self, line=''):
     -r<R>: repeat the loop iteration <R> times and take the best result.
     Default: 1
 
-    -t<T>: timeout after <T> seconds. Unused if `-i` is active. Default: None
+    -t<T>: timeout after <T> seconds. Default: None
 
     Examples
     --------
@@ -540,16 +540,8 @@ def magic_memit(self, line=''):
       In [4]: %memit -r 10 np.empty(1e8)
       maximum of 10: 0.101562 MB per loop
 
-      In [5]: memit -t 3 while True: pass;
-      Subprocess timed out.
-      Subprocess timed out.
-      Subprocess timed out.
-      ERROR: all subprocesses exited unsuccessfully. Try again with the `-i`
-      option.
-      maximum of 1: -inf MB per loop
-
     """
-    opts, stmt = self.parse_options(line, 'r:t:i', posix=False, strict=False)
+    opts, stmt = self.parse_options(line, 'r:t', posix=False, strict=False)
     repeat = int(getattr(opts, 'r', 1))
     if repeat < 1:
         repeat == 1
