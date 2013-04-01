@@ -9,6 +9,7 @@ import warnings
 import linecache
 import inspect
 import subprocess
+from copy import copy
 
 # TODO: provide alternative when multprocessing is not available
 try:
@@ -601,15 +602,15 @@ if __name__ == '__main__':
         if sys.version_info[0] < 3:
             import __builtin__
             __builtin__.__dict__['profile'] = prof
-            ns = locals()
+            ns = copy(locals())
             ns['profile'] = prof # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
             import builtins
             builtins.__dict__['profile'] = prof
-            ns = locals()
+            ns = copy(locals())
             ns['profile'] = prof # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'), ns,
-                                                                   globals())
+            exec(compile(open(__file__).read(), __file__, 'exec'),
+                 ns, copy(globals()))
     finally:
         show_results(prof, precision=options.precision)
