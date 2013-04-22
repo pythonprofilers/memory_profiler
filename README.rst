@@ -1,11 +1,10 @@
 =================
  Memory Profiler
 =================
+
 This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
-programs.
-
-It's a pure python module and has the `psutil
+programs. It is a pure python module and has the `psutil
 <http://pypi.python.org/pypi/psutil>`_ module as optional (but highly
 recommended) dependencies.
 
@@ -25,10 +24,15 @@ To install from source, download the package, extract and type::
 =======
  Usage
 =======
+
 The line-by-line profiler is used much in the same way of the
-line_profiler: you must first decorate the function you would like to
-profile with ``@profile``. In this example, we create a simple function
-``my_func`` that allocates lists ``a``, ``b`` and then deletes ``b``::
+`line_profiler <https://pypi.python.org/pypi/line_profiler/>`_: first
+decorate the function you would like to profile with ``@profile`` and
+then run the script with a special script (in this case with specific
+arguments to the Python interpreter). 
+
+In the following example, we create a simple function ``my_func`` that
+allocates lists ``a``, ``b`` and then deletes ``b``::
 
 
     @profile

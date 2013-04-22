@@ -1,6 +1,6 @@
 """Profile the memory usage of a Python program"""
 
-__version__ = '0.24'
+__version__ = '0.25'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -9,6 +9,7 @@ import warnings
 import linecache
 import inspect
 import subprocess
+from copy import copy
 
 # TODO: provide alternative when multprocessing is not available
 try:
@@ -136,8 +137,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         # for a Python function wait until it finishes
         max_iter = float('inf')
 
+    if hasattr(proc, '__call__'):
+        proc = (proc, (), {})
     if isinstance(proc, (list, tuple)):
-
         if len(proc) == 1:
             f, args, kw = (proc[0], (), {})
         elif len(proc) == 2:
@@ -592,13 +594,13 @@ def magic_memit(self, line=''):
     """Measure memory usage of a Python statement
 
     Usage, in line mode:
-      %memit [-ir<R>t<T>] statement
+      %memit [-r<R>t<T>] statement
 
     Options:
     -r<R>: repeat the loop iteration <R> times and take the best result.
     Default: 1
 
-    -t<T>: timeout after <T> seconds. Unused if `-i` is active. Default: None
+    -t<T>: timeout after <T> seconds. Default: None
 
     Examples
     --------
@@ -615,16 +617,8 @@ def magic_memit(self, line=''):
       In [4]: %memit -r 10 np.empty(1e8)
       maximum of 10: 0.101562 MB per loop
 
-      In [5]: memit -t 3 while True: pass;
-      Subprocess timed out.
-      Subprocess timed out.
-      Subprocess timed out.
-      ERROR: all subprocesses exited unsuccessfully. Try again with the `-i`
-      option.
-      maximum of 1: -inf MB per loop
-
     """
-    opts, stmt = self.parse_options(line, 'r:t:i', posix=False, strict=False)
+    opts, stmt = self.parse_options(line, 'r:t', posix=False, strict=False)
     repeat = int(getattr(opts, 'r', 1))
     if repeat < 1:
         repeat == 1
@@ -632,7 +626,10 @@ def magic_memit(self, line=''):
     if timeout <= 0:
         timeout = None
 
-    mem_usage = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
+    mem_usage = []
+    for _ in range(repeat):
+        tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
+        mem_usage.extend(tmp)
 
     if mem_usage:
         print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
@@ -681,6 +678,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     (options, args) = parser.parse_args()
+    del sys.argv[0]         # Hide "memory_profiler.py" from argument list
 
     if options.timestamp:
         prof = TimeStamper()
@@ -691,16 +689,16 @@ if __name__ == '__main__':
         if sys.version_info[0] < 3:
             import __builtin__
             __builtin__.__dict__['profile'] = prof
-            ns = locals()
+            ns = copy(locals())
             ns['profile'] = prof # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
             import builtins
             builtins.__dict__['profile'] = prof
-            ns = locals()
+            ns = copy(locals())
             ns['profile'] = prof # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'), ns,
-                                                                   globals())
+            exec(compile(open(__file__).read(), __file__, 'exec'),
+                 ns, copy(globals()))
     finally:
         if options.out_filename is not None:
             out_file = open(options.out_filename, "w")
