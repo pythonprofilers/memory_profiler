@@ -214,6 +214,19 @@ def _find_script(script_name):
     raise SystemExit(1)
 
 
+class _TimeStamperCM(object):
+    """Time-stamping context manager."""
+
+    def __init__(self, timestamps):
+        self._timestamps = timestamps
+
+    def __enter__(self):
+        self._timestamps.append(time.time())
+
+    def __exit__(self, *args):
+        self._timestamps.append(time.time())
+
+
 class TimeStamper:
     """ A profiler that just records start and end execution times for
     any decorated function.
@@ -232,6 +245,19 @@ class TimeStamper:
         f.__doc__ = func.__doc__
         f.__dict__.update(getattr(func, '__dict__', {}))
         return f
+
+    def timestamp(self, name="<block>"):
+        """Returns a context manager for timestamping a block of code."""
+        # Make a fake function
+        func = lambda x: x
+        func.__module__ = ""
+        func.__name__ = name
+        self.add_function(func)
+        timestamps = []
+        self.functions[func].append(timestamps)
+        # A new object is required each time, since there can be several
+        # nested context managers.
+        return _TimeStamperCM(timestamps)
 
     def add_function(self, func):
         if not func in self.functions:
@@ -309,7 +335,7 @@ class LineProfiler:
         return f
 
     def run(self, cmd):
-        """ Profile a single executable statment in the main namespace.
+        """ Profile a single executable statement in the main namespace.
         """
         import __main__
         main_dict = __main__.__dict__
