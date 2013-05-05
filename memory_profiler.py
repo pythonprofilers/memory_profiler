@@ -17,25 +17,45 @@ try:
 except ImportError:
     from multiprocessing.dummy import Process, Pipe
 
+_TWO_20 = float(2 ** 20)
 
+has_psutil = False
+has_resource = False
+
+# .. get available packages ..
 try:
     import psutil
+    has_psutil = True
+except ImportError:
+    pass
 
-    def _get_memory(pid):
+try:
+    import resource
+    has_resource = True
+except ImportError:
+    pass
+
+
+def _get_memory(pid):
+
+    # .. fastests but just works for current process ..
+    # .. and only available on unix ..
+    if pid == -1 and has_resource:
+        mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (_TWO_20)
+        return mem
+
+    # .. good compromise but requires psutil ..
+    if has_psutil:
         process = psutil.Process(pid)
         try:
-            mem = float(process.get_memory_info()[0]) / (1024 ** 2)
+            mem = process.get_memory_info()[0] / (_TWO_20)
         except psutil.AccessDenied:
             mem = -1
         return mem
 
-
-except ImportError:
-
-    warnings.warn("psutil module not found. memory_profiler will be slow")
-
+    # .. scary stuff ..
     if os.name == 'posix':
-        def _get_memory(pid):
+            warnings.warn("psutil module not found. memory_profiler will be slow")
             # ..
             # .. memory usage in MB ..
             # .. this should work on both Mac and Linux ..
@@ -133,7 +153,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(os.getpid(), interval, child_conn)
+        p = Timer(-1, interval, child_conn)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
         f(*args, **kw)
@@ -153,8 +173,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
                 break
     else:
         # external process
-        if proc == -1:
-            proc = os.getpid()
         if max_iter == -1:
             max_iter = 1
         counter = 0
@@ -282,14 +300,14 @@ class LineProfiler:
             if event == 'return':
                 lineno += 1
             entry = self.code_map[frame.f_code].setdefault(lineno, [])
-            entry.append(_get_memory(os.getpid()))
+            entry.append(_get_memory(-1))
 
         return self.trace_memory_usage
 
     def trace_max_mem(self, frame, event, arg):
         # run into PDB as soon as memory is higher than MAX_MEM
         if event in ('line', 'return') and frame.f_code in self.code_map:
-            c = _get_memory(os.getpid())
+            c = _get_memory(-1)
             if c >= self.max_mem:
                 t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
                     'of {0:.2f} MB\n'.format(self.max_mem)
