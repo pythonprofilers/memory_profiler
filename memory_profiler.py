@@ -1,9 +1,9 @@
 """Profile the memory usage of a Python program"""
 
-__version__ = '0.26'
-
 # .. we'll use this to pass it to the child script ..
 _clean_globals = globals().copy()
+
+__version__ = '0.26'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
