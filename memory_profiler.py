@@ -43,9 +43,12 @@ def _get_memory(pid):
 
     # .. fastests but just works for current process ..
     # .. and only available on unix ..
-    if pid == -1 and has_resource:
-        mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (_TWO_20)
-        return mem
+    if pid == -1:
+        if has_resource:
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (_TWO_20)
+            return mem
+        else:
+            pid = os.getpid()
 
     # .. good compromise but requires psutil ..
     if has_psutil:
