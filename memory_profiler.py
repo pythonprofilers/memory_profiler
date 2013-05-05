@@ -2,6 +2,8 @@
 
 __version__ = '0.26'
 
+_clean_globals = globals()
+
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
 import time, sys, os, pdb
@@ -619,17 +621,12 @@ if __name__ == '__main__':
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
-            import __builtin__
-            __builtin__.__dict__['profile'] = prof
-            ns = copy(locals())
+            ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
-            import builtins
-            builtins.__dict__['profile'] = prof
-            ns = copy(locals())
+            ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'),
-                 ns, copy(globals()))
+            exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
         show_results(prof, precision=options.precision)
