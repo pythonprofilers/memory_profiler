@@ -1,9 +1,10 @@
+PYTHON ?= python
 
 .PHONY: test
 
 test:
-	python -m memory_profiler test/test_func.py
-	python -m memory_profiler test/test_loop.py
-	python -m memory_profiler test/test_as.py
-	python -m memory_profiler test/test_global.py
-	python test/test_import.py
+	$(PYTHON) -m memory_profiler test/test_func.py
+	$(PYTHON) -m memory_profiler test/test_loop.py
+	$(PYTHON) -m memory_profiler test/test_as.py
+	$(PYTHON) -m memory_profiler test/test_global.py
+	$(PYTHON) test/test_import.py
