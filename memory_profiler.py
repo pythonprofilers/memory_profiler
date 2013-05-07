@@ -45,7 +45,7 @@ def _get_memory(pid):
     # .. and only available on unix ..
     if pid == -1:
         if has_resource:
-            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (_TWO_20)
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
             return mem
         else:
             pid = os.getpid()
