@@ -41,8 +41,7 @@ except ImportError:
 
 def _get_memory(pid):
 
-    # .. fastests but just works for current process ..
-    # .. and only available on unix ..
+    # .. only for current process and only on unix..
     if pid == -1:
         if has_resource:
             mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
@@ -50,7 +49,7 @@ def _get_memory(pid):
         else:
             pid = os.getpid()
 
-    # .. good compromise but requires psutil ..
+    # .. cross-platform but but requires psutil ..
     if has_psutil:
         process = psutil.Process(pid)
         try:
@@ -272,16 +271,6 @@ class LineProfiler:
         finally:
             self.disable_by_count()
         return self
-
-    def runcall(self, func, *args, **kw):
-        """ Profile a single function call.
-        """
-        # XXX where is this used ? can be removed ?
-        self.enable_by_count()
-        try:
-            return func(*args, **kw)
-        finally:
-            self.disable_by_count()
 
     def enable_by_count(self):
         """ Enable the profiler if it hasn't been enabled before.
