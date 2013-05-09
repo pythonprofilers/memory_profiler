@@ -564,7 +564,9 @@ def magic_memit(self, line=''):
         timeout = None
 
     mem_usage = []
-    for _ in range(repeat):
+    counter = 0
+    while counter < repeat:
+        counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
         mem_usage.extend(tmp)
 
