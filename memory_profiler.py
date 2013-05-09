@@ -20,11 +20,6 @@ try:
 except ImportError:
     from multiprocessing.dummy import Process, Pipe
 
-try:
-    xrange
-except NameError:
-    xrange = range
-
 _TWO_20 = float(2 ** 20)
 
 has_psutil = False
@@ -569,7 +564,9 @@ def magic_memit(self, line=''):
         timeout = None
 
     mem_usage = []
-    for _ in xrange(repeat):
+    counter = 0
+    while counter < repeat:
+        counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
         mem_usage.extend(tmp)
 
