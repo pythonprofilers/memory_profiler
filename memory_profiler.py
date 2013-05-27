@@ -59,7 +59,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
             mem = process.get_memory_info()[0] / (_TWO_20)
             if include_children:
                 for p in process.get_children(recursive=True):
-                    mem += p.get_memory_info()[0] / (_TWO_20).
+                    mem += p.get_memory_info()[0] / (_TWO_20)
         except psutil.AccessDenied:
             mem = -1
         if timestamps:
