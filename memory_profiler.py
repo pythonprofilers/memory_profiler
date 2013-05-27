@@ -1,6 +1,9 @@
 """Profile the memory usage of a Python program"""
 
-__version__ = '0.25'
+# .. we'll use this to pass it to the child script ..
+_clean_globals = globals().copy()
+
+__version__ = '0.26-git'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -17,18 +20,46 @@ try:
 except ImportError:
     from multiprocessing.dummy import Process, Pipe
 
+_TWO_20 = float(2 ** 20)
 
+has_psutil = False
+has_resource = False
+
+# .. get available packages ..
 try:
     import psutil
+    has_psutil = True
+except ImportError:
+    pass
 
-    def _get_memory(pid, timestamps=False, include_children=False):
+try:
+    import resource
+    has_resource = True
+except ImportError:
+    pass
+
+
+def _get_memory(pid, timestamps=False, include_children=False):
+
+    # .. only for current process and only on unix..
+    if pid == -1:
+        if has_resource:
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
+            if timestamps:
+                return (mem, time.time())
+            else:
+                return mem
+        else:
+            pid = os.getpid()
+
+    # .. cross-platform but but requires psutil ..
+    if has_psutil:
         process = psutil.Process(pid)
         try:
-            mem = float(process.get_memory_info()[0]) / 1048576.
+            mem = process.get_memory_info()[0] / (_TWO_20)
             if include_children:
                 for p in process.get_children(recursive=True):
-                    mem += p.get_memory_info()[0] / 1048576.
-
+                    mem += p.get_memory_info()[0] / (_TWO_20).
         except psutil.AccessDenied:
             mem = -1
         if timestamps:
@@ -36,11 +67,9 @@ try:
         else:
             return mem
 
-except ImportError:
-    warnings.warn("psutil module not found. memory_profiler will be slow")
-
+    # .. scary stuff ..
     if os.name == 'posix':
-        def _get_memory(pid, timestamps=False):
+            warnings.warn("psutil module not found. memory_profiler will be slow")
             # ..
             # .. memory usage in MB ..
             # .. this should work on both Mac and Linux ..
@@ -159,7 +188,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps)
+        p = Timer(-1, interval, child_conn, timestamps=timestamps)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
         f(*args, **kw)
@@ -180,8 +209,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 break
     else:
         # external process
-        if proc == -1:
-            proc = os.getpid()
         if max_iter == -1:
             max_iter = 1
         counter = 0
@@ -353,16 +380,6 @@ class LineProfiler:
             self.disable_by_count()
         return self
 
-    def runcall(self, func, *args, **kw):
-        """ Profile a single function call.
-        """
-        # XXX where is this used ? can be removed ?
-        self.enable_by_count()
-        try:
-            return func(*args, **kw)
-        finally:
-            self.disable_by_count()
-
     def enable_by_count(self):
         """ Enable the profiler if it hasn't been enabled before.
         """
@@ -386,14 +403,14 @@ class LineProfiler:
             if event == 'return':
                 lineno += 1
             entry = self.code_map[frame.f_code].setdefault(lineno, [])
-            entry.append(_get_memory(os.getpid()))
+            entry.append(_get_memory(-1))
 
         return self.trace_memory_usage
 
     def trace_max_mem(self, frame, event, arg):
         # run into PDB as soon as memory is higher than MAX_MEM
         if event in ('line', 'return') and frame.f_code in self.code_map:
-            c = _get_memory(os.getpid())
+            c = _get_memory(-1)
             if c >= self.max_mem:
                 t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
                     'of {0:.2f} MB\n'.format(self.max_mem)
@@ -655,7 +672,9 @@ def magic_memit(self, line=''):
         timeout = None
 
     mem_usage = []
-    for _ in range(repeat):
+    counter = 0
+    while counter < repeat:
+        counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
         mem_usage.extend(tmp)
 
@@ -715,18 +734,13 @@ if __name__ == '__main__':
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
-            import __builtin__
-            __builtin__.__dict__['profile'] = prof
-            ns = copy(locals())
+            ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
-            import builtins
-            builtins.__dict__['profile'] = prof
-            ns = copy(locals())
+            ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'),
-                 ns, copy(globals()))
+            exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
         if options.out_filename is not None:
             out_file = open(options.out_filename, "w")
