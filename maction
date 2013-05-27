@@ -5,6 +5,7 @@ import os
 import os.path as osp
 import sys
 import re
+import copy
 
 from optparse import OptionParser
 
@@ -17,7 +18,7 @@ def print_usage():
 
 def get_action():
     """Pop first argument, check it is a valid action."""
-    all_actions = ("rm",)
+    all_actions = ("rm", "clean")
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(1)
@@ -48,31 +49,32 @@ def get_profile_filenames(args):
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
 
-    filenames = []
-
-    for arg in args:
-        if arg == "--":  # workaround
-            continue
-        try:
-            index = int(arg)
-        except ValueError:
-            index = None
-        if index is not None:
+    if args is "all":
+        filenames = copy.copy(profiles)
+    else:
+        for arg in args:
+            if arg == "--":  # workaround
+                continue
             try:
-                filename = profiles[index]
-            except IndexError:
-                raise ValueError("Invalid index (non-existing file): %s" % arg)
+                index = int(arg)
+            except ValueError:
+                index = None
+            if index is not None:
+                try:
+                    filename = profiles[index]
+                except IndexError:
+                    raise ValueError("Invalid index (non-existing file): %s" % arg)
 
-            if filename not in filenames:
-                filenames.append(filename)
-        else:
-            if osp.isfile(arg):
-                if arg not in filenames:
-                    filenames.append(arg)
-            elif osp.isdir(arg):
-                raise ValueError("Path %s is a directory" % arg)
+                if filename not in filenames:
+                    filenames.append(filename)
             else:
-                raise ValueError("File %s not found" % arg)
+                if osp.isfile(arg):
+                    if arg not in filenames:
+                        filenames.append(arg)
+                elif osp.isdir(arg):
+                    raise ValueError("Path %s is a directory" % arg)
+                else:
+                    raise ValueError("File %s not found" % arg)
 
     # Add timestamp files, if any
     for filename in reversed(filenames):
@@ -107,6 +109,30 @@ def rm_action():
             os.remove(filename)
 
 
+def clean_action():
+    """Remove every profile file in current directory."""
+    parser = OptionParser(version=mp.__version__)
+    parser.disable_interspersed_args()
+    parser.add_option("--dry-run", dest="dry_run", default=False,
+                      action="store_true",
+                      help="""Show what will be done, without actually doing it.""")
+
+    (options, args) = parser.parse_args()
+
+    if len(args) > 0:
+        print("This command takes no argument.")
+        sys.exit(1)
+
+    filenames = get_profile_filenames("all")
+    if options.dry_run:
+        print("Files to be removed: ")
+        for filename in filenames:
+            print(filename)
+    else:
+        for filename in filenames:
+            os.remove(filename)
+
+
 if __name__ == "__main__":
     # Workaround for optparse limitation: insert -- before first negative number found.
     negint = re.compile("-[0-9]+")
@@ -114,7 +140,7 @@ if __name__ == "__main__":
         if negint.match(arg):
             sys.argv.insert(n, "--")
             break
-    actions = {"rm": rm_action}
+    actions = {"rm": rm_action, "clean": clean_action}
     actions[get_action()]()
 
 
