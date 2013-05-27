@@ -221,10 +221,10 @@ class _TimeStamperCM(object):
         self._timestamps = timestamps
 
     def __enter__(self):
-        self._timestamps.append(time.time())
+        self._timestamps.append(_get_memory(os.getpid(), timestamps=True))
 
     def __exit__(self, *args):
-        self._timestamps.append(time.time())
+        self._timestamps.append(_get_memory(os.getpid(), timestamps=True))
 
 
 class TimeStamper:
@@ -268,13 +268,13 @@ class TimeStamper:
         """
         def f(*args, **kwds):
             # Start time
-            timestamps = [time.time()]
+            timestamps = [_get_memory(os.getpid(), timestamps=True)]
             self.functions[func].append(timestamps)
             try:
                 result = func(*args, **kwds)
             finally:
                 # end time
-                timestamps.append(time.time())
+                timestamps.append(_get_memory(os.getpid(), timestamps=True))
             return result
         return f
 
@@ -285,7 +285,9 @@ class TimeStamper:
         for func, timestamps in self.functions.iteritems():
             function_name = "%s.%s" % (func.__module__, func.__name__)
             for ts in timestamps:
-                stream.write("%s %.4f %.4f\n" % (function_name, ts[0], ts[1]))
+                stream.write("%s %.4f %.4f %.4f %.4f\n" % (
+                    (function_name,) + ts[0] + ts[1]))
+                ## stream.write("%s %.4f %.4f\n" % (function_name, ts[0], ts[1]))
 
 
 class LineProfiler:
