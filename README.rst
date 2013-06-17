@@ -248,6 +248,11 @@ Latest sources are available from github:
 
     https://github.com/fabianp/memory_profiler
 
+===============================
+Projects using memory_profiler
+===============================
+
+`Benchy <https://github.com/python-recsys/benchy>`_
 
 =========
  Authors
