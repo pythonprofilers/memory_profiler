@@ -312,9 +312,8 @@ class TimeStamper:
         for func, timestamps in self.functions.iteritems():
             function_name = "%s.%s" % (func.__module__, func.__name__)
             for ts in timestamps:
-                stream.write("%s %.4f %.4f %.4f %.4f\n" % (
+                stream.write("FUNC %s %.4f %.4f %.4f %.4f\n" % (
                     (function_name,) + ts[0] + ts[1]))
-                ## stream.write("%s %.4f %.4f\n" % (function_name, ts[0], ts[1]))
 
 
 class LineProfiler:
@@ -751,7 +750,7 @@ if __name__ == '__main__':
             exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
         if options.out_filename is not None:
-            out_file = open(options.out_filename, "w")
+            out_file = open(options.out_filename, "a")
         else:
             out_file = sys.stdout
 

@@ -44,17 +44,17 @@ mprofile_output = "mprofile_%s.dat" % suffix
 
 if options.python:
     print("running as a Python program...")
-    timestamp_output = "mprofile_%s_ts.dat" % suffix
+#    timestamp_output = "mprofile_%s_ts.dat" % suffix
     if not args[0].startswith("python"):
         args.insert(0, "python")
     args[1:1] = ("-m", "memory_profiler", "--timestamp",
-                 "-o", timestamp_output)
+                 "-o", mprofile_output)
     p = subprocess.Popen(args)
 else:
     p = subprocess.Popen(args)
 
 mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
                      include_children=options.include_children)
-with open(mprofile_output, "w") as f:
+with open(mprofile_output, "a") as f:
     for m, t in mu:
-        f.write("{0:.6f} {1:.4f}".format(m, t) + "\n")
+        f.write("MEM {0:.6f} {1:.4f}".format(m, t) + "\n")
