@@ -616,10 +616,18 @@ if __name__ == '__main__':
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
+            # we need to ovewrite the builtins to have profile
+            # globally defined (global variables is not enought
+            # for all cases, e.g. a script that imports another
+            # script where @profile is used)
+            import __builtin__
+            __builtin__.__dict__['profile'] = prof
             ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
+            import builtins
+            builtins.__dict__['profile'] = prof
             ns = copy(_clean_globals)
             ns['profile'] = prof # shadow the profile decorator defined above
             exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
