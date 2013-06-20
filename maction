@@ -18,7 +18,7 @@ def print_usage():
 
 def get_action():
     """Pop first argument, check it is a valid action."""
-    all_actions = ("rm", "clean")
+    all_actions = ("rm", "clean", "list")
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(1)
@@ -52,6 +52,7 @@ def get_profile_filenames(args):
     if args is "all":
         filenames = copy.copy(profiles)
     else:
+        filenames = []
         for arg in args:
             if arg == "--":  # workaround
                 continue
@@ -84,6 +85,26 @@ def get_profile_filenames(args):
             filenames.append(timestamp_file)
 
     return filenames
+
+
+def list_action():
+    """Display existing profiles, with indices."""
+    parser = OptionParser(version=mp.__version__)
+    parser.disable_interspersed_args()
+
+    (options, args) = parser.parse_args()
+
+    if len(args) > 0:
+        print("This command takes no argument.")
+        sys.exit(1)
+
+    filenames = get_profile_filenames("all")
+    for n, filename in enumerate(filenames):
+        ts = osp.splitext(filename)[0].split('_')[-1]
+        print("{index} {filename} {hour}:{min}:{sec} {day}/{month}/{year}"
+              .format(index=n, filename=filename,
+                      year=ts[:4], month=ts[4:6], day=ts[6:8],
+                      hour=ts[8:10], min=ts[10:12], sec=ts[12:14]))
 
 
 def rm_action():
@@ -140,7 +161,9 @@ if __name__ == "__main__":
         if negint.match(arg):
             sys.argv.insert(n, "--")
             break
-    actions = {"rm": rm_action, "clean": clean_action}
+    actions = {"rm": rm_action,
+               "clean": clean_action,
+               "list": list_action}
     actions[get_action()]()
 
 
