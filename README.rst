@@ -271,6 +271,8 @@ cleanup.
 
 `Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
 
+Philippe Gervais made several enhacements and bug fixes.
+
 
 
 =========
