@@ -610,7 +610,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     (options, args) = parser.parse_args()
-    del sys.argv[0]         # Hide "memory_profiler.py" from argument list
+    sys.argv[:] = args  # Remove every memory_profiler arguments
 
     prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
