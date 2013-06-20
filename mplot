@@ -37,6 +37,9 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None):
     bracket_x = pl.asarray([hsize, 0, 0, hsize])
     bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
 
+    # Matplotlib workaround: labels starting with _ aren't displayed
+    if label[0] == '_':
+        label = ' ' + label
     pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
             "-" + color, linewidth=2, label=label)
     pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
