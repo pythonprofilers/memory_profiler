@@ -83,24 +83,31 @@ class Timer(Process):
     Fetch memory consumption from over a time interval
     """
 
-    def __init__(self, monitor_pid, interval, pipe, *args, **kw):
+    def __init__(self, monitor_pid, interval, pipe, max_usage=False, *args, **kw):
         self.monitor_pid = monitor_pid
         self.interval = interval
         self.pipe = pipe
         self.cont = True
+        self.max_usage = max_usage
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
         m = _get_memory(self.monitor_pid)
-        timings = [m]
+        if not self.max_usage:
+            timings = [m]
+        else:
+            timings = m 
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid)
-            timings.append(m)
+            if not self.max_usage:
+                timings.append(m)
+            else:
+                timings = max([m,timings])
         self.pipe.send(timings)
 
 
-def memory_usage(proc=-1, interval=.1, timeout=None):
+def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -119,13 +126,25 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
 
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
+        
+    max_usage: bool, optional
+        Only return the maximum memory usage (default False)
+        
+    retval: bool, optional
+        For profiling python functions. Save the return value of the profiled
+        function. Return value of memory_usage becomes a tuple:
+        (mem_usage, retval)
 
     Returns
     -------
     mem_usage : list of floating-poing values
         memory usage, in MB. It's length is always < timeout / interval
     """
-    ret = []
+    
+    if not max_usage:
+        ret = []
+    else:
+        ret = -1
 
     if timeout is not None:
         max_iter = int(timeout / interval)
@@ -158,17 +177,22 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(-1, interval, child_conn)
+        p = Timer(-1, interval, child_conn,max_usage)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
-        f(*args, **kw)
+        returned = f(*args, **kw)
         parent_conn.send(0)  # finish timing
         ret = parent_conn.recv()
+        if retval:
+            ret = ret,returned
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         while True:
-            ret.append(_get_memory(proc.pid))
+            if not max_usage:
+                ret.append(_get_memory(proc.pid))
+            else:
+                ret = max([ret,_get_memory(proc.pid)])
             time.sleep(interval)
             if timeout is not None:
                 max_iter -= 1
@@ -183,7 +207,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None):
         counter = 0
         while counter < max_iter:
             counter += 1
-            ret.append(_get_memory(proc))
+            if not max_usage:
+                ret.append(_get_memory(proc.pid))
+            else:
+                ret = max([ret,_get_memory(proc.pid)])
             time.sleep(interval)
     return ret
 
