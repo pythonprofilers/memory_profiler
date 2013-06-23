@@ -139,6 +139,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
     -------
     mem_usage : list of floating-poing values
         memory usage, in MB. It's length is always < timeout / interval
+    ret : return value of the profiled function
+        Only returned if retval is set to True
     """
     
     if not max_usage:
@@ -177,7 +179,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(-1, interval, child_conn,max_usage)
+        p = Timer(os.getpid(), interval, child_conn,max_usage)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
         returned = f(*args, **kw)
@@ -208,9 +210,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
         while counter < max_iter:
             counter += 1
             if not max_usage:
-                ret.append(_get_memory(proc.pid))
+                ret.append(_get_memory(proc))
             else:
-                ret = max([ret,_get_memory(proc.pid)])
+                ret = max([ret,_get_memory(proc)])
             time.sleep(interval)
     return ret
 
