@@ -38,13 +38,18 @@ try:
 except ImportError:
     pass
 
+# divide resource.getrusage() by rusage_denom to get MB
+rusage_denom = 1024.
+if sys.platform == 'darwin':
+    # ... it seems that in OSX the output is different units ...
+    rusage_denom = rusage_denom * rusage_denom
 
 def _get_memory(pid):
 
     # .. only for current process and only on unix..
     if pid == -1:
         if has_resource:
-            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
             return mem
         else:
             pid = os.getpid()
