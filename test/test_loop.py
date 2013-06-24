@@ -2,6 +2,13 @@
 
 @profile
 def test_1():
+    a = {}
+    for i in range(10000):
+        a[i] =  i + 1
+    return
+
+@profile
+def test_2():
     a = [1] * (10 ** 6)
     b = [2] * (2 * 10 ** 7)
     del b
@@ -11,13 +18,6 @@ def test_1():
         b = [2] * (2 * 10 ** 7)
         del b
     return a
-
-@profile
-def test_2():
-    a = {}
-    for i in range(10000):
-        a[i] =  i + 1
-    return
 
 if __name__ == '__main__':
     test_1()
