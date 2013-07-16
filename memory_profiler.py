@@ -48,7 +48,9 @@ def _get_memory(pid):
 
     # .. only for current process and only on unix..
     if pid == -1:
-        if has_resource:
+        # .. seems to get wrong measurements on some cases, see ..
+        # .. https://github.com/fabianp/memory_profiler/issues/52 ..
+        if False: #has_resource:
             mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
             return mem
         else:
