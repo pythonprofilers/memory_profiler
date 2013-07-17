@@ -38,13 +38,20 @@ try:
 except ImportError:
     pass
 
+# divide resource.getrusage() by rusage_denom to get MB
+rusage_denom = 1024.
+if sys.platform == 'darwin':
+    # ... it seems that in OSX the output is different units ...
+    rusage_denom = rusage_denom * rusage_denom
 
 def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
     if pid == -1:
-        if has_resource:
-            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.
+        # .. seems to get wrong measurements on some cases, see ..
+        # .. https://github.com/fabianp/memory_profiler/issues/52 ..
+        if False: #has_resource:
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
             if timestamps:
                 return (mem, time.time())
             else:
@@ -99,11 +106,13 @@ class Timer(Process):
     Fetch memory consumption from over a time interval
     """
 
-    def __init__(self, monitor_pid, interval, pipe, *args, **kw):
+    def __init__(self, monitor_pid, interval, pipe, max_usage=False, *args, **kw):
         self.monitor_pid = monitor_pid
         self.interval = interval
         self.pipe = pipe
         self.cont = True
+        self.max_usage = max_usage
+
         if "timestamps" in kw:
             self.timestamps = kw["timestamps"]
             del kw["timestamps"]
@@ -120,17 +129,24 @@ class Timer(Process):
     def run(self):
         m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
                         include_children=self.include_children)
-        timings = [m]
+        if not self.max_usage:
+            timings = [m]
+        else:
+            timings = m
+
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
                             include_children=self.include_children)
-            timings.append(m)
+            if not self.max_usage:
+                timings.append(m)
+            else:
+                timings = max([m, timings])
         self.pipe.send(timings)
 
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
-                 include_children=False):
+                 include_children=False, max_usage=False, retval=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -150,12 +166,26 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
 
+    max_usage: bool, optional
+        Only return the maximum memory usage (default False)
+
+    retval: bool, optional
+        For profiling python functions. Save the return value of the profiled
+        function. Return value of memory_usage becomes a tuple:
+        (mem_usage, retval)
+
     Returns
     -------
     mem_usage : list of floating-poing values
         memory usage, in MB. It's length is always < timeout / interval
+    ret : return value of the profiled function
+        Only returned if retval is set to True
     """
-    ret = []
+
+    if not max_usage:
+        ret = []
+    else:
+        ret = -1
 
     if timeout is not None:
         max_iter = int(timeout / interval)
@@ -184,22 +214,30 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             n_args -= len(aspec.defaults)
         if n_args != len(args):
             raise ValueError(
-            'Function expects %s value(s) but %s where given'
-            % (n_args, len(args)))
+                'Function expects %s value(s) but %s where given'
+                % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(-1, interval, child_conn, timestamps=timestamps)
+        p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps,
+                  max_usage=max_usage)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
-        f(*args, **kw)
+        returned = f(*args, **kw)
         parent_conn.send(0)  # finish timing
         ret = parent_conn.recv()
+        if retval:
+            ret = ret, returned
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         while True:
-            ret.append(_get_memory(proc.pid, timestamps=timestamps,
-                                   include_children=include_children))
+            if not max_usage:
+                ret.append(_get_memory(proc.pid, timestamps=timestamps,
+                                       include_children=include_children))
+            else:
+                ret = max([ret,
+                           _get_memory(proc.pid,
+                                       include_children=include_children)])
             time.sleep(interval)
             if timeout is not None:
                 max_iter -= 1
@@ -214,8 +252,14 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         counter = 0
         while counter < max_iter:
             counter += 1
-            ret.append(_get_memory(proc, timestamps=timestamps,
-                                   include_children=include_children))
+            if not max_usage:
+                ret.append(_get_memory(proc, timestamps=timestamps,
+                                       include_children=include_children))
+            else:
+                ret = max([ret,
+                           _get_memory(proc, include_children=include_children)
+                           ])
+
             time.sleep(interval)
     return ret
 
