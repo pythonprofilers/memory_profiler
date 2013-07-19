@@ -44,7 +44,7 @@ if sys.platform == 'darwin':
     # ... it seems that in OSX the output is different units ...
     rusage_denom = rusage_denom * rusage_denom
 
-def _get_memory(pid):
+def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
     if pid == -1:
@@ -52,7 +52,10 @@ def _get_memory(pid):
         # .. https://github.com/fabianp/memory_profiler/issues/52 ..
         if False: #has_resource:
             mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
-            return mem
+            if timestamps:
+                return (mem, time.time())
+            else:
+                return mem
         else:
             pid = os.getpid()
 
@@ -61,9 +64,15 @@ def _get_memory(pid):
         process = psutil.Process(pid)
         try:
             mem = process.get_memory_info()[0] / (_TWO_20)
+            if include_children:
+                for p in process.get_children(recursive=True):
+                    mem += p.get_memory_info()[0] / (_TWO_20)
         except psutil.AccessDenied:
             mem = -1
-        return mem
+        if timestamps:
+            return (mem, time.time())
+        else:
+            return mem
 
     # .. scary stuff ..
     if os.name == 'posix':
@@ -77,9 +86,16 @@ def _get_memory(pid):
                   stdout=subprocess.PIPE).communicate()[0].split(b'\n')
             try:
                 vsz_index = out[0].split().index(b'RSS')
-                return float(out[1].split()[vsz_index]) / 1024
+                mem = float(out[1].split()[vsz_index]) / 1024
+                if timestamps:
+                    return(mem, time.time())
+                else:
+                    return mem
             except:
-                return -1
+                if timestamps:
+                    return (-1, time.time())
+                else:
+                    return -1
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
@@ -96,25 +112,41 @@ class Timer(Process):
         self.pipe = pipe
         self.cont = True
         self.max_usage = max_usage
+
+        if "timestamps" in kw:
+            self.timestamps = kw["timestamps"]
+            del kw["timestamps"]
+        else:
+            self.timestamps = False
+        if "include_children" in kw:
+            self.include_children = kw["include_children"]
+            del kw["include_children"]
+        else:
+            self.include_children = False
+
         super(Timer, self).__init__(*args, **kw)
 
     def run(self):
-        m = _get_memory(self.monitor_pid)
+        m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
+                        include_children=self.include_children)
         if not self.max_usage:
             timings = [m]
         else:
-            timings = m 
+            timings = m
+
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
-            m = _get_memory(self.monitor_pid)
+            m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
+                            include_children=self.include_children)
             if not self.max_usage:
                 timings.append(m)
             else:
-                timings = max([m,timings])
+                timings = max([m, timings])
         self.pipe.send(timings)
 
 
-def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=False):
+def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
+                 include_children=False, max_usage=False, retval=False):
     """
     Return the memory usage of a process or piece of code
 
@@ -133,10 +165,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
 
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
-        
+
     max_usage: bool, optional
         Only return the maximum memory usage (default False)
-        
+
     retval: bool, optional
         For profiling python functions. Save the return value of the profiled
         function. Return value of memory_usage becomes a tuple:
@@ -149,7 +181,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
-    
+
     if not max_usage:
         ret = []
     else:
@@ -182,26 +214,30 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
             n_args -= len(aspec.defaults)
         if n_args != len(args):
             raise ValueError(
-            'Function expects %s value(s) but %s where given'
-            % (n_args, len(args)))
+                'Function expects %s value(s) but %s where given'
+                % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(os.getpid(), interval, child_conn,max_usage)
+        p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps,
+                  max_usage=max_usage)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
         returned = f(*args, **kw)
         parent_conn.send(0)  # finish timing
         ret = parent_conn.recv()
         if retval:
-            ret = ret,returned
+            ret = ret, returned
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         while True:
             if not max_usage:
-                ret.append(_get_memory(proc.pid))
+                ret.append(_get_memory(proc.pid, timestamps=timestamps,
+                                       include_children=include_children))
             else:
-                ret = max([ret,_get_memory(proc.pid)])
+                ret = max([ret,
+                           _get_memory(proc.pid,
+                                       include_children=include_children)])
             time.sleep(interval)
             if timeout is not None:
                 max_iter -= 1
@@ -217,9 +253,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
         while counter < max_iter:
             counter += 1
             if not max_usage:
-                ret.append(_get_memory(proc))
+                ret.append(_get_memory(proc, timestamps=timestamps,
+                                       include_children=include_children))
             else:
-                ret = max([ret,_get_memory(proc)])
+                ret = max([ret,
+                           _get_memory(proc, include_children=include_children)
+                           ])
+
             time.sleep(interval)
     return ret
 
@@ -243,6 +283,81 @@ def _find_script(script_name):
 
     sys.stderr.write('Could not find script {0}\n'.format(script_name))
     raise SystemExit(1)
+
+
+class _TimeStamperCM(object):
+    """Time-stamping context manager."""
+
+    def __init__(self, timestamps):
+        self._timestamps = timestamps
+
+    def __enter__(self):
+        self._timestamps.append(_get_memory(os.getpid(), timestamps=True))
+
+    def __exit__(self, *args):
+        self._timestamps.append(_get_memory(os.getpid(), timestamps=True))
+
+
+class TimeStamper:
+    """ A profiler that just records start and end execution times for
+    any decorated function.
+    """
+    def __init__(self):
+        self.functions = {}
+
+    def __call__(self, func):
+        if not hasattr(func, "__call__"):
+            raise ValueError("Value must be callable")
+
+        self.add_function(func)
+        f = self.wrap_function(func)
+        f.__module__ = func.__module__
+        f.__name__ = func.__name__
+        f.__doc__ = func.__doc__
+        f.__dict__.update(getattr(func, '__dict__', {}))
+        return f
+
+    def timestamp(self, name="<block>"):
+        """Returns a context manager for timestamping a block of code."""
+        # Make a fake function
+        func = lambda x: x
+        func.__module__ = ""
+        func.__name__ = name
+        self.add_function(func)
+        timestamps = []
+        self.functions[func].append(timestamps)
+        # A new object is required each time, since there can be several
+        # nested context managers.
+        return _TimeStamperCM(timestamps)
+
+    def add_function(self, func):
+        if not func in self.functions:
+            self.functions[func] = []
+
+    def wrap_function(self, func):
+        """ Wrap a function to timestamp it.
+        """
+        def f(*args, **kwds):
+            # Start time
+            timestamps = [_get_memory(os.getpid(), timestamps=True)]
+            self.functions[func].append(timestamps)
+            try:
+                result = func(*args, **kwds)
+            finally:
+                # end time
+                timestamps.append(_get_memory(os.getpid(), timestamps=True))
+            return result
+        return f
+
+    def show_results(self, stream=None):
+        if stream is None:
+            stream = sys.stdout
+
+        for func, timestamps in self.functions.iteritems():
+            function_name = "%s.%s" % (func.__module__, func.__name__)
+            for ts in timestamps:
+                stream.write("FUNC %s %.4f %.4f %.4f %.4f\n" % (
+                    (function_name,) + ts[0] + ts[1]))
 
 
 class LineProfiler:
@@ -292,7 +407,7 @@ class LineProfiler:
         return f
 
     def run(self, cmd):
-        """ Profile a single executable statment in the main namespace.
+        """ Profile a single executable statement in the main namespace.
         """
         import __main__
         main_dict = __main__.__dict__
@@ -438,7 +553,7 @@ def show_results(prof, stream=None, precision=3):
 # A lprun-style %mprun magic for IPython.
 def magic_mprun(self, parameter_s=''):
     """ Execute a statement under the line-by-line memory profiler from the
-    memory_profilser module.
+    memory_profiler module.
 
     Usage:
       %mprun -f func1 -f func2 <statement>
@@ -640,6 +755,13 @@ if __name__ == '__main__':
     parser.add_option('--precision', dest="precision", type="int",
         action="store", default=3,
         help="precision of memory output in number of significant digits")
+    parser.add_option("-o", dest="out_filename", type="str",
+                      action="store", default=None,
+                      help="path to a file where results will be written")
+    parser.add_option("--timestamp", dest="timestamp", default=False,
+                      action="store_true",
+                      help="""print timestamp instead of memory measurement for
+                      decorated functions""")
 
     if not sys.argv[1:]:
         parser.print_help()
@@ -648,7 +770,10 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     sys.argv[:] = args  # Remove every memory_profiler arguments
 
-    prof = LineProfiler(max_mem=options.max_mem)
+    if options.timestamp:
+        prof = TimeStamper()
+    else:
+        prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
     try:
         if sys.version_info[0] < 3:
@@ -668,4 +793,12 @@ if __name__ == '__main__':
             ns['profile'] = prof # shadow the profile decorator defined above
             exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
-        show_results(prof, precision=options.precision)
+        if options.out_filename is not None:
+            out_file = open(options.out_filename, "a")
+        else:
+            out_file = sys.stdout
+
+        if options.timestamp:
+            prof.show_results(stream=out_file)
+        else:
+            show_results(prof, precision=options.precision, stream=out_file)
