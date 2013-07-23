@@ -29,7 +29,7 @@ The line-by-line profiler is used much in the same way of the
 `line_profiler <https://pypi.python.org/pypi/line_profiler/>`_: first
 decorate the function you would like to profile with ``@profile`` and
 then run the script with a special script (in this case with specific
-arguments to the Python interpreter). 
+arguments to the Python interpreter).
 
 In the following example, we create a simple function ``my_func`` that
 allocates lists ``a``, ``b`` and then deletes ``b``::
@@ -163,7 +163,7 @@ After installing the module, if you use IPython, you can use the `%mprun`
 and `%memit` magics.
 
 For IPython 0.11+, you can use the module directly as an extension, with
-``%load_ext memory_profiler``.
+``%load_ext memory_profiler``
 
 To activate it whenever you start IPython, edit the configuration file for your
 IPython profile, ~/.ipython/profile_default/ipython_config.py, to register the

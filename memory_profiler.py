@@ -103,7 +103,7 @@ class Timer(Process):
         if not self.max_usage:
             timings = [m]
         else:
-            timings = m 
+            timings = m
         self.pipe.send(0)  # we're ready
         while not self.pipe.poll(self.interval):
             m = _get_memory(self.monitor_pid)
@@ -133,10 +133,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
 
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
-        
+
     max_usage: bool, optional
         Only return the maximum memory usage (default False)
-        
+
     retval: bool, optional
         For profiling python functions. Save the return value of the profiled
         function. Return value of memory_usage becomes a tuple:
@@ -149,7 +149,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, max_usage=False, retval=Fal
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
-    
+
     if not max_usage:
         ret = []
     else:
@@ -567,13 +567,16 @@ def magic_memit(self, line=''):
     """Measure memory usage of a Python statement
 
     Usage, in line mode:
-      %memit [-r<R>t<T>] statement
+      %memit [-r<R>t<T>i<I>] statement
 
     Options:
     -r<R>: repeat the loop iteration <R> times and take the best result.
     Default: 1
 
     -t<T>: timeout after <T> seconds. Default: None
+
+    -i<I>: Get time information at an interval of I times per second.
+        Defaults to 0.1 so that there is ten measurements per second.
 
     Examples
     --------
@@ -591,19 +594,21 @@ def magic_memit(self, line=''):
       maximum of 10: 0.101562 MB per loop
 
     """
-    opts, stmt = self.parse_options(line, 'r:t', posix=False, strict=False)
+    opts, stmt = self.parse_options(line, 'r:t:i:', posix=False, strict=False)
     repeat = int(getattr(opts, 'r', 1))
     if repeat < 1:
         repeat == 1
     timeout = int(getattr(opts, 't', 0))
     if timeout <= 0:
         timeout = None
+    interval = float(getattr(opts, 'i', 0.1))
 
     mem_usage = []
     counter = 0
     while counter < repeat:
         counter += 1
-        tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)), timeout=timeout)
+        tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
+                           timeout=timeout, interval=interval)
         mem_usage.extend(tmp)
 
     if mem_usage:
