@@ -92,8 +92,11 @@ Executing external scripts
 ==========================
 Sometimes it is useful to have full memory usage reports as a function of
 time (not line-by-line) of external processess (be it Python scripts or not).
-In this case the executable ``mprof`` might be useful. To use it
+In this case the executable ``mprof`` might be useful. To use it like::
 
+    ./mprof run --python name_of_script.py
+
+TODO: make it work without the --python option.
 
 Setting debugger breakpoints
 =============================
