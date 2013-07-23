@@ -74,7 +74,6 @@ the code that has been profiled.
 
 Decorator
 =========
-
 A function decorator is also available.  Use as follows::
 
     from memory_profiler import profile
@@ -85,6 +84,16 @@ A function decorator is also available.  Use as follows::
         b = [2] * (2 * 10 ** 7)
         del b
         return a
+
+In this case the script can be run without specifying ``-m
+memory_profiler`` in the command line.
+
+Executing external scripts
+==========================
+Sometimes it is useful to have full memory usage reports as a function of
+time (not line-by-line) of external processess (be it Python scripts or not).
+In this case the executable ``mprof`` might be useful. To use it
+
 
 Setting debugger breakpoints
 =============================
