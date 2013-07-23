@@ -27,10 +27,6 @@ if len(args) == 0:
     print("A program to run must be provided. Use -h for help")
     sys.exit(1)
 
-## if len(sys.argv) < 2:
-##     print("""Memory usage monitoring
-## Usage: %s <command> <argument> ... <argument>
-
 ## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
 ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
 ## directory. This file contains the process memory consumption, in Mb (one
@@ -44,7 +40,6 @@ mprofile_output = "mprofile_%s.dat" % suffix
 
 if options.python:
     print("running as a Python program...")
-#    timestamp_output = "mprofile_%s_ts.dat" % suffix
     if not args[0].startswith("python"):
         args.insert(0, "python")
     args[1:1] = ("-m", "memory_profiler", "--timestamp",

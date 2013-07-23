@@ -108,6 +108,7 @@ def list_action():
 
 
 def rm_action():
+    """TODO: merge with clean_action (@pgervais)"""
     parser = OptionParser(version=mp.__version__)
     parser.disable_interspersed_args()
     parser.add_option("--dry-run", dest="dry_run", default=False,
