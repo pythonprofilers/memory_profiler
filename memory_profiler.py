@@ -67,12 +67,13 @@ def _get_memory(pid, timestamps=False, include_children=False):
             if include_children:
                 for p in process.get_children(recursive=True):
                     mem += p.get_memory_info()[0] / (_TWO_20)
+            if timestamps:
+                return (mem, time.time())
+            else:
+                return mem
         except psutil.AccessDenied:
-            mem = -1
-        if timestamps:
-            return (mem, time.time())
-        else:
-            return mem
+            pass
+            # continue and try to get this from ps
 
     # .. scary stuff ..
     if os.name == 'posix':
