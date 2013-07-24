@@ -169,12 +169,13 @@ def run_action():
     parser.add_option("--interval", "-T", dest="interval", default="0.1",
                       type="float", action="store",
                       help="Sampling period (in seconds)")
-    parser.add_option("--include-children", "-C", dest="include_children", default=False,
-                      action="store_true",
+    parser.add_option("--include-children", "-C", dest="include_children",
+                      default=False, action="store_true",
                       help="""Monitors forked processes as well (sum up all process memory)""")
 
     (options, args) = parser.parse_args()
-    print("{1}: Sampling memory every {0.interval}s".format(options, osp.basename(sys.argv[0])))
+    print("{1}: Sampling memory every {0.interval}s".format(
+        options, osp.basename(sys.argv[0])))
 
     if len(args) == 0:
         print("A program to run must be provided. Use -h for help")
@@ -184,9 +185,6 @@ def run_action():
     ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
     ## directory. This file contains the process memory consumption, in Mb (one
     ## value per line). Memory is sampled twice each second."""
-    ##           % osp.basename(sys.argv[0])
-    ##           )
-    ##     sys.exit(1)
 
     suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
     mprofile_output = "mprofile_%s.dat" % suffix
@@ -348,7 +346,7 @@ def plot_action():
         filenames = [profiles[-1]]
     else:
         filenames = []
-        for arg in sys.argv[1:]:
+        for arg in sys.argv[2:]:
             if osp.exists(arg):
                 if not arg in filenames:
                     filenames.append(arg)
