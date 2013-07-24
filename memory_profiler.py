@@ -7,7 +7,10 @@ __version__ = '0.27'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-import time, sys, os, pdb
+import time
+import sys
+import os
+import pdb
 import warnings
 import linecache
 import inspect
@@ -44,14 +47,16 @@ if sys.platform == 'darwin':
     # ... it seems that in OSX the output is different units ...
     rusage_denom = rusage_denom * rusage_denom
 
+
 def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
     if pid == -1:
         # .. seems to get wrong measurements on some cases, see ..
         # .. https://github.com/fabianp/memory_profiler/issues/52 ..
-        if False: #has_resource:
-            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
+        if False:  # has_resource:
+            mem = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss /
+                   rusage_denom)
             if timestamps:
                 return (mem, time.time())
             else:
@@ -77,25 +82,25 @@ def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. scary stuff ..
     if os.name == 'posix':
-            warnings.warn("psutil module not found. memory_profiler will be slow")
-            # ..
-            # .. memory usage in MB ..
-            # .. this should work on both Mac and Linux ..
-            # .. subprocess.check_output appeared in 2.7, using Popen ..
-            # .. for backwards compatibility ..
-            out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-                  stdout=subprocess.PIPE).communicate()[0].split(b'\n')
-            try:
-                vsz_index = out[0].split().index(b'RSS')
-                mem = float(out[1].split()[vsz_index]) / 1024
-                if timestamps:
-                    return(mem, time.time())
-                else:
-                    return mem
-            except:
-                if timestamps:
-                    return (-1, time.time())
-                else:
+        warnings.warn("psutil module not found. memory_profiler will be slow")
+        # ..
+        # .. memory usage in MB ..
+        # .. this should work on both Mac and Linux ..
+        # .. subprocess.check_output appeared in 2.7, using Popen ..
+        # .. for backwards compatibility ..
+        out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
+              stdout=subprocess.PIPE).communicate()[0].split(b'\n')
+        try:
+            vsz_index = out[0].split().index(b'RSS')
+            mem = float(out[1].split()[vsz_index]) / 1024
+            if timestamps:
+                return(mem, time.time())
+            else:
+                return mem
+        except:
+            if timestamps:
+                return (-1, time.time())
+            else:
                     return -1
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
@@ -106,8 +111,8 @@ class Timer(Process):
     """
     Fetch memory consumption from over a time interval
     """
-
-    def __init__(self, monitor_pid, interval, pipe, max_usage=False, *args, **kw):
+    def __init__(self, monitor_pid, interval, pipe, max_usage=False,
+                 *args, **kw):
         self.monitor_pid = monitor_pid
         self.interval = interval
         self.pipe = pipe
@@ -213,9 +218,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         if aspec.defaults is not None:
             n_args -= len(aspec.defaults)
         if n_args != len(args):
-            raise ValueError(
-                'Function expects %s value(s) but %s where given'
-                % (n_args, len(args)))
+            raise ValueError('Function expects %s value(s) but %s where given'
+                             % (n_args, len(args)))
 
         child_conn, parent_conn = Pipe()  # this will store Timer's results
         p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps,
@@ -266,6 +270,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 # ..
 # .. utility functions for line-by-line ..
 
+
 def _find_script(script_name):
     """ Find the script.
 
@@ -275,7 +280,7 @@ def _find_script(script_name):
         return script_name
     path = os.getenv('PATH', os.defpath).split(os.pathsep)
     for folder in path:
-        if folder == '':
+        if not folder:
             continue
         fn = os.path.join(folder, script_name)
         if os.path.isfile(fn):
@@ -387,7 +392,7 @@ class LineProfiler:
         except AttributeError:
             import warnings
             warnings.warn("Could not extract a code object for the object %r"
-                          % (func,))
+                          % func)
             return
         if code not in self.code_map:
             self.code_map[code] = {}
@@ -455,8 +460,8 @@ class LineProfiler:
         if event in ('line', 'return') and frame.f_code in self.code_map:
             c = _get_memory(-1)
             if c >= self.max_mem:
-                t = 'Current memory {0:.2f} MB exceeded the maximum '.format(c) + \
-                    'of {0:.2f} MB\n'.format(self.max_mem)
+                t = ('Current memory {0:.2f} MB exceeded the maximum'
+                     ''.format(c) + 'of {0:.2f} MB\n'.format(self.max_mem))
                 sys.stdout.write(t)
                 sys.stdout.write('Stepping into the debugger \n')
                 frame.f_lineno -= 2
@@ -503,7 +508,8 @@ def show_results(prof, stream=None, precision=3):
         stream.write('Filename: ' + filename + '\n\n')
         if not os.path.exists(filename):
             stream.write('ERROR: Could not find file ' + filename + '\n')
-            if filename.startswith("ipython-input") or filename.startswith("<ipython-input"):
+            if any([filename.startswith(k) for k in
+                    ("ipython-input", "<ipython-input")]):
                 print("NOTE: %mprun can only be used on functions defined in "
                       "physical files, and not in the IPython environment.")
             continue
@@ -582,7 +588,7 @@ def magic_mprun(self, parameter_s=''):
     """
     try:
         from StringIO import StringIO
-    except ImportError: # Python 3.x
+    except ImportError:  # Python 3.x
         from io import StringIO
 
     # Local imports to avoid hard dependency.
@@ -678,6 +684,8 @@ def _func_exec(stmt, ns):
     exec(stmt, ns)
 
 # a timeit-style %memit magic for IPython
+
+
 def magic_memit(self, line=''):
     """Measure memory usage of a Python statement
 
@@ -729,7 +737,8 @@ def magic_memit(self, line=''):
     if mem_usage:
         print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
     else:
-        print('ERROR: could not read memory usage, try with a lower interval or more iterations')
+        print('ERROR: could not read memory usage, try with a lower interval '
+              'or more iterations')
 
 
 def load_ipython_extension(ip):
@@ -789,13 +798,13 @@ if __name__ == '__main__':
             import __builtin__
             __builtin__.__dict__['profile'] = prof
             ns = copy(_clean_globals)
-            ns['profile'] = prof # shadow the profile decorator defined above
+            ns['profile'] = prof  # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
             import builtins
             builtins.__dict__['profile'] = prof
             ns = copy(_clean_globals)
-            ns['profile'] = prof # shadow the profile decorator defined above
+            ns['profile'] = prof  # shadow the profile decorator defined above
             exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
         if options.out_filename is not None:
