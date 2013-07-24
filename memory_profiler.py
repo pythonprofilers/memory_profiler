@@ -26,7 +26,6 @@ except ImportError:
 _TWO_20 = float(2 ** 20)
 
 has_psutil = False
-has_resource = False
 
 # .. get available packages ..
 try:
@@ -35,43 +34,21 @@ try:
 except ImportError:
     pass
 
-try:
-    import resource
-    has_resource = True
-except ImportError:
-    pass
-
-# divide resource.getrusage() by rusage_denom to get MB
-rusage_denom = 1024.
-if sys.platform == 'darwin':
-    # ... it seems that in OSX the output is different units ...
-    rusage_denom = rusage_denom * rusage_denom
-
 
 def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
     if pid == -1:
-        # .. seems to get wrong measurements on some cases, see ..
-        # .. https://github.com/fabianp/memory_profiler/issues/52 ..
-        if False:  # has_resource:
-            mem = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss /
-                   rusage_denom)
-            if timestamps:
-                return (mem, time.time())
-            else:
-                return mem
-        else:
-            pid = os.getpid()
+        pid = os.getpid()
 
     # .. cross-platform but but requires psutil ..
     if has_psutil:
         process = psutil.Process(pid)
         try:
-            mem = process.get_memory_info()[0] / (_TWO_20)
+            mem = process.get_memory_info()[0] / _TWO_20
             if include_children:
                 for p in process.get_children(recursive=True):
-                    mem += p.get_memory_info()[0] / (_TWO_20)
+                    mem += p.get_memory_info()[0] / _TWO_20
             if timestamps:
                 return (mem, time.time())
             else:
