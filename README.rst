@@ -91,12 +91,57 @@ memory_profiler`` in the command line.
 Executing external scripts
 ==========================
 Sometimes it is useful to have full memory usage reports as a function of
-time (not line-by-line) of external processess (be it Python scripts or not).
-In this case the executable ``mprof`` might be useful. To use it like::
+time (not line-by-line) of external processes (be it Python scripts or not).
+In this case the executable ``mprof`` might be useful. Use it like::
 
-    ./mprof run --python name_of_script.py
+    mprof run <executable>
+    mprof plot
 
-TODO: make it work without the --python option.
+The first line run the executable and record memory usage along time,
+in a file written in the current directory.
+Once it's done, a graph plot can be obtained using the second line.
+The recorded file contains a timestamps, that allows for several
+profiles to be kept at the same time.
+
+Help on each `mprof` subcommand can be obtained with the `-h` flag,
+e.g. `mprof run -h`.
+
+In the case of a Python script, using the previous command does not
+give you any information on which function is executed at a given
+time. Depending on the case, it can be difficult to identify the part
+of the code that is causing the highest memory usage. 
+
+Adding the `profile` decorator to a function and running the Python
+script with 
+
+    mprof run --python <script>
+
+will record timestamps when entering/leaving the profiled function,
+and plot them on the graph afterward. 
+An example output can be found 
+`here <https://github.com/scikit-learn/scikit-learn/pull/2248>`_
+
+It is also possible to timestamp a portion of code using a context
+manager like this::
+
+    def my_func():
+        a = [1] * (10 ** 6)
+        with profile.timestamp("b_computation"):
+            b = [2] * (2 * 10 ** 7)
+        del b
+        return a
+
+the string provided in the call will be displayed in the plot.
+
+The available commands for `mprof` are: 
+
+  - ``mprof run``: running an executable, recording memory usage  
+  - ``mprof plot``: plotting one the recorded memory usage (by default,
+    the last one)
+  - ``mprof list``: listing all recorded memory usage files in a
+    user-friendly way.
+  - ``mprof clean``: removing all recorded memory usage files.
+  - ``mprof rm``: removing specific recorded memory usage files
 
 Setting debugger breakpoints
 =============================
@@ -283,8 +328,8 @@ cleanup.
 
 `Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
 
-Philippe Gervais made several enhacements and bug fixes.
-
+`Philippe Gervais <https://github.com/pgervais>`_ created the 'mprof'
+script and fixed bugs. 
 
 
 =========
