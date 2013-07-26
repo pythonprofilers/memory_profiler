@@ -328,8 +328,8 @@ cleanup.
 
 `Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
 
-Philippe Gervais made several enhacements and bug fixes.
-
+`Philippe Gervais <https://github.com/pgervais>`_ created the 'mprof'
+script and fixed bugs. 
 
 
 =========
