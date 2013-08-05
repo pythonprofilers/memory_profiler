@@ -469,7 +469,7 @@ class LineProfiler:
         sys.settrace(None)
 
 
-def show_results(prof, stream=None, precision=3):
+def show_results(prof, stream=None, precision=1):
     if stream is None:
         stream = sys.stdout
     template = '{0:>6} {1:>12} {2:>12}   {3:<}'
@@ -519,7 +519,7 @@ def show_results(prof, stream=None, precision=3):
         first_line = sorted(lines_normalized.keys())[0]
         mem_old = max(lines_normalized[first_line])
         precision = int(precision)
-        template_mem = '{{0:{0}.{1}'.format(precision + 6, precision) + 'f} MiB'
+        template_mem = '{{0:{0}.{1}'.format(precision + 4, precision) + 'f} MiB'
         for i, l in enumerate(linenos):
             mem = ''
             inc = ''
