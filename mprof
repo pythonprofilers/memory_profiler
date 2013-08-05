@@ -189,6 +189,9 @@ def run_action():
     suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
     mprofile_output = "mprofile_%s.dat" % suffix
 
+    # .. TODO: more than one script as argument ? ..
+    if args[0].endswith('.py'):
+        options.python = True
     if options.python:
         print("running as a Python program...")
         if not args[0].startswith("python"):
