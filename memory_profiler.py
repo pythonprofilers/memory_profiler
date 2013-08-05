@@ -346,7 +346,7 @@ class LineProfiler:
     """ A profiler that records the amount of memory for each line """
 
     def __init__(self, **kw):
-        self.functions = list()
+        self.functions = []
         self.code_map = {}
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
