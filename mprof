@@ -166,6 +166,10 @@ def run_action():
                       action="store_true",
                       help="""Activates extra features when the profiled executable is
                       a Python program (currently: function timestamping.)""")
+    parser.add_option("--nopython", dest="nopython", default=False,
+                      action="store_true",
+                      help="""Disables extra features when the profiled executable is
+                      a Python program (currently: function timestamping.)""")
     parser.add_option("--interval", "-T", dest="interval", default="0.1",
                       type="float", action="store",
                       help="Sampling period (in seconds)")
@@ -190,7 +194,7 @@ def run_action():
     mprofile_output = "mprofile_%s.dat" % suffix
 
     # .. TODO: more than one script as argument ? ..
-    if args[0].endswith('.py'):
+    if args[0].endswith('.py') and not options.nopython:
         options.python = True
     if options.python:
         print("running as a Python program...")
