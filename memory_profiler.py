@@ -61,7 +61,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
     if os.name == 'posix':
         warnings.warn("psutil module not found. memory_profiler will be slow")
         # ..
-        # .. memory usage in MB ..
+        # .. memory usage in MiB ..
         # .. this should work on both Mac and Linux ..
         # .. subprocess.check_output appeared in 2.7, using Popen ..
         # .. for backwards compatibility ..
@@ -159,7 +159,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     Returns
     -------
     mem_usage : list of floating-poing values
-        memory usage, in MB. It's length is always < timeout / interval
+        memory usage, in MiB. It's length is always < timeout / interval
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
@@ -437,8 +437,8 @@ class LineProfiler:
         if event in ('line', 'return') and frame.f_code in self.code_map:
             c = _get_memory(-1)
             if c >= self.max_mem:
-                t = ('Current memory {0:.2f} MB exceeded the maximum'
-                     ''.format(c) + 'of {0:.2f} MB\n'.format(self.max_mem))
+                t = ('Current memory {0:.2f} MiB exceeded the maximum'
+                     ''.format(c) + 'of {0:.2f} MiB\n'.format(self.max_mem))
                 sys.stdout.write(t)
                 sys.stdout.write('Stepping into the debugger \n')
                 frame.f_lineno -= 2
@@ -519,7 +519,7 @@ def show_results(prof, stream=None, precision=3):
         first_line = sorted(lines_normalized.keys())[0]
         mem_old = max(lines_normalized[first_line])
         precision = int(precision)
-        template_mem = '{{0:{0}.{1}'.format(precision + 6, precision) + 'f} MB'
+        template_mem = '{{0:{0}.{1}'.format(precision + 6, precision) + 'f} MiB'
         for i, l in enumerate(linenos):
             mem = ''
             inc = ''
@@ -685,13 +685,13 @@ def magic_memit(self, line=''):
       In [1]: import numpy as np
 
       In [2]: %memit np.zeros(1e7)
-      maximum of 1: 76.402344 MB per loop
+      maximum of 1: 76.402344 MiB per loop
 
       In [3]: %memit np.ones(1e6)
-      maximum of 1: 7.820312 MB per loop
+      maximum of 1: 7.820312 MiB per loop
 
       In [4]: %memit -r 10 np.empty(1e8)
-      maximum of 10: 0.101562 MB per loop
+      maximum of 10: 0.101562 MiB per loop
 
     """
     opts, stmt = self.parse_options(line, 'r:t:i:', posix=False, strict=False)
@@ -712,7 +712,7 @@ def magic_memit(self, line=''):
         mem_usage.extend(tmp)
 
     if mem_usage:
-        print('maximum of %d: %f MB per loop' % (repeat, max(mem_usage)))
+        print('maximum of %d: %f MiB per loop' % (repeat, max(mem_usage)))
     else:
         print('ERROR: could not read memory usage, try with a lower interval '
               'or more iterations')

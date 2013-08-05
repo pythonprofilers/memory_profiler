@@ -372,8 +372,8 @@ def plot_action():
         timestamps = True
     for n, filename in enumerate(filenames):
         plot_file(filename, index=n, timestamps=timestamps)
-    pl.xlabel("time [s]")
-    pl.ylabel("memory used [MB]")
+    pl.xlabel("time (in seconds)")
+    pl.ylabel("memory used (in MiB)")
 
     ax = pl.gca()
     box = ax.get_position()
