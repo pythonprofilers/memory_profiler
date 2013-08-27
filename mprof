@@ -206,12 +206,9 @@ def run_action():
     else:
         p = subprocess.Popen(args)
 
-    mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                         include_children=options.include_children)
     with open(mprofile_output, "a") as f:
-        for m, t in mu:
-            f.write("MEM {0:.6f} {1:.4f}".format(m, t) + "\n")
-
+        mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
+                        include_children=options.include_children, stream=f)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None):

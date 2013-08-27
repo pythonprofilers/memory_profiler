@@ -128,7 +128,8 @@ class Timer(Process):
 
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
-                 include_children=False, max_usage=False, retval=False):
+                 include_children=False, max_usage=False, retval=False,
+                 stream=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -148,13 +149,22 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     timeout : float, optional
         Maximum amount of time (in seconds) to wait before returning.
 
-    max_usage: bool, optional
+    max_usage : bool, optional
         Only return the maximum memory usage (default False)
 
-    retval: bool, optional
+    retval : bool, optional
         For profiling python functions. Save the return value of the profiled
         function. Return value of memory_usage becomes a tuple:
         (mem_usage, retval)
+
+    timestamps : bool, optional
+        if True, timestamps of memory usage measurement are collected as well.
+
+    stream : File
+        if stream is a File opened with write access, then results are written
+        to this file instead of stored in memory and returned at the end of
+        the subprocess. Useful for long-running processes.
+        Implies timestamps=True.
 
     Returns
     -------
@@ -163,6 +173,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
+
+    if stream is not None:
+        timestamps = True
 
     if not max_usage:
         ret = []
@@ -211,15 +224,25 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         p.join(5 * interval)
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
+        line_count = 0
         while True:
             if not max_usage:
-                ret.append(_get_memory(proc.pid, timestamps=timestamps,
-                                       include_children=include_children))
+                mem_usage = _get_memory(proc.pid, timestamps=timestamps,
+                                        include_children=include_children)
+                if stream:
+                    stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
+                else:
+                    ret.append(mem_usage)
             else:
                 ret = max([ret,
                            _get_memory(proc.pid,
                                        include_children=include_children)])
             time.sleep(interval)
+            line_count += 1
+            # flush every 50 lines. Make 'tail -f' usable on profile file
+            if line_count > 50:
+                line_count = 0
+                stream.flush()
             if timeout is not None:
                 max_iter -= 1
                 if max_iter == 0:
@@ -234,14 +257,23 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         while counter < max_iter:
             counter += 1
             if not max_usage:
-                ret.append(_get_memory(proc, timestamps=timestamps,
-                                       include_children=include_children))
+                mem_usage = _get_memory(proc, timestamps=timestamps,
+                                        include_children=include_children)
+                if stream:
+                    stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
+                else:
+                    ret.append(mem_usage)
             else:
                 ret = max([ret,
                            _get_memory(proc, include_children=include_children)
                            ])
 
             time.sleep(interval)
+            # Flush every 50 lines.
+            if counter % 50 == 0:
+                stream.flush()
+    if stream:
+        return None
     return ret
 
 # ..
