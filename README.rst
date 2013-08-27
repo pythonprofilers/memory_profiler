@@ -314,7 +314,8 @@ Projects using memory_profiler
 =========
  Authors
 =========
-This module was written by `Fabian Pedregosa <http://fseoane.net>`_
+This module was written by `Fabian Pedregosa <http://fseoane.net>`_ 
+and `Philippe Gervais <https://github.com/pgervais>`_
 inspired by Robert Kern's `line profiler
 <http://packages.python.org/line_profiler/>`_.
 
@@ -327,9 +328,6 @@ cleanup.
 `Vlad Niculae <http://vene.ro/>`_ added the `%mprun` and `%memit` IPython magics.
 
 `Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
-
-`Philippe Gervais <https://github.com/pgervais>`_ created the 'mprof'
-script and fixed bugs. 
 
 
 =========
