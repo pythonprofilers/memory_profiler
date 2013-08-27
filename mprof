@@ -157,6 +157,12 @@ def clean_action():
             os.remove(filename)
 
 
+def get_cmd_line(args):
+    """Given a set or arguments, compute command-line."""
+    blanks = set(' \t')
+    args = [s if blanks.isdisjoint(s) else "'" + s + "'" for s in args]
+    return ' '.join(args)
+
 
 def run_action():
     import time, subprocess
@@ -200,15 +206,18 @@ def run_action():
         print("running as a Python program...")
         if not args[0].startswith("python"):
             args.insert(0, "python")
+        cmd_line = get_cmd_line(args)
         args[1:1] = ("-m", "memory_profiler", "--timestamp",
                      "-o", mprofile_output)
         p = subprocess.Popen(args)
     else:
+        cmd_line = get_cmd_line(args)
         p = subprocess.Popen(args)
 
-    mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                         include_children=options.include_children)
     with open(mprofile_output, "a") as f:
+        f.write("CMDLINE {0}\n".format(cmd_line))
+        mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
+                         include_children=options.include_children)
         for m, t in mu:
             f.write("MEM {0:.6f} {1:.4f}".format(m, t) + "\n")
 
@@ -271,31 +280,38 @@ def read_mprofile_file(filename):
             second
         - "func_timestamp": (dict) for each function, timestamps and memory
             usage upon entering and exiting.
+        - 'cmd_line': (str) command-line ran for this profile.
     """
     func_ts = {}
     mem_usage = []
     timestamp = []
+    cmd_line = None
     f = open(filename, "r")
     for l in f:
-        fields = l.split()
-        if fields[0] == "MEM":
+        field, value = l.split(' ', 1)
+        if field == "MEM":
             # mem, timestamp
-            mem_usage.append(float(fields[1]))
-            timestamp.append(float(fields[2]))
+            values = value.split(' ')
+            mem_usage.append(float(values[0]))
+            timestamp.append(float(values[1]))
 
-        elif fields[0] == "FUNC":
-            f_name, mem_start, start, mem_end, end = fields[1:]
+        elif field == "FUNC":
+            values = value.split(' ')
+            f_name, mem_start, start, mem_end, end = values[:5]
             ts = func_ts.get(f_name, [])
             ts.append([float(start), float(end),
                        float(mem_start), float(mem_end)])
             func_ts[f_name] = ts
 
+        elif field == "CMDLINE":
+            cmd_line = value
         else:
             pass
     f.close()
 
     return {"mem_usage": mem_usage, "timestamp": timestamp,
-            "func_timestamp": func_ts, 'filename': filename}
+            "func_timestamp": func_ts, 'filename': filename,
+            'cmd_line': cmd_line}
 
 
 
@@ -355,6 +371,7 @@ def plot_file(filename, index=0, timestamps=True):
                   colors="r", linestyles="--")
         pl.vlines(t[max_mem_ind], bottom, top,
                   colors="r", linestyles="--")
+    return mprofile
 
 
 def plot_action():
@@ -366,7 +383,7 @@ def plot_action():
 
     parser = OptionParser(version=mp.__version__)
     parser.disable_interspersed_args()
-    parser.add_option("--title", "-t", dest="title", default="",
+    parser.add_option("--title", "-t", dest="title", default=None,
                       type="str", action="store",
                       help="String shown as plot title")
     (options, args) = parser.parse_args()
@@ -401,10 +418,16 @@ def plot_action():
     else:
         timestamps = True
     for n, filename in enumerate(filenames):
-        plot_file(filename, index=n, timestamps=timestamps)
+        mprofile = plot_file(filename, index=n, timestamps=timestamps)
     pl.xlabel("time (in seconds)")
     pl.ylabel("memory used (in MiB)")
-    pl.title(options.title)
+
+    if options.title is None and len(filenames) == 1:
+        pl.title(mprofile['cmd_line'])
+    else:
+        if options.title is not None:
+            pl.title(options.title)
+
     ax = pl.gca()
     box = ax.get_position()
     ax.set_position([0.07, 0.1,
