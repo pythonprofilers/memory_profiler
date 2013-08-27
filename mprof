@@ -332,13 +332,29 @@ def plot_file(filename, index=0, timestamps=True):
               mprofile['filename']))
         sys.exit(0)
 
-    global_start = float(mprofile["timestamp"][0])
+    # Merge function timestamps and memory usage together
+    ts = mprofile['func_timestamp']
+    t = mprofile['timestamp']
+    mem = mprofile['mem_usage']
 
-    mem = np.asarray(mprofile["mem_usage"])
+    if len(ts) > 0:
+        for values in ts.itervalues():
+            for v in values:
+                t.extend(v[:2])
+                mem.extend(v[2:4])
+
+    mem = np.asarray(mem)
+    t = np.asarray(t)
+    ind = t.argsort()
+    mem = mem[ind]
+    t = t[ind]
+
+    # Plot curves
+    global_start = float(t[0])
+    t = t - global_start
+
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
-
-    t = np.asarray(mprofile["timestamp"]) - global_start
 
     all_colors=("c", "y", "g", "r", "b")
     mem_line_colors=('k', "b", "r")
@@ -354,7 +370,6 @@ def plot_file(filename, index=0, timestamps=True):
     top -= 0.001
 
     # plot timestamps, if any
-    ts = mprofile['func_timestamp']
     if len(ts) > 0 and timestamps:
         func_num = 0
         for f, exec_ts in ts.iteritems():
@@ -386,6 +401,9 @@ def plot_action():
     parser.add_option("--title", "-t", dest="title", default=None,
                       type="str", action="store",
                       help="String shown as plot title")
+    parser.add_option("--no-function-ts", "-n", dest="no_timestamps",
+                      default=False, action="store_true",
+                      help="Do not display function timestamps on plot.")
     (options, args) = parser.parse_args()
 
     profiles = glob.glob("mprofile_??????????????.dat")
@@ -413,7 +431,7 @@ def plot_action():
                     filenames.append(profiles[n])
 
     pl.figure(figsize=(14, 6), dpi=90)
-    if len(filenames) > 1:
+    if len(filenames) > 1 or options.no_timestamps:
         timestamps = False
     else:
         timestamps = True
