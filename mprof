@@ -272,7 +272,6 @@ def read_mprofile_file(filename):
         - "func_timestamp": (dict) for each function, timestamps and memory
             usage upon entering and exiting.
     """
-#    import numpy as np
     func_ts = {}
     mem_usage = []
     timestamp = []
@@ -295,10 +294,8 @@ def read_mprofile_file(filename):
             pass
     f.close()
 
-    ## mdata = np.asarray(mdata,
-    ##                    dtype=[("mem", np.float), ("timestamp", np.float)])
     return {"mem_usage": mem_usage, "timestamp": timestamp,
-            "func_timestamp": func_ts}
+            "func_timestamp": func_ts, 'filename': filename}
 
 
 
@@ -310,6 +307,14 @@ def plot_file(filename, index=0, timestamps=True):
         sys.exit(1)
     import numpy as np  # pylab requires numpy anyway
     mprofile = read_mprofile_file(filename)
+
+    if len(mprofile['timestamp']) == 0:
+        print('** No memory usage values have been found in the profile '
+              'file.**\nFile path: {0}\n'
+              'File may be empty or invalid.\n'
+              'It can be deleted with "mprof rm {0}"'.format(
+              mprofile['filename']))
+        sys.exit(0)
 
     global_start = float(mprofile["timestamp"][0])
 
