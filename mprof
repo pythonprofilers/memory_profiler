@@ -259,31 +259,46 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None):
 
 
 def read_mprofile_file(filename):
-    # TODO: would be nice to do without numpy
+    """Read an mprofile file and return its content.
 
-    import numpy as np
-    ret = {}
-    mdata = []
+    Returns
+    =======
+    content: dict
+        Keys:
+
+        - "mem_usage": (list) memory usage values, in MiB
+        - "timestamp": (list) time instant for each memory usage value, in
+            second
+        - "func_timestamp": (dict) for each function, timestamps and memory
+            usage upon entering and exiting.
+    """
+#    import numpy as np
+    func_ts = {}
+    mem_usage = []
+    timestamp = []
     f = open(filename, "r")
     for l in f:
         fields = l.split()
         if fields[0] == "MEM":
             # mem, timestamp
-            mdata.append((fields[1], fields[2]))
+            mem_usage.append(float(fields[1]))
+            timestamp.append(float(fields[2]))
 
         elif fields[0] == "FUNC":
             f_name, mem_start, start, mem_end, end = fields[1:]
-            ts = ret.get(f_name, [])
-            ts.append([float(start), float(end), float(mem_start), float(mem_end)])
-            ret[f_name] = ts
+            ts = func_ts.get(f_name, [])
+            ts.append([float(start), float(end),
+                       float(mem_start), float(mem_end)])
+            func_ts[f_name] = ts
 
         else:
             pass
     f.close()
 
-    mdata = np.asarray(mdata,
-                       dtype=[("mem", np.float), ("timestamp", np.float)])
-    return mdata, ret
+    ## mdata = np.asarray(mdata,
+    ##                    dtype=[("mem", np.float), ("timestamp", np.float)])
+    return {"mem_usage": mem_usage, "timestamp": timestamp,
+            "func_timestamp": func_ts}
 
 
 
@@ -293,16 +308,16 @@ def plot_file(filename, index=0, timestamps=True):
     except ImportError:
         print("matplotlib is needed for plotting.")
         sys.exit(1)
+    import numpy as np  # pylab requires numpy anyway
+    mprofile = read_mprofile_file(filename)
 
-    mdata, ts = read_mprofile_file(filename)
+    global_start = float(mprofile["timestamp"][0])
 
-    global_start = float(mdata["timestamp"][0])
-
-    mem = mdata["mem"]
+    mem = np.asarray(mprofile["mem_usage"])
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
-    t = mdata["timestamp"] - global_start
+    t = np.asarray(mprofile["timestamp"]) - global_start
 
     all_colors=("c", "y", "g", "r", "b")
     mem_line_colors=('k', "b", "r")
@@ -318,6 +333,7 @@ def plot_file(filename, index=0, timestamps=True):
     top -= 0.001
 
     # plot timestamps, if any
+    ts = mprofile['func_timestamp']
     if len(ts) > 0 and timestamps:
         func_num = 0
         for f, exec_ts in ts.iteritems():
