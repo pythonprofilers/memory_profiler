@@ -216,10 +216,8 @@ def run_action():
 
     with open(mprofile_output, "a") as f:
         f.write("CMDLINE {0}\n".format(cmd_line))
-        mu = mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                         include_children=options.include_children)
-        for m, t in mu:
-            f.write("MEM {0:.6f} {1:.4f}".format(m, t) + "\n")
+        mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
+                         include_children=options.include_children, stream=f)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None):

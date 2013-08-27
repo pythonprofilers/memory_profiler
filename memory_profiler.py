@@ -229,7 +229,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             if not max_usage:
                 mem_usage = _get_memory(proc.pid, timestamps=timestamps,
                                         include_children=include_children)
-                if stream:
+                if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
                 else:
                     ret.append(mem_usage)
@@ -242,7 +242,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             # flush every 50 lines. Make 'tail -f' usable on profile file
             if line_count > 50:
                 line_count = 0
-                stream.flush()
+                if stream is not None:
+                    stream.flush()
             if timeout is not None:
                 max_iter -= 1
                 if max_iter == 0:
@@ -259,7 +260,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             if not max_usage:
                 mem_usage = _get_memory(proc, timestamps=timestamps,
                                         include_children=include_children)
-                if stream:
+                if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
                 else:
                     ret.append(mem_usage)
@@ -270,7 +271,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
             time.sleep(interval)
             # Flush every 50 lines.
-            if counter % 50 == 0:
+            if counter % 50 == 0 and stream is not None:
                 stream.flush()
     if stream:
         return None
