@@ -379,10 +379,10 @@ class LineProfiler:
     """ A profiler that records the amount of memory for each line """
 
     def __init__(self, **kw):
-        self.functions = list()
         self.code_map = {}
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
+        self.prevline = None        
 
     def __call__(self, func):
         self.add_function(func)
@@ -406,7 +406,6 @@ class LineProfiler:
             return
         if code not in self.code_map:
             self.code_map[code] = {}
-            self.functions.append(func)
 
     def wrap_function(self, func):
         """ Wrap a function to profile it.
@@ -456,13 +455,12 @@ class LineProfiler:
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if event in ('line', 'return') and frame.f_code in self.code_map:
-            lineno = frame.f_lineno
-            if event == 'return':
-                lineno += 1
-            entry = self.code_map[frame.f_code].setdefault(lineno, [])
-            entry.append(_get_memory(-1))
-
+        if event in ('call', 'line', 'return') and frame.f_code in self.code_map:
+            if event != 'call':
+                # "call" event just saves the lineno but not the memory
+                mem = _get_memory(-1)                
+                self.code_map[frame.f_code][self.prevline] = mem
+            self.prevline = frame.f_lineno
         return self.trace_memory_usage
 
     def trace_max_mem(self, frame, event, arg):
@@ -525,44 +523,26 @@ def show_results(prof, stream=None, precision=1):
             continue
         all_lines = linecache.getlines(filename)
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
-        linenos = range(code.co_firstlineno, code.co_firstlineno +
-                        len(sub_lines))
-        lines_normalized = {}
-
+        linenos = range(code.co_firstlineno,
+                        code.co_firstlineno + len(sub_lines))
+        
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
         stream.write(header + '\n')
         stream.write('=' * len(header) + '\n')
-        # move everything one frame up
-        keys = sorted(lines.keys())
 
-        k_old = keys[0] - 1
-        lines_normalized[keys[0] - 1] = lines[keys[0]]
-        for i in range(1, len(lines_normalized[keys[0] - 1])):
-            lines_normalized[keys[0] - 1][i] = -1.
-        k = keys.pop(0)
-        while keys:
-            lines_normalized[k] = lines[keys[0]]
-            for i in range(len(lines_normalized[k_old]),
-                           len(lines_normalized[k])):
-                lines_normalized[k][i] = -1.
-            k_old = k
-            k = keys.pop(0)
-
-        first_line = sorted(lines_normalized.keys())[0]
-        mem_old = max(lines_normalized[first_line])
-        precision = int(precision)
+        mem_old = lines[min(lines.keys())]        
         template_mem = '{{0:{0}.{1}'.format(precision + 4, precision) + 'f} MiB'
-        for i, l in enumerate(linenos):
+        for line in linenos:
             mem = ''
             inc = ''
-            if l in lines_normalized:
-                mem = max(lines_normalized[l])
+            if line in lines:
+                mem = lines[line]
                 inc = mem - mem_old
                 mem_old = mem
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
-            stream.write(template.format(l, mem, inc, sub_lines[i]))
+            stream.write(template.format(line, mem, inc, all_lines[line - 1]))
         stream.write('\n\n')
 
 
