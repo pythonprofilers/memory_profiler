@@ -458,8 +458,10 @@ class LineProfiler:
         if event in ('call', 'line', 'return') and frame.f_code in self.code_map:
             if event != 'call':
                 # "call" event just saves the lineno but not the memory
-                mem = _get_memory(-1)                
-                self.code_map[frame.f_code][self.prevline] = mem
+                mem = _get_memory(-1)
+                # if there is already a measurement for that line get the max
+                old_mem = self.code_map[frame.f_code].get(self.prevline, 0)
+                self.code_map[frame.f_code][self.prevline] = max(mem, old_mem)
             self.prevline = frame.f_lineno
         return self.trace_memory_usage
 
