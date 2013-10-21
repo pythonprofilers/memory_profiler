@@ -66,7 +66,8 @@ def _get_memory(pid, timestamps=False, include_children=False):
         # .. subprocess.check_output appeared in 2.7, using Popen ..
         # .. for backwards compatibility ..
         out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-              stdout=subprocess.PIPE).communicate()[0].split(b'\n')
+                               stdout=subprocess.PIPE
+                               ).communicate()[0].split(b'\n')
         try:
             vsz_index = out[0].split().index(b'RSS')
             mem = float(out[1].split()[vsz_index]) / 1024
@@ -375,14 +376,14 @@ class TimeStamper:
                     (function_name,) + ts[0] + ts[1]))
 
 
-class LineProfiler:
+class LineProfiler(object):
     """ A profiler that records the amount of memory for each line """
 
     def __init__(self, **kw):
         self.code_map = {}
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
-        self.prevline = None        
+        self.prevline = None
 
     def __call__(self, func):
         self.add_function(func)
@@ -455,7 +456,8 @@ class LineProfiler:
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if event in ('call', 'line', 'return') and frame.f_code in self.code_map:
+        if (event in ('call', 'line', 'return')
+                and frame.f_code in self.code_map):
             if event != 'call':
                 # "call" event just saves the lineno but not the memory
                 mem = _get_memory(-1)
@@ -527,14 +529,15 @@ def show_results(prof, stream=None, precision=1):
         sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
         linenos = range(code.co_firstlineno,
                         code.co_firstlineno + len(sub_lines))
-        
+
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
         stream.write(header + '\n')
         stream.write('=' * len(header) + '\n')
 
-        mem_old = lines[min(lines.keys())]        
-        template_mem = '{{0:{0}.{1}'.format(precision + 4, precision) + 'f} MiB'
+        mem_old = lines[min(lines.keys())]
+        float_format = '{0}.{1}f'.format(precision + 4, precision)
+        template_mem = '{{0:' + float_format + '} MiB'
         for line in linenos:
             mem = ''
             inc = ''
@@ -611,7 +614,7 @@ def magic_mprun(self, parameter_s=''):
             funcs.append(eval(name, global_ns, local_ns))
         except Exception as e:
             raise UsageError('Could not find function %r.\n%s: %s' % (name,
-                e.__class__.__name__, e))
+                             e.__class__.__name__, e))
 
     profile = LineProfiler()
     for func in funcs:
@@ -639,7 +642,7 @@ def magic_mprun(self, parameter_s=''):
             message = "*** SystemExit exception caught in code being profiled."
         except KeyboardInterrupt:
             message = ("*** KeyboardInterrupt exception caught in code being "
-                "profiled.")
+                       "profiled.")
     finally:
         if had_profile:
             builtins.__dict__['profile'] = old_profile
@@ -755,10 +758,12 @@ if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage=_CMD_USAGE, version=__version__)
     parser.disable_interspersed_args()
-    parser.add_option("--pdb-mmem", dest="max_mem", metavar="MAXMEM",
+    parser.add_option(
+        "--pdb-mmem", dest="max_mem", metavar="MAXMEM",
         type="float", action="store",
         help="step into the debugger when memory exceeds MAXMEM")
-    parser.add_option('--precision', dest="precision", type="int",
+    parser.add_option(
+        '--precision', dest="precision", type="int",
         action="store", default=3,
         help="precision of memory output in number of significant digits")
     parser.add_option("-o", dest="out_filename", type="str",
@@ -784,7 +789,7 @@ if __name__ == '__main__':
     try:
         if sys.version_info[0] < 3:
             # we need to ovewrite the builtins to have profile
-            # globally defined (global variables is not enought
+            # globally defined (global variables is not enough
             # for all cases, e.g. a script that imports another
             # script where @profile is used)
             import __builtin__
