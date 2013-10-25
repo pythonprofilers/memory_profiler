@@ -85,7 +85,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
                                   'platforms')
 
 
-class Timer(Process):
+class MemTimer(Process):
     """
     Fetch memory consumption from over a time interval
     """
@@ -108,7 +108,7 @@ class Timer(Process):
         else:
             self.include_children = False
 
-        super(Timer, self).__init__(*args, **kw)
+        super(MemTimer, self).__init__(*args, **kw)
 
     def run(self):
         m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
@@ -212,8 +212,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             raise ValueError('Function expects %s value(s) but %s where given'
                              % (n_args, len(args)))
 
-        child_conn, parent_conn = Pipe()  # this will store Timer's results
-        p = Timer(os.getpid(), interval, child_conn, timestamps=timestamps,
+        child_conn, parent_conn = Pipe()  # this will store MemTimer's results
+        p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
                   max_usage=max_usage)
         p.start()
         parent_conn.recv()  # wait until we start getting memory
@@ -424,6 +424,7 @@ class LineProfiler(object):
     def run(self, cmd):
         """ Profile a single executable statement in the main namespace.
         """
+        # TODO: can this be removed ?
         import __main__
         main_dict = __main__.__dict__
         return self.runctx(cmd, main_dict, main_dict)
@@ -721,16 +722,16 @@ def magic_memit(self, line=''):
         timeout = None
     interval = float(getattr(opts, 'i', 0.1))
 
-    mem_usage = []
+    mem_usage = 0.
     counter = 0
     while counter < repeat:
         counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
-                           timeout=timeout, interval=interval)
-        mem_usage.extend(tmp)
+                           timeout=timeout, interval=interval, max_usage=True)
+        mem_usage = max(mem_usage, tmp)
 
     if mem_usage:
-        print('maximum of %d: %f MiB per loop' % (repeat, max(mem_usage)))
+        print('maximum of %d: %f MiB per loop' % (repeat, mem_usage))
     else:
         print('ERROR: could not read memory usage, try with a lower interval '
               'or more iterations')
