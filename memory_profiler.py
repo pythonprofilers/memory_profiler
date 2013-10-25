@@ -96,6 +96,7 @@ class MemTimer(Process):
         self.pipe = pipe
         self.cont = True
         self.max_usage = max_usage
+        self.n_measurements = 1
 
         if "timestamps" in kw:
             self.timestamps = kw["timestamps"]
@@ -107,25 +108,31 @@ class MemTimer(Process):
             del kw["include_children"]
         else:
             self.include_children = False
-
+        # get baseline memory usage
+        self.mem_usage = [
+            _get_memory(self.monitor_pid, timestamps=self.timestamps,
+                        include_children=self.include_children)]
         super(MemTimer, self).__init__(*args, **kw)
 
+
     def run(self):
-        m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
-                        include_children=self.include_children)
-        if not self.max_usage:
-            timings = [m]
-        else:
-            timings = m
         self.pipe.send(0)  # we're ready
-        while not self.pipe.poll(self.interval):
-            m = _get_memory(self.monitor_pid, timestamps=self.timestamps,
+        stop = False
+        while True:
+            cur_mem = _get_memory(self.monitor_pid, timestamps=self.timestamps,
                             include_children=self.include_children)
             if not self.max_usage:
-                timings.append(m)
+                self.mem_usage.append(cur_mem)
             else:
-                timings = max([m, timings])
-        self.pipe.send(timings)
+                self.mem_usage[0] = max(cur_mem, self.mem_usage[0])
+            self.n_measurements += 1
+            if stop:
+                break
+            stop = self.pipe.poll(self.interval)
+            # do one more iteration
+
+        self.pipe.send(self.mem_usage)
+        self.pipe.send(self.n_measurements)
 
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
@@ -171,6 +178,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     -------
     mem_usage : list of floating-poing values
         memory usage, in MiB. It's length is always < timeout / interval
+        if max_usage is given, returns the two elements maximum memory and
+        number of measurements effectuated
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
@@ -212,17 +221,22 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             raise ValueError('Function expects %s value(s) but %s where given'
                              % (n_args, len(args)))
 
-        child_conn, parent_conn = Pipe()  # this will store MemTimer's results
-        p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
-                  max_usage=max_usage)
-        p.start()
-        parent_conn.recv()  # wait until we start getting memory
-        returned = f(*args, **kw)
-        parent_conn.send(0)  # finish timing
-        ret = parent_conn.recv()
-        if retval:
-            ret = ret, returned
-        p.join(5 * interval)
+        while True:
+            child_conn, parent_conn = Pipe()  # this will store MemTimer's results
+            p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
+                      max_usage=max_usage)
+            p.start()
+            parent_conn.recv()  # wait until we start getting memory
+            returned = f(*args, **kw)
+            parent_conn.send(0)  # finish timing
+            ret = parent_conn.recv()
+            n_measurements = parent_conn.recv()
+            if retval:
+                ret = ret, returned
+            p.join(5 * interval)
+            if n_measurements > 4 or interval < 1e-6:
+                break
+            interval /= 10.
     elif isinstance(proc, subprocess.Popen):
         # external process, launched from Python
         line_count = 0
@@ -722,16 +736,23 @@ def magic_memit(self, line=''):
         timeout = None
     interval = float(getattr(opts, 'i', 0.1))
 
-    mem_usage = 0.
+    # I've noticed we get less noisier measurements if we run
+    # a garbage collection first
+    import gc
+    gc.collect()
+
+    mem_usage = 0
     counter = 0
+    baseline = memory_usage()[0]
     while counter < repeat:
         counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
                            timeout=timeout, interval=interval, max_usage=True)
-        mem_usage = max(mem_usage, tmp)
+        mem_usage = max(mem_usage, tmp[0])
 
     if mem_usage:
-        print('maximum of %d: %f MiB per loop' % (repeat, mem_usage))
+        print('peak memory: %.02f MiB, increment: %.02f MiB' %
+              (mem_usage, mem_usage - baseline))
     else:
         print('ERROR: could not read memory usage, try with a lower interval '
               'or more iterations')
