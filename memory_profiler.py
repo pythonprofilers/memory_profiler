@@ -480,6 +480,10 @@ class LineProfiler(object):
                 old_mem = self.code_map[frame.f_code].get(self.prevline, 0)
                 self.code_map[frame.f_code][self.prevline] = max(mem, old_mem)
             self.prevline = frame.f_lineno
+
+        if self._original_trace_function is not None:
+            (self._original_trace_function)(frame, event, arg)
+
         return self.trace_memory_usage
 
     def trace_max_mem(self, frame, event, arg):
@@ -500,6 +504,9 @@ class LineProfiler(object):
                 p.botframe = None
                 return p.trace_dispatch
 
+        if self._original_trace_function is not None:
+            (self._original_trace_function)(frame, event, arg)
+
         return self.trace_max_mem
 
     def __enter__(self):
@@ -509,6 +516,7 @@ class LineProfiler(object):
         self.disable_by_count()
 
     def enable(self):
+        self._original_trace_function = sys.gettrace()
         if self.max_mem is not None:
             sys.settrace(self.trace_max_mem)
         else:
@@ -516,7 +524,7 @@ class LineProfiler(object):
 
     def disable(self):
         self.last_time = {}
-        sys.settrace(None)
+        sys.settrace(self._original_trace_function)
 
 
 def show_results(prof, stream=None, precision=1):
