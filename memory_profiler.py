@@ -552,7 +552,7 @@ def show_results(prof, stream=None, precision=1):
 
         mem_old = lines[min(lines.keys())]
         float_format = '{0}.{1}f'.format(precision + 4, precision)
-        template_mem = '{{0:' + float_format + '} MiB'
+        template_mem = '{0:' + float_format + '} MiB'
         for line in linenos:
             mem = ''
             inc = ''
