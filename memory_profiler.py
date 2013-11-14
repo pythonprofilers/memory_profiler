@@ -213,14 +213,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         else:
             raise ValueError
 
-        aspec = inspect.getargspec(f)
-        n_args = len(aspec.args)
-        if aspec.defaults is not None:
-            n_args -= len(aspec.defaults)
-        if n_args != len(args):
-            raise ValueError('Function expects %s value(s) but %s where given'
-                             % (n_args, len(args)))
-
         while True:
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
