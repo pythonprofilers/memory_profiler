@@ -1,5 +1,6 @@
 from memory_profiler import profile
 
+
 @profile
 def my_func():
     a = [1] * (10 ** 6)
@@ -8,4 +9,4 @@ def my_func():
     return a
 
 if __name__ == '__main__':
-	my_func()
+    my_func()
