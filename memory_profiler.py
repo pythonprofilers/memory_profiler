@@ -375,7 +375,7 @@ class TimeStamper:
         if stream is None:
             stream = sys.stdout
 
-        for func, timestamps in self.functions.iteritems():
+        for func, timestamps in self.functions.items():
             function_name = "%s.%s" % (func.__module__, func.__name__)
             for ts in timestamps:
                 stream.write("FUNC %s %.4f %.4f %.4f %.4f\n" % (
