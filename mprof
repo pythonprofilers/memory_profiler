@@ -335,7 +335,7 @@ def plot_file(filename, index=0, timestamps=True):
     mem = mprofile['mem_usage']
 
     if len(ts) > 0:
-        for values in ts.itervalues():
+        for values in ts.values():
             for v in values:
                 t.extend(v[:2])
                 mem.extend(v[2:4])
@@ -369,7 +369,7 @@ def plot_file(filename, index=0, timestamps=True):
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:
         func_num = 0
-        for f, exec_ts in ts.iteritems():
+        for f, exec_ts in ts.items():
             for execution in exec_ts:
                 add_brackets(execution[:2], execution[2:], xshift=global_start,
                              color= all_colors[func_num % len(all_colors)],
