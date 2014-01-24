@@ -400,6 +400,13 @@ class LineProfiler(object):
         f.__dict__.update(getattr(func, '__dict__', {}))
         return f
 
+    def add_code(self, code, toplevel_code=None):
+        if code not in self.code_map:
+            self.code_map[code] = {}
+
+            for subcode in filter(inspect.iscode, code.co_consts):
+                self.add_code(subcode)
+
     def add_function(self, func):
         """ Record line profiling information for the given Python function.
         """
@@ -410,9 +417,8 @@ class LineProfiler(object):
             import warnings
             warnings.warn("Could not extract a code object for the object %r"
                           % func)
-            return
-        if code not in self.code_map:
-            self.code_map[code] = {}
+        else:
+            self.add_code(code)
 
     def wrap_function(self, func):
         """ Wrap a function to profile it.
