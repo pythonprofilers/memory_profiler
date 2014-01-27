@@ -58,7 +58,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
             # continue and try to get this from ps
 
     # .. scary stuff ..
-    elif os.name == 'posix':
+    if os.name == 'posix':
         warnings.warn("psutil module not found. memory_profiler will be slow")
         # ..
         # .. memory usage in MiB ..
