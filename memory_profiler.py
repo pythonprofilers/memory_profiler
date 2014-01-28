@@ -3,7 +3,7 @@
 # .. we'll use this to pass it to the child script ..
 _clean_globals = globals().copy()
 
-__version__ = '0.30'
+__version__ = '0.31'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
