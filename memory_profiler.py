@@ -216,7 +216,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         while True:
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
-                      max_usage=max_usage)
+                      max_usage=max_usage, include_children=include_children)
             p.start()
             parent_conn.recv()  # wait until we start getting memory
             returned = f(*args, **kw)
