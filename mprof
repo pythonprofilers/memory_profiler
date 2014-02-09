@@ -445,9 +445,12 @@ def plot_action():
 
     ax = pl.gca()
     box = ax.get_position()
-    ax.set_position([0.07, 0.1,
-                     0.55, 0.8])
-    ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1.))
+    # IAN FIX
+    #ax.set_position([0.07, 0.1,
+    #                 0.55, 0.8])
+    #ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1.))
+    leg = ax.legend(loc='best', fancybox=True)
+    leg.get_frame().set_alpha(0.5)  # make the legend partially transparent
     pl.grid()
     pl.show()
 
