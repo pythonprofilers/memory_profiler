@@ -2,16 +2,11 @@
 
 import time
 
-def test_1():
-    a = {}
-    for i in range(10000):
-        a[i] =  i + 1
-    return
-
 @profile
-def test_2():
+def test_1():
     a = [1] * (10 ** 6)
     b = [2] * (2 * 10 ** 7)
+    time.sleep(0.6)
     del b
 
     for i in range(2):
@@ -20,9 +15,15 @@ def test_2():
         del b
     return a
 
+@profile
+def test_2():
+    a = {}
+    time.sleep(0.5)
+    for i in range(10000):
+        a[i] = i + 1
+    time.sleep(0.6)
+    return
 
 if __name__ == '__main__':
     test_1()
-    time.sleep(1)
     test_2()
-    time.sleep(1)
