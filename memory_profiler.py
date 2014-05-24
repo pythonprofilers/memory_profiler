@@ -407,7 +407,6 @@ class LineProfiler(object):
             # func_code does not exist in Python3
             code = func.__code__
         except AttributeError:
-            import warnings
             warnings.warn("Could not extract a code object for the object %r"
                           % func)
             return
