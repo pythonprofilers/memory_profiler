@@ -6,4 +6,4 @@ def f():
     return o
 
 if __name__ == '__main__':
-	f()
+    f()
