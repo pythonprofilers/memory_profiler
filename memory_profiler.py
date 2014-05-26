@@ -187,7 +187,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
-
     if stream is not None:
         timestamps = True
 
@@ -638,7 +637,7 @@ def magic_mprun(self, parameter_s=''):
             raise UsageError('Could not find function %r.\n%s: %s' % (name,
                              e.__class__.__name__, e))
 
-    include_children = bool(getattr(opts, 'c', False))
+    include_children = 'c' in opts
     profile = LineProfiler(include_children=include_children)
     for func in funcs:
         profile(func)
@@ -745,7 +744,7 @@ def magic_memit(self, line=''):
     if timeout <= 0:
         timeout = None
     interval = float(getattr(opts, 'i', 0.1))
-    include_children = bool(getattr(opts, 'c', False))
+    include_children = 'c' in opts
 
     # I've noticed we get less noisier measurements if we run
     # a garbage collection first
