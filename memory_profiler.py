@@ -59,6 +59,10 @@ def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. scary stuff ..
     if os.name == 'posix':
+        if include_children:
+            raise NotImplementedError('The psutil module is required when to'
+                                      ' monitor memory usage of children'
+                                      ' processes')
         warnings.warn("psutil module not found. memory_profiler will be slow")
         # ..
         # .. memory usage in MiB ..
