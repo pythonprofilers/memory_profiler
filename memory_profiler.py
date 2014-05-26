@@ -59,6 +59,10 @@ def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. scary stuff ..
     if os.name == 'posix':
+        if include_children:
+            raise NotImplementedError('The psutil module is required when to'
+                                      ' monitor memory usage of children'
+                                      ' processes')
         warnings.warn("psutil module not found. memory_profiler will be slow")
         # ..
         # .. memory usage in MiB ..
@@ -183,7 +187,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
-
     if stream is not None:
         timestamps = True
 
@@ -390,6 +393,7 @@ class LineProfiler(object):
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
         self.prevline = None
+        self.include_children = kw.get('include_children', False)
 
     def __call__(self, func):
         self.add_function(func)
@@ -466,7 +470,7 @@ class LineProfiler(object):
                 and frame.f_code in self.code_map):
             if event != 'call':
                 # "call" event just saves the lineno but not the memory
-                mem = _get_memory(-1)
+                mem = _get_memory(-1, include_children=self.include_children)
                 # if there is already a measurement for that line get the max
                 old_mem = self.code_map[frame.f_code].get(self.prevline, 0)
                 self.code_map[frame.f_code][self.prevline] = max(mem, old_mem)
@@ -594,6 +598,8 @@ def magic_mprun(self, parameter_s=''):
     side-by-side out to a text file.
 
     -r: return the LineProfiler object after it has completed profiling.
+
+    -c: If present, add the memory usage of any children process to the report.
     """
     try:
         from StringIO import StringIO
@@ -616,7 +622,7 @@ def magic_mprun(self, parameter_s=''):
     # Escape quote markers.
     opts_def = Struct(T=[''], f=[])
     parameter_s = parameter_s.replace('"', r'\"').replace("'", r"\'")
-    opts, arg_str = self.parse_options(parameter_s, 'rf:T:', list_all=True)
+    opts, arg_str = self.parse_options(parameter_s, 'rf:T:c', list_all=True)
     opts.merge(opts_def)
     global_ns = self.shell.user_global_ns
     local_ns = self.shell.user_ns
@@ -630,7 +636,8 @@ def magic_mprun(self, parameter_s=''):
             raise UsageError('Could not find function %r.\n%s: %s' % (name,
                              e.__class__.__name__, e))
 
-    profile = LineProfiler()
+    include_children = 'c' in opts
+    profile = LineProfiler(include_children=include_children)
     for func in funcs:
         profile(func)
 
@@ -710,6 +717,8 @@ def magic_memit(self, line=''):
     -i<I>: Get time information at an interval of I times per second.
         Defaults to 0.1 so that there is ten measurements per second.
 
+    -c: If present, add the memory usage of any children process to the report.
+
     Examples
     --------
     ::
@@ -726,7 +735,7 @@ def magic_memit(self, line=''):
       maximum of 10: 0.101562 MiB per loop
 
     """
-    opts, stmt = self.parse_options(line, 'r:t:i:', posix=False, strict=False)
+    opts, stmt = self.parse_options(line, 'r:t:i:c', posix=False, strict=False)
     repeat = int(getattr(opts, 'r', 1))
     if repeat < 1:
         repeat == 1
@@ -734,6 +743,7 @@ def magic_memit(self, line=''):
     if timeout <= 0:
         timeout = None
     interval = float(getattr(opts, 'i', 0.1))
+    include_children = 'c' in opts
 
     # I've noticed we get less noisier measurements if we run
     # a garbage collection first
@@ -746,7 +756,8 @@ def magic_memit(self, line=''):
     while counter < repeat:
         counter += 1
         tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
-                           timeout=timeout, interval=interval, max_usage=True)
+                           timeout=timeout, interval=interval, max_usage=True,
+                           include_children=include_children)
         mem_usage = max(mem_usage, tmp[0])
 
     if mem_usage:
