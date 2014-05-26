@@ -444,10 +444,10 @@ def plot_action():
             pl.title(options.title)
 
     ax = pl.gca()
-    box = ax.get_position()
-    ax.set_position([0.07, 0.1,
-                     0.55, 0.8])
-    ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1.))
+    # place legend within the plot, make partially transparent in
+    # case it obscures part of the lineplot
+    leg = ax.legend(loc='best', fancybox=True)
+    leg.get_frame().set_alpha(0.5)
     pl.grid()
     pl.show()
 
