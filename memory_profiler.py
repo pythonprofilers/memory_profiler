@@ -524,7 +524,6 @@ class LineProfiler(object):
             sys.settrace(self.trace_memory_usage)
 
     def disable(self):
-        self.last_time = {}
         sys.settrace(self._original_trace_function)
 
 
