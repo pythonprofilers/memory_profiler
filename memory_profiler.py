@@ -45,10 +45,10 @@ def _get_memory(pid, timestamps=False, include_children=False):
     if has_psutil:
         process = psutil.Process(pid)
         try:
-            mem = process.get_memory_info()[0] / _TWO_20
+            mem = process.memory_info()[0] / _TWO_20
             if include_children:
                 for p in process.get_children(recursive=True):
-                    mem += p.get_memory_info()[0] / _TWO_20
+                    mem += p.memory_info()[0] / _TWO_20
             if timestamps:
                 return (mem, time.time())
             else:
