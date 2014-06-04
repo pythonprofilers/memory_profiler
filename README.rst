@@ -311,6 +311,8 @@ Projects using memory_profiler
 
 `Benchy <https://github.com/python-recsys/benchy>`_
 
+`SpeedIT <https://github.com/peter1000/SpeedIT>`_ (uses a reduced version of memory_profiler)
+
 =========
  Authors
 =========
