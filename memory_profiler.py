@@ -345,8 +345,8 @@ class TimeStamper:
             f.__dict__.update(getattr(func, '__dict__', {}))
             return f
         else:
-            def inner_partial(func):
-                return self.__call__(func, precision=precision)
+            def inner_partial(f):
+                return self.__call__(f, precision=precision)
             return inner_partial
 
     def timestamp(self, name="<block>"):
@@ -412,8 +412,8 @@ class LineProfiler(object):
             f.__dict__.update(getattr(func, '__dict__', {}))
             return f
         else:
-            def inner_partial(func):
-                return self.__call__(func, precision=precision)
+            def inner_partial(f):
+                return self.__call__(f, precision=precision)
             return inner_partial
 
     def add_code(self, code, toplevel_code=None):
@@ -803,8 +803,8 @@ def profile(func=None, stream=None, precision=1):
             return val
         return wrapper
     else:
-        def inner_wrapper(func):
-            return profile(func, stream=stream, precision=precision)
+        def inner_wrapper(f):
+            return profile(f, stream=stream, precision=precision)
         return inner_wrapper
 
 
