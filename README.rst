@@ -313,6 +313,7 @@ Projects using memory_profiler
 
 `IPython memory usage <https://github.com/ianozsvald/ipython_memory_usage_>`_
 
+`SpeedIT <https://github.com/peter1000/SpeedIT>`_ (uses a reduced version of memory_profiler)
 
 =========
  Authors
