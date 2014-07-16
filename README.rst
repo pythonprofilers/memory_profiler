@@ -311,6 +311,9 @@ Projects using memory_profiler
 
 `Benchy <https://github.com/python-recsys/benchy>`_
 
+`IPython memory usage <https://github.com/ianozsvald/ipython_memory_usage_>`_
+
+
 =========
  Authors
 =========
