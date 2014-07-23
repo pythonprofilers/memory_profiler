@@ -332,17 +332,22 @@ class TimeStamper:
     def __init__(self):
         self.functions = {}
 
-    def __call__(self, func):
-        if not hasattr(func, "__call__"):
-            raise ValueError("Value must be callable")
+    def __call__(self, func=None, precision=None):
+        if func is not None:
+            if not hasattr(func, "__call__"):
+                raise ValueError("Value must be callable")
 
-        self.add_function(func)
-        f = self.wrap_function(func)
-        f.__module__ = func.__module__
-        f.__name__ = func.__name__
-        f.__doc__ = func.__doc__
-        f.__dict__.update(getattr(func, '__dict__', {}))
-        return f
+            self.add_function(func)
+            f = self.wrap_function(func)
+            f.__module__ = func.__module__
+            f.__name__ = func.__name__
+            f.__doc__ = func.__doc__
+            f.__dict__.update(getattr(func, '__dict__', {}))
+            return f
+        else:
+            def inner_partial(f):
+                return self.__call__(f, precision=precision)
+            return inner_partial
 
     def timestamp(self, name="<block>"):
         """Returns a context manager for timestamping a block of code."""
@@ -397,14 +402,19 @@ class LineProfiler(object):
         self.prevline = None
         self.include_children = kw.get('include_children', False)
 
-    def __call__(self, func):
-        self.add_function(func)
-        f = self.wrap_function(func)
-        f.__module__ = func.__module__
-        f.__name__ = func.__name__
-        f.__doc__ = func.__doc__
-        f.__dict__.update(getattr(func, '__dict__', {}))
-        return f
+    def __call__(self, func=None, precision=1):
+        if func is not None:
+            self.add_function(func)
+            f = self.wrap_function(func)
+            f.__module__ = func.__module__
+            f.__name__ = func.__name__
+            f.__doc__ = func.__doc__
+            f.__dict__.update(getattr(func, '__dict__', {}))
+            return f
+        else:
+            def inner_partial(f):
+                return self.__call__(f, precision=precision)
+            return inner_partial
 
     def add_code(self, code, toplevel_code=None):
         if code not in self.code_map:
@@ -781,16 +791,21 @@ def load_ipython_extension(ip):
     ip.define_magic('memit', magic_memit)
 
 
-def profile(func, stream=None):
+def profile(func=None, stream=None, precision=1):
     """
     Decorator that will run the function and print a line-by-line profile
     """
-    def wrapper(*args, **kwargs):
-        prof = LineProfiler()
-        val = prof(func)(*args, **kwargs)
-        show_results(prof, stream=stream)
-        return val
-    return wrapper
+    if func is not None:
+        def wrapper(*args, **kwargs):
+            prof = LineProfiler()
+            val = prof(func)(*args, **kwargs)
+            show_results(prof, stream=stream, precision=precision)
+            return val
+        return wrapper
+    else:
+        def inner_wrapper(f):
+            return profile(f, stream=stream, precision=precision)
+        return inner_wrapper
 
 
 if __name__ == '__main__':

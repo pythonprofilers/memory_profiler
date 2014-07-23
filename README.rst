@@ -88,6 +88,21 @@ A function decorator is also available.  Use as follows::
 In this case the script can be run without specifying ``-m
 memory_profiler`` in the command line.
 
+In function decorator, you can specify the precision as an argument to the
+decorator function.  Use as follows::
+
+    from memory_profiler import profile
+
+    @profile(precision=4)
+    def my_func():
+        a = [1] * (10 ** 6)
+        b = [2] * (2 * 10 ** 7)
+        del b
+        return a
+
+If a python script with decorator ``@profile`` is called using ``-m 
+memory_profiler`` in the command line, the ``precision`` parameter is ignored.
+
 Executing external scripts
 ==========================
 Sometimes it is useful to have full memory usage reports as a function of
