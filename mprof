@@ -354,7 +354,7 @@ def plot_file(filename, index=0, timestamps=True):
     max_mem_ind = mem.argmax()
 
     all_colors=("c", "y", "g", "r", "b")
-    mem_line_colors=('k', "b", "r")
+    mem_line_colors=("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
                                    + ".{0:03d}".format(int(round(math.modf(global_start)[0]*1000)))
