@@ -354,7 +354,7 @@ def plot_file(filename, index=0, timestamps=True):
     max_mem_ind = mem.argmax()
 
     all_colors=("c", "y", "g", "r", "b")
-    mem_line_colors=('k', "b", "r")
+    mem_line_colors=("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
                                    + ".{0:03d}".format(int(round(math.modf(global_start)[0]*1000)))
@@ -401,6 +401,8 @@ def plot_action():
     parser.add_option("--no-function-ts", "-n", dest="no_timestamps",
                       default=False, action="store_true",
                       help="Do not display function timestamps on plot.")
+    parser.add_option("--output", "-o",
+                      help="Save plot to file instead of displaying it.")
     (options, args) = parser.parse_args()
 
     profiles = glob.glob("mprofile_??????????????.dat")
@@ -449,7 +451,10 @@ def plot_action():
     leg = ax.legend(loc='best', fancybox=True)
     leg.get_frame().set_alpha(0.5)
     pl.grid()
-    pl.show()
+    if options.output:
+        pl.savefig(options.output)
+    else:
+        pl.show()
 
 if __name__ == "__main__":
     # Workaround for optparse limitation: insert -- before first negative
