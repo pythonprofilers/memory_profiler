@@ -352,4 +352,4 @@ cleanup.
 =========
  License
 =========
-Simplified BSD
+BSD License, see file COPYING for full text.
