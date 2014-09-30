@@ -26,7 +26,7 @@ setup(
     long_description=open('README.rst').read(),
     version=memory_profiler.__version__,
     author='Fabian Pedregosa',
-    author_email='fabian@fseoane.net',
+    author_email='f@bianp.net',
     url='http://pypi.python.org/pypi/memory_profiler',
     py_modules=['memory_profiler'],
     scripts=['mprof'],
