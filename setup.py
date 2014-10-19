@@ -6,7 +6,7 @@ CLASSIFIERS = """\
 Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
 Intended Audience :: Developers
-License :: OSI Approved
+License :: OSI Approved :: BSD License
 Programming Language :: Python
 Programming Language :: Python :: 2
 Programming Language :: Python :: 2.6
@@ -31,6 +31,6 @@ setup(
     py_modules=['memory_profiler'],
     scripts=['mprof'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
-    license='Simplified BSD'
+    license='BSD'
 
 )
