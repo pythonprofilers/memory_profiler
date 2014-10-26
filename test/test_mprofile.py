@@ -3,21 +3,19 @@
 import time
 
 @profile
-def test1():
-    a = [1] * 100000
+def test1(l):
+    a = [1] * l
     time.sleep(1)
     return a
 
 @profile
 def test2(l):
-    b = [2 * n for n in l]
+    b = [1] * l
     time.sleep(1)
-    del b
-
+    return b
 
 if __name__ == "__main__":
-    time.sleep(1)
-    l = test1()
-    test2(l)
-    time.sleep(1)
+    l = 100000
+    test1(l)
+    test2(2 * l)
 

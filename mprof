@@ -13,19 +13,23 @@ from optparse import OptionParser
 
 import memory_profiler as mp
 
+ALL_ACTIONS = ("run", "rm", "clean", "list", "plot")
 
 def print_usage():
     print("Usage: %s <command> <options> <arguments>"
-          % osp.basename(sys.argv[0]))
+                  % osp.basename(sys.argv[0]))
+    print("Where <command> is one of: " + " ".join(ALL_ACTIONS))
+    print("Type mprof <command> --help for usage help")
+
+
 
 def get_action():
     """Pop first argument, check it is a valid action."""
-    all_actions = ("run", "rm", "clean", "list", "plot")
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(1)
-    if not sys.argv[1] in all_actions:
-        print("Valid actions are: " + " ".join(all_actions))
+    if not sys.argv[1] in ALL_ACTIONS:
+        print_usage()
         sys.exit(1)
 
     return sys.argv.pop(1)
@@ -178,7 +182,7 @@ def run_action():
                       a Python program (currently: function timestamping.)""")
     parser.add_option("--interval", "-T", dest="interval", default="0.1",
                       type="float", action="store",
-                      help="Sampling period (in seconds)")
+                      help="Sampling period (in seconds), defaults to 0.1")
     parser.add_option("--include-children", "-C", dest="include_children",
                       default=False, action="store_true",
                       help="""Monitors forked processes as well (sum up all process memory)""")
@@ -285,6 +289,8 @@ def read_mprofile_file(filename):
     cmd_line = None
     f = open(filename, "r")
     for l in f:
+        if l == '\n':
+            raise ValueError('Sampling time was too short')
         field, value = l.split(' ', 1)
         if field == "MEM":
             # mem, timestamp
