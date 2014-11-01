@@ -282,6 +282,8 @@ def read_mprofile_file(filename):
         - "func_timestamp": (dict) for each function, timestamps and memory
             usage upon entering and exiting.
         - 'cmd_line': (str) command-line ran for this profile.
+
+    XXX TODO this should be moved to memory_profiler.py
     """
     func_ts = {}
     mem_usage = []
@@ -458,7 +460,7 @@ def plot_action():
     leg.get_frame().set_alpha(0.5)
     pl.grid()
     if options.output:
-        pl.savefig(options.output)
+        pl.savefig(options.output, transparent=True)
     else:
         pl.show()
 
