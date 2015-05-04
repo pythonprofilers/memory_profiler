@@ -45,6 +45,8 @@ def _get_memory(pid, timestamps=False, include_children=False):
     if has_psutil:
         process = psutil.Process(pid)
         try:
+            # avoid useing get_memory_info since it does not exists 
+            # in psutil > 2.0 and accessing it will cause exception.
             meminfo_attr = 'memory_info' if hasattr(process, 'memory_info') else 'get_memory_info'
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
             if include_children:
