@@ -441,10 +441,10 @@ def plot_action():
             else:
                 try:
                     n = int(arg)
+                    if not profiles[n] in filenames:
+                        filenames.append(profiles[n])
                 except ValueError:
                     print("Input file not found: " + arg)
-                if not profiles[n] in filenames:
-                    filenames.append(profiles[n])
 
     pl.figure(figsize=(14, 6), dpi=90)
     if len(filenames) > 1 or options.no_timestamps:
