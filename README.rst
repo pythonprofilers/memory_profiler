@@ -234,7 +234,7 @@ consumption during this execution.
 The output can be redirected to a log file by passing IO stream as
 parameter to the decorator like @profile(stream=fp)
 
-    >>> fp=open('hi.txt','w+')
+    >>> fp=open('memory_profiler.log','w+')
     >>> @profile(stream=fp)
     >>> def my_func():
         ...     a = [1] * (10 ** 6)
@@ -242,10 +242,12 @@ parameter to the decorator like @profile(stream=fp)
         ...     del b
         ...     return a
 
+    For details refer: examples/reporting_file.py
+
 Reporting via logger Module:
 
-Sometime it'd be very convenient to use logger module specially when
-we need to use RotatingFileHandler.
+Sometime it would be very convenient to use logger module specially
+when we need to use RotatingFileHandler.
 
 The output can be redirected to logger module by simply making use of
 LogFile of memory profiler module.
@@ -265,7 +267,7 @@ a parameter to LogFile class of memory profiler module.
     >>> import sys
     >>> sys.stdout = LogFile('memory_profile_log', reportIncrementFlag=False)
 
-Refer examples section for details.
+    For details refer: examples/reportingViaLogger.py
 
 =====================
  IPython integration
