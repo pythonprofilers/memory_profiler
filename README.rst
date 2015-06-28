@@ -227,6 +227,45 @@ args, kw)``. For example::
 This will execute the code `f(1, n=int(1e6))` and return the memory
 consumption during this execution.
 
+=====
+ REPORTING
+=====
+
+The output can be redirected to a log file by passing IO stream as
+parameter to the decorator like @profile(stream=fp)
+
+    >>> fp=open('hi.txt','w+')
+    >>> @profile(stream=fp)
+    >>> def my_func():
+        ...     a = [1] * (10 ** 6)
+        ...     b = [2] * (2 * 10 ** 7)
+        ...     del b
+        ...     return a
+
+Reporting via logger Module:
+
+Sometime it'd be very convenient to use logger module specially when
+we need to use RotatingFileHandler.
+
+The output can be redirected to logger module by simply making use of
+LogFile of memory profiler module.
+
+    >>> from memory_profiler import LogFile
+    >>> import sys
+    >>> sys.stdout = LogFile('memory_profile_log')
+
+Customised reporting:
+
+Sending everything to the log file while running the memory_profiler
+could be cumbersome and one can choose only entries with increments
+by passing True to reportIncrementFlag, where reportIncrementFlag is
+a parameter to LogFile class of memory profiler module.
+
+    >>> from memory_profiler import LogFile
+    >>> import sys
+    >>> sys.stdout = LogFile('memory_profile_log', reportIncrementFlag=False)
+
+Refer examples section for details.
 
 =====================
  IPython integration
