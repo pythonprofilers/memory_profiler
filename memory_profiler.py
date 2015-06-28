@@ -16,6 +16,7 @@ import linecache
 import inspect
 import subprocess
 from copy import copy
+import logging
 
 # TODO: provide alternative when multprocessing is not available
 try:
@@ -808,6 +809,25 @@ def profile(func=None, stream=None, precision=1):
             return profile(f, stream=stream, precision=precision)
         return inner_wrapper
 
+class LogFile(object):
+    """File-like object to log text using the `logging` module and the log report can be customised."""
+
+    def __init__(self, name=None, reportIncrementFlag=False):
+        self.logger = logging.getLogger(name)
+        self.reportIncrementFlag = reportIncrementFlag
+
+    def write(self, msg, level=logging.INFO):
+        if self.reportIncrementFlag:
+            if "MiB" in msg and float(msg.split("MiB")[1].strip())>0:
+                self.logger.log(level, msg)
+            elif msg.__contains__("Filename:") or msg.__contains__("Line Contents"):
+                self.logger.log(level, msg)
+        else:
+            self.logger.log(level, msg)
+
+    def flush(self):
+        for handler in self.logger.handlers:
+            handler.flush()
 
 if __name__ == '__main__':
     from optparse import OptionParser
