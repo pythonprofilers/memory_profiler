@@ -244,7 +244,7 @@ parameter to the decorator like @profile(stream=fp)
 
     For details refer: examples/reporting_file.py
 
-Reporting via logger Module:
+``Reporting via logger Module:``
 
 Sometime it would be very convenient to use logger module specially
 when we need to use RotatingFileHandler.
@@ -256,7 +256,7 @@ LogFile of memory profiler module.
     >>> import sys
     >>> sys.stdout = LogFile('memory_profile_log')
 
-Customised reporting:
+``Customised reporting:``
 
 Sending everything to the log file while running the memory_profiler
 could be cumbersome and one can choose only entries with increments
@@ -388,6 +388,8 @@ cleanup.
 `Vlad Niculae <http://vene.ro/>`_ added the `%mprun` and `%memit` IPython magics.
 
 `Thomas Kluyver <https://github.com/takluyver>`_ added the IPython extension.
+
+`Sagar UDAY KUMAR <https://github.com/sagaru>`_ added Report generation feature and examples.
 
 
 =========

@@ -813,6 +813,14 @@ class LogFile(object):
     """File-like object to log text using the `logging` module and the log report can be customised."""
 
     def __init__(self, name=None, reportIncrementFlag=False):
+        """
+        :param name: name of the logger module
+               reportIncrementFlag: This must be set to True if only the steps with memory increments are to be reported
+
+        :type self: object
+              name: string
+              reportIncrementFlag: bool
+        """
         self.logger = logging.getLogger(name)
         self.reportIncrementFlag = reportIncrementFlag
 
