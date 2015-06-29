@@ -267,7 +267,7 @@ a parameter to LogFile class of memory profiler module.
     >>> import sys
     >>> sys.stdout = LogFile('memory_profile_log', reportIncrementFlag=False)
 
-    For details refer: examples/reportingViaLogger.py
+    For details refer: examples/reporting_logger.py
 
 =====================
  IPython integration
