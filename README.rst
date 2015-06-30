@@ -371,6 +371,8 @@ Projects using memory_profiler
 
 `PySpeedIT <https://github.com/peter1000/PySpeedIT>`_ (uses a reduced version of memory_profiler)
 
+`pydio-sync <https://github.com/pydio/pydio-sync>`_ (uses custom wrapper on top of memory_profiler)
+
 =========
  Authors
 =========
