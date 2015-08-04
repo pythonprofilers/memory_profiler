@@ -344,7 +344,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
  Support, bugs & wish list
 ===========================
 For support, please ask your question on `stack overflow
-<http://stackoverflow.com/>`_ and add the *memory-profiling* tag.
+<http://stackoverflow.com/>`_ and add the [*memory-profiling* tag](http://stackoverflow.com/questions/tagged/memory-profiling).
 Send issues, proposals, etc. to `github's issue tracker
 <https://github.com/fabianp/memory_profiler/issues>`_ .
 
