@@ -1,7 +1,7 @@
 """Profile the memory usage of a Python program"""
 
 # .. we'll use this to pass it to the child script ..
-_clean_globals = globals().copy()
+_CLEAN_GLOBALS = globals().copy()
 
 __version__ = '0.32'
 
@@ -46,7 +46,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
     if has_psutil:
         process = psutil.Process(pid)
         try:
-            # avoid useing get_memory_info since it does not exists 
+            # avoid useing get_memory_info since it does not exists
             # in psutil > 2.0 and accessing it will cause exception.
             meminfo_attr = 'memory_info' if hasattr(process, 'memory_info') else 'get_memory_info'
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
@@ -877,13 +877,13 @@ if __name__ == '__main__':
             # script where @profile is used)
             import __builtin__
             __builtin__.__dict__['profile'] = prof
-            ns = copy(_clean_globals)
+            ns = copy(_CLEAN_GLOBALS)
             ns['profile'] = prof  # shadow the profile decorator defined above
             execfile(__file__, ns, ns)
         else:
             import builtins
             builtins.__dict__['profile'] = prof
-            ns = copy(_clean_globals)
+            ns = copy(_CLEAN_GLOBALS)
             ns['profile'] = prof  # shadow the profile decorator defined above
             exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
     finally:
