@@ -131,22 +131,16 @@ script with
 
     mprof run --python <script>
 
-will record timestamps when entering/leaving the profiled function,
-and plot them on the graph afterward. 
-An example output can be found 
-`here <https://github.com/scikit-learn/scikit-learn/pull/2248>`_
+will record timestamps when entering/leaving the profiled function. Runnning
 
-It is also possible to timestamp a portion of code using a context
-manager like this::
+    mprof plot
 
-    def my_func():
-        a = [1] * (10 ** 6)
-        with profile.timestamp("b_computation"):
-            b = [2] * (2 * 10 ** 7)
-        del b
-        return a
+afterward will plot the result, making plots (using matplotlib) similar to these:
 
-the string provided in the call will be displayed in the plot.
+.. image:: https://camo.githubusercontent.com/3a584c7cfbae38c9220a755aa21b5ef926c1031d/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f313930383631382f3836313332302f63623865376337382d663563632d313165322d386531652d3539373237623636663462322e706e67
+   :target: https://github.com/scikit-learn/scikit-learn/pull/2248
+
+A discussion of these capabilities can be found `here <http://fa.bianp.net/blog/2014/plot-memory-usage-as-a-function-of-time/>`_.
 
 The available commands for `mprof` are: 
 
