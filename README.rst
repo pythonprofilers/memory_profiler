@@ -139,6 +139,7 @@ afterward will plot the result, making plots (using matplotlib) similar to these
 
 .. image:: https://camo.githubusercontent.com/3a584c7cfbae38c9220a755aa21b5ef926c1031d/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f313930383631382f3836313332302f63623865376337382d663563632d313165322d386531652d3539373237623636663462322e706e67
    :target: https://github.com/scikit-learn/scikit-learn/pull/2248
+   :height: 350px
 
 A discussion of these capabilities can be found `here <http://fa.bianp.net/blog/2014/plot-memory-usage-as-a-function-of-time/>`_.
 
@@ -221,9 +222,9 @@ args, kw)``. For example::
 This will execute the code `f(1, n=int(1e6))` and return the memory
 consumption during this execution.
 
-=====
- REPORTING
-=====
+=========
+REPORTING
+=========
 
 The output can be redirected to a log file by passing IO stream as
 parameter to the decorator like @profile(stream=fp)
