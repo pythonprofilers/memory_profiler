@@ -5,7 +5,7 @@ import scipy.signal
 @profile
 def create_data():
     ret = []
-    for n in xrange(70):
+    for n in range(70):
         ret.append(np.random.randn(1, 70, 71, 72))
     return ret
 

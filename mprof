@@ -451,7 +451,8 @@ def plot_action():
         print("No files found from given input.")
         sys.exit(-1)
 
-    pl.figure(figsize=(14, 6), dpi=90)
+    fig = pl.figure(figsize=(14, 6), dpi=90)
+    ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
     if len(filenames) > 1 or options.no_timestamps:
         timestamps = False
     else:
@@ -467,10 +468,9 @@ def plot_action():
         if options.title is not None:
             pl.title(options.title)
 
-    ax = pl.gca()
     # place legend within the plot, make partially transparent in
     # case it obscures part of the lineplot
-    leg = ax.legend(loc='best', fancybox=True)
+    leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     leg.get_frame().set_alpha(0.5)
     pl.grid()
     if options.output:
