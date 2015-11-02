@@ -269,8 +269,8 @@ a parameter to LogFile class of memory profiler module.
 =====================
  IPython integration
 =====================
-After installing the module, if you use IPython, you can use the `%mprun`
-and `%memit` magics.
+After installing the module, if you use IPython, you can use the `%mprun`, `%%mprun`,
+`%memit` and `%%memit` magics.
 
 For IPython 0.11+, you can use the module directly as an extension, with
 ``%load_ext memory_profiler``
@@ -288,22 +288,36 @@ the list)::
 a terminal.)
 
 It then can be used directly from IPython to obtain a line-by-line
-report using the `%mprun` magic command. In this case, you can skip
+report using the `%mprun` or `%%mprun` magic command. In this case, you can skip
 the `@profile` decorator and instead use the `-f` parameter, like
 this. Note however that function my_func must be defined in a file
 (cannot have been defined interactively in the Python interpreter)::
 
-    In [1] from example import my_func
+    In [1]: from example import my_func, my_func_2
 
-    In [2] %mprun -f my_func my_func()
+    In [2]: %mprun -f my_func my_func()
+
+or in cell mode::
+
+    In [3]: %%mprun -f my_func -f my_func_2
+       ...: my_func()
+       ...: my_func_2()
 
 Another useful magic that we define is `%memit`, which is analogous to
 `%timeit`. It can be used as follows::
 
-    In [1]: import numpy as np
+    In [1]: %memit range(10000)
+    peak memory: 21.42 MiB, increment: 0.41 MiB
 
-    In [2]: %memit np.zeros(1e7)
-    maximum of 3: 76.402344 MB per loop
+    In [2]: %memit range(1000000)
+    peak memory: 52.10 MiB, increment: 31.08 MiB
+
+or in cell mode (with setup code)::
+
+    In [3]: %%memit l=range(1000000)
+       ...: len(l)
+       ...:
+    peak memory: 52.14 MiB, increment: 0.08 MiB
 
 For more details, see the docstrings of the magics.
 
@@ -316,8 +330,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
 
     # These two are the important ones.
     import memory_profiler
-    ip.expose_magic('mprun', memory_profiler.magic_mprun)
-    ip.expose_magic('memit', memory_profiler.magic_memit)
+    memory_profiler.load_ipython_extension(ip)
 
 ============================
  Frequently Asked Questions
@@ -373,7 +386,7 @@ Projects using memory_profiler
 =========
  Authors
 =========
-This module was written by `Fabian Pedregosa <http://fseoane.net>`_ 
+This module was written by `Fabian Pedregosa <http://fseoane.net>`_
 and `Philippe Gervais <https://github.com/pgervais>`_
 inspired by Robert Kern's `line profiler
 <http://packages.python.org/line_profiler/>`_.

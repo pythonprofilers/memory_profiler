@@ -24,6 +24,16 @@ try:
 except ImportError:
     from multiprocessing.dummy import Process, Pipe
 
+try:
+    from IPython.core.magic import Magics, line_cell_magic, magics_class
+except ImportError:
+    # ipython_version < '0.13'
+    Magics = object
+    line_cell_magic = lambda func: func
+    magics_class = lambda cls: cls
+
+PY3 = sys.version_info[0] == 3
+
 _TWO_20 = float(2 ** 20)
 
 has_psutil = False
@@ -593,209 +603,271 @@ def show_results(prof, stream=None, precision=1):
         stream.write('\n\n')
 
 
-# A lprun-style %mprun magic for IPython.
-def magic_mprun(self, parameter_s=''):
-    """ Execute a statement under the line-by-line memory profiler from the
-    memory_profiler module.
-
-    Usage:
-      %mprun -f func1 -f func2 <statement>
-
-    The given statement (which doesn't require quote marks) is run via the
-    LineProfiler. Profiling is enabled for the functions specified by the -f
-    options. The statistics will be shown side-by-side with the code through
-    the pager once the statement has completed.
-
-    Options:
-
-    -f <function>: LineProfiler only profiles functions and methods it is told
-    to profile.  This option tells the profiler about these functions. Multiple
-    -f options may be used. The argument may be any expression that gives
-    a Python function or method object. However, one must be careful to avoid
-    spaces that may confuse the option parser. Additionally, functions defined
-    in the interpreter at the In[] prompt or via %run currently cannot be
-    displayed.  Write these functions out to a separate file and import them.
-
-    One or more -f options are required to get any useful results.
-
-    -T <filename>: dump the text-formatted statistics with the code
-    side-by-side out to a text file.
-
-    -r: return the LineProfiler object after it has completed profiling.
-
-    -c: If present, add the memory usage of any children process to the report.
-    """
-    try:
-        from StringIO import StringIO
-    except ImportError:  # Python 3.x
-        from io import StringIO
-
-    # Local imports to avoid hard dependency.
-    from distutils.version import LooseVersion
-    import IPython
-    ipython_version = LooseVersion(IPython.__version__)
-    if ipython_version < '0.11':
-        from IPython.genutils import page
-        from IPython.ipstruct import Struct
-        from IPython.ipapi import UsageError
-    else:
-        from IPython.core.page import page
-        from IPython.utils.ipstruct import Struct
-        from IPython.core.error import UsageError
-
-    # Escape quote markers.
-    opts_def = Struct(T=[''], f=[])
-    parameter_s = parameter_s.replace('"', r'\"').replace("'", r"\'")
-    opts, arg_str = self.parse_options(parameter_s, 'rf:T:c', list_all=True)
-    opts.merge(opts_def)
-    global_ns = self.shell.user_global_ns
-    local_ns = self.shell.user_ns
-
-    # Get the requested functions.
-    funcs = []
-    for name in opts.f:
-        try:
-            funcs.append(eval(name, global_ns, local_ns))
-        except Exception as e:
-            raise UsageError('Could not find function %r.\n%s: %s' % (name,
-                             e.__class__.__name__, e))
-
-    include_children = 'c' in opts
-    profile = LineProfiler(include_children=include_children)
-    for func in funcs:
-        profile(func)
-
-    # Add the profiler to the builtins for @profile.
-    try:
-        import builtins
-    except ImportError:  # Python 3x
-        import __builtin__ as builtins
-
-    if 'profile' in builtins.__dict__:
-        had_profile = True
-        old_profile = builtins.__dict__['profile']
-    else:
-        had_profile = False
-        old_profile = None
-    builtins.__dict__['profile'] = profile
-
-    try:
-        try:
-            profile.runctx(arg_str, global_ns, local_ns)
-            message = ''
-        except SystemExit:
-            message = "*** SystemExit exception caught in code being profiled."
-        except KeyboardInterrupt:
-            message = ("*** KeyboardInterrupt exception caught in code being "
-                       "profiled.")
-    finally:
-        if had_profile:
-            builtins.__dict__['profile'] = old_profile
-
-    # Trap text output.
-    stdout_trap = StringIO()
-    show_results(profile, stdout_trap)
-    output = stdout_trap.getvalue()
-    output = output.rstrip()
-
-    if ipython_version < '0.11':
-        page(output, screen_lines=self.shell.rc.screen_length)
-    else:
-        page(output)
-    print(message,)
-
-    text_file = opts.T[0]
-    if text_file:
-        with open(text_file, 'w') as pfile:
-            pfile.write(output)
-        print('\n*** Profile printout saved to text file %s. %s' % (text_file,
-                                                                    message))
-
-    return_value = None
-    if 'r' in opts:
-        return_value = profile
-
-    return return_value
-
-
 def _func_exec(stmt, ns):
     # helper for magic_memit, just a function proxy for the exec
     # statement
     exec(stmt, ns)
 
-# a timeit-style %memit magic for IPython
 
+@magics_class
+class MemoryProfilerMagics(Magics):
 
-def magic_memit(self, line=''):
-    """Measure memory usage of a Python statement
+    # A lprun-style %mprun magic for IPython.
+    @line_cell_magic
+    def mprun(self, parameter_s='', cell=None):
+        """ Execute a statement under the line-by-line memory profiler from the
+        memory_profiler module.
 
-    Usage, in line mode:
-      %memit [-r<R>t<T>i<I>] statement
+        Usage, in line mode:
+          %mprun -f func1 -f func2 <statement>
 
-    Options:
-    -r<R>: repeat the loop iteration <R> times and take the best result.
-    Default: 1
+        Usage, in cell mode:
+          %%mprun -f func1 -f func2 [statement]
+          code...
+          code...
 
-    -t<T>: timeout after <T> seconds. Default: None
+        In cell mode, the additional code lines are appended to the (possibly
+        empty) statement in the first line. Cell mode allows you to easily
+        profile multiline blocks without having to put them in a separate
+        function.
 
-    -i<I>: Get time information at an interval of I times per second.
-        Defaults to 0.1 so that there is ten measurements per second.
+        The given statement (which doesn't require quote marks) is run via the
+        LineProfiler. Profiling is enabled for the functions specified by the -f
+        options. The statistics will be shown side-by-side with the code through
+        the pager once the statement has completed.
 
-    -c: If present, add the memory usage of any children process to the report.
+        Options:
 
-    Examples
-    --------
-    ::
+        -f <function>: LineProfiler only profiles functions and methods it is told
+        to profile.  This option tells the profiler about these functions. Multiple
+        -f options may be used. The argument may be any expression that gives
+        a Python function or method object. However, one must be careful to avoid
+        spaces that may confuse the option parser. Additionally, functions defined
+        in the interpreter at the In[] prompt or via %run currently cannot be
+        displayed.  Write these functions out to a separate file and import them.
 
-      In [1]: import numpy as np
+        One or more -f options are required to get any useful results.
 
-      In [2]: %memit np.zeros(1e7)
-      maximum of 1: 76.402344 MiB per loop
+        -T <filename>: dump the text-formatted statistics with the code
+        side-by-side out to a text file.
 
-      In [3]: %memit np.ones(1e6)
-      maximum of 1: 7.820312 MiB per loop
+        -r: return the LineProfiler object after it has completed profiling.
 
-      In [4]: %memit -r 10 np.empty(1e8)
-      maximum of 10: 0.101562 MiB per loop
+        -c: If present, add the memory usage of any children process to the report.
+        """
+        from memory_profiler import show_results, LineProfiler
+        try:
+            from StringIO import StringIO
+        except ImportError:  # Python 3.x
+            from io import StringIO
 
-    """
-    opts, stmt = self.parse_options(line, 'r:t:i:c', posix=False, strict=False)
-    repeat = int(getattr(opts, 'r', 1))
-    if repeat < 1:
-        repeat == 1
-    timeout = int(getattr(opts, 't', 0))
-    if timeout <= 0:
-        timeout = None
-    interval = float(getattr(opts, 'i', 0.1))
-    include_children = 'c' in opts
+        # Local imports to avoid hard dependency.
+        from distutils.version import LooseVersion
+        import IPython
+        ipython_version = LooseVersion(IPython.__version__)
+        if ipython_version < '0.11':
+            from IPython.genutils import page
+            from IPython.ipstruct import Struct
+            from IPython.ipapi import UsageError
+        else:
+            from IPython.core.page import page
+            from IPython.utils.ipstruct import Struct
+            from IPython.core.error import UsageError
 
-    # I've noticed we get less noisier measurements if we run
-    # a garbage collection first
-    import gc
-    gc.collect()
+        # Escape quote markers.
+        opts_def = Struct(T=[''], f=[])
+        parameter_s = parameter_s.replace('"', r'\"').replace("'", r"\'")
+        opts, arg_str = self.parse_options(parameter_s, 'rf:T:c', list_all=True)
+        opts.merge(opts_def)
+        global_ns = self.shell.user_global_ns
+        local_ns = self.shell.user_ns
 
-    mem_usage = 0
-    counter = 0
-    baseline = memory_usage()[0]
-    while counter < repeat:
-        counter += 1
-        tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
-                           timeout=timeout, interval=interval, max_usage=True,
-                           include_children=include_children)
-        mem_usage = max(mem_usage, tmp[0])
+        if cell is not None:
+            arg_str += '\n' + cell
 
-    if mem_usage:
-        print('peak memory: %.02f MiB, increment: %.02f MiB' %
-              (mem_usage, mem_usage - baseline))
-    else:
-        print('ERROR: could not read memory usage, try with a lower interval '
-              'or more iterations')
+        # Get the requested functions.
+        funcs = []
+        for name in opts.f:
+            try:
+                funcs.append(eval(name, global_ns, local_ns))
+            except Exception as e:
+                raise UsageError('Could not find function %r.\n%s: %s' % (name,
+                                 e.__class__.__name__, e))
+
+        include_children = 'c' in opts
+        profile = LineProfiler(include_children=include_children)
+        for func in funcs:
+            profile(func)
+
+        # Add the profiler to the builtins for @profile.
+        if PY3:
+            import builtins
+        else:
+            import __builtin__ as builtins
+
+        if 'profile' in builtins.__dict__:
+            had_profile = True
+            old_profile = builtins.__dict__['profile']
+        else:
+            had_profile = False
+            old_profile = None
+        builtins.__dict__['profile'] = profile
+
+        try:
+            try:
+                profile.runctx(arg_str, global_ns, local_ns)
+                message = ''
+            except SystemExit:
+                message = "*** SystemExit exception caught in code being profiled."
+            except KeyboardInterrupt:
+                message = ("*** KeyboardInterrupt exception caught in code being "
+                           "profiled.")
+        finally:
+            if had_profile:
+                builtins.__dict__['profile'] = old_profile
+
+        # Trap text output.
+        stdout_trap = StringIO()
+        show_results(profile, stdout_trap)
+        output = stdout_trap.getvalue()
+        output = output.rstrip()
+
+        if ipython_version < '0.11':
+            page(output, screen_lines=self.shell.rc.screen_length)
+        else:
+            page(output)
+        print(message,)
+
+        text_file = opts.T[0]
+        if text_file:
+            with open(text_file, 'w') as pfile:
+                pfile.write(output)
+            print('\n*** Profile printout saved to text file %s. %s' % (text_file,
+                                                                        message))
+
+        return_value = None
+        if 'r' in opts:
+            return_value = profile
+
+        return return_value
+
+    # a timeit-style %memit magic for IPython
+    @line_cell_magic
+    def memit(self, line='', cell=None):
+        """Measure memory usage of a Python statement
+
+        Usage, in line mode:
+          %memit [-r<R>t<T>i<I>] statement
+
+        Usage, in cell mode:
+          %%memit [-r<R>t<T>i<I>] setup_code
+          code...
+          code...
+
+        This function can be used both as a line and cell magic:
+
+        - In line mode you can measure a single-line statement (though multiple
+          ones can be chained with using semicolons).
+
+        - In cell mode, the statement in the first line is used as setup code
+          (executed but not measured) and the body of the cell is measured.
+          The cell body has access to any variables created in the setup code.
+
+        Options:
+        -r<R>: repeat the loop iteration <R> times and take the best result.
+        Default: 1
+
+        -t<T>: timeout after <T> seconds. Default: None
+
+        -i<I>: Get time information at an interval of I times per second.
+            Defaults to 0.1 so that there is ten measurements per second.
+
+        -c: If present, add the memory usage of any children process to the report.
+
+        Examples
+        --------
+        ::
+
+          In [1]: %memit range(10000)
+          peak memory: 21.42 MiB, increment: 0.41 MiB
+
+          In [2]: %memit range(1000000)
+          peak memory: 52.10 MiB, increment: 31.08 MiB
+
+          In [3]: %%memit l=range(1000000)
+             ...: len(l)
+             ...:
+          peak memory: 52.14 MiB, increment: 0.08 MiB
+
+        """
+        from memory_profiler import memory_usage, _func_exec
+        opts, stmt = self.parse_options(line, 'r:t:i:c', posix=False, strict=False)
+
+        if cell is None:
+            setup = 'pass'
+        else:
+            setup = stmt
+            stmt = cell
+
+        repeat = int(getattr(opts, 'r', 1))
+        if repeat < 1:
+            repeat == 1
+        timeout = int(getattr(opts, 't', 0))
+        if timeout <= 0:
+            timeout = None
+        interval = float(getattr(opts, 'i', 0.1))
+        include_children = 'c' in opts
+
+        # I've noticed we get less noisier measurements if we run
+        # a garbage collection first
+        import gc
+        gc.collect()
+
+        _func_exec(setup, self.shell.user_ns)
+
+        mem_usage = 0
+        counter = 0
+        baseline = memory_usage()[0]
+        while counter < repeat:
+            counter += 1
+            tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
+                               timeout=timeout, interval=interval, max_usage=True,
+                               include_children=include_children)
+            mem_usage = max(mem_usage, tmp[0])
+
+        if mem_usage:
+            print('peak memory: %.02f MiB, increment: %.02f MiB' %
+                  (mem_usage, mem_usage - baseline))
+        else:
+            print('ERROR: could not read memory usage, try with a lower interval '
+                  'or more iterations')
+
+    @classmethod
+    def register_magics(cls, ip):
+        from distutils.version import LooseVersion
+        import IPython
+        ipython_version = LooseVersion(IPython.__version__)
+
+        if ipython_version < '0.13':
+            try:
+                _register_magic = ip.define_magic
+            except AttributeError:  # ipython 0.10
+                _register_magic = ip.expose_magic
+
+            _register_magic('mprun', cls.mprun.__func__)
+            _register_magic('memit', cls.memit.__func__)
+        else:
+            ip.register_magics(cls)
+
+# Ensuring old interface of magics expose for IPython 0.10
+magic_mprun = MemoryProfilerMagics.mprun.__func__
+magic_memit = MemoryProfilerMagics.memit.__func__
 
 
 def load_ipython_extension(ip):
     """This is called to load the module as an IPython extension."""
-    ip.define_magic('mprun', magic_mprun)
-    ip.define_magic('memit', magic_memit)
+
+    MemoryProfilerMagics.register_magics(ip)
 
 
 def profile(func=None, stream=None, precision=1):
@@ -875,7 +947,7 @@ if __name__ == '__main__':
         prof = LineProfiler(max_mem=options.max_mem)
     __file__ = _find_script(args[0])
     try:
-        if sys.version_info[0] < 3:
+        if not PY3:
             # we need to ovewrite the builtins to have profile
             # globally defined (global variables is not enough
             # for all cases, e.g. a script that imports another
