@@ -9,7 +9,7 @@ import copy
 import time
 import math
 
-from optparse import OptionParser
+from optparse import OptionParser, OptionValueError
 
 import memory_profiler as mp
 
