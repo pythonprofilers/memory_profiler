@@ -25,7 +25,11 @@ To install from source, download the package, extract and type::
  Usage
 =======
 
-The line-by-line profiler is used much in the same way of the
+
+line-by-line memory usage
+=========================
+
+The line-by-line memory usage mode is used much in the same way of the
 `line_profiler <https://pypi.python.org/pypi/line_profiler/>`_: first
 decorate the function you would like to profile with ``@profile`` and
 then run the script with a special script (in this case with specific
@@ -103,7 +107,7 @@ decorator function.  Use as follows::
 If a python script with decorator ``@profile`` is called using ``-m 
 memory_profiler`` in the command line, the ``precision`` parameter is ignored.
 
-Executing external scripts
+Time-based memory usage 
 ==========================
 Sometimes it is useful to have full memory usage reports as a function of
 time (not line-by-line) of external processes (be it Python scripts or not).
@@ -129,7 +133,7 @@ of the code that is causing the highest memory usage.
 Adding the `profile` decorator to a function and running the Python
 script with 
 
-    mprof run --python <script>
+    mprof run <script>
 
 will record timestamps when entering/leaving the profiled function. Runnning
 
