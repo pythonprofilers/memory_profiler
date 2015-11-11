@@ -9,7 +9,7 @@ import copy
 import time
 import math
 
-from optparse import OptionParser
+from optparse import OptionParser, OptionValueError
 
 import memory_profiler as mp
 
@@ -236,7 +236,7 @@ def run_action():
                          include_children=options.include_children, stream=f)
 
 
-def add_brackets(xloc, yloc, xshift=0, color="r", label=None):
+def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
     """Add two brackets on the memory line plot.
 
     This function uses the current figure.
@@ -265,10 +265,12 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None):
     # Matplotlib workaround: labels starting with _ aren't displayed
     if label[0] == '_':
         label = ' ' + label
-    pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
-            "-" + color, linewidth=2, label=label)
-    pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
-            "-" + color, linewidth=2 )
+    if options.xlim is None or options.xlim[0] <= (xloc[0] - xshift) <= options.xlim[1]:
+        pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
+                "-" + color, linewidth=2, label=label)
+    if options.xlim is None or options.xlim[0] <= (xloc[1] - xshift) <= options.xlim[1]:
+        pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
+                "-" + color, linewidth=2 )
 
     # TODO: use matplotlib.patches.Polygon to draw a colored background for
     # each function.
@@ -330,7 +332,7 @@ def read_mprofile_file(filename):
 
 
 
-def plot_file(filename, index=0, timestamps=True):
+def plot_file(filename, index=0, timestamps=True, options=None):
     try:
         import pylab as pl
     except ImportError:
@@ -392,7 +394,7 @@ def plot_file(filename, index=0, timestamps=True):
                 add_brackets(execution[:2], execution[2:], xshift=global_start,
                              color= all_colors[func_num % len(all_colors)],
                              label=f.split(".")[-1]
-                             + " %.3fs" % (execution[1] - execution[0]))
+                             + " %.3fs" % (execution[1] - execution[0]), options=options)
             func_num += 1
 
     if timestamps:
@@ -405,6 +407,15 @@ def plot_file(filename, index=0, timestamps=True):
 
 
 def plot_action():
+    def get_comma_separated_args(option, opt, value, parser):
+        try:
+            newvalue = [float(x) for x in value.split(',')]
+        except:
+            raise OptionValueError("'%s' option must contain two numbers separated with a comma" % value)
+        if len(newvalue) != 2:
+            raise OptionValueError("'%s' option must contain two numbers separated with a comma" % value)
+        setattr(parser.values, option.dest, newvalue)
+
     try:
         import pylab as pl
     except ImportError:
@@ -421,6 +432,10 @@ def plot_action():
                       help="Do not display function timestamps on plot.")
     parser.add_option("--output", "-o",
                       help="Save plot to file instead of displaying it.")
+    parser.add_option("--window", "-w", dest="xlim",
+                      type="str", action="callback",
+                      callback=get_comma_separated_args,
+                      help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
     (options, args) = parser.parse_args()
 
     profiles = glob.glob("mprofile_??????????????.dat")
@@ -453,12 +468,15 @@ def plot_action():
 
     fig = pl.figure(figsize=(14, 6), dpi=90)
     ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
+    if options.xlim is not None:
+        pl.xlim(options.xlim[0], options.xlim[1])
+
     if len(filenames) > 1 or options.no_timestamps:
         timestamps = False
     else:
         timestamps = True
     for n, filename in enumerate(filenames):
-        mprofile = plot_file(filename, index=n, timestamps=timestamps)
+        mprofile = plot_file(filename, index=n, timestamps=timestamps, options=options)
     pl.xlabel("time (in seconds)")
     pl.ylabel("memory used (in MiB)")
 
