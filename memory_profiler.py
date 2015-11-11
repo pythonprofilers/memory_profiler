@@ -859,9 +859,11 @@ class MemoryProfilerMagics(Magics):
         else:
             ip.register_magics(cls)
 
-# Ensuring old interface of magics expose for IPython 0.10
-magic_mprun = MemoryProfilerMagics().mprun.__func__
-magic_memit = MemoryProfilerMagics().memit.__func__
+# commenting out due to failures with some versions of IPython
+# see https://github.com/fabianp/memory_profiler/issues/106
+# # Ensuring old interface of magics expose for IPython 0.10
+# magic_mprun = MemoryProfilerMagics().mprun.__func__
+# magic_memit = MemoryProfilerMagics().memit.__func__
 
 
 def load_ipython_extension(ip):
