@@ -15,10 +15,9 @@ import warnings
 import linecache
 import inspect
 import subprocess
-from copy import copy
 import logging
 
-# TODO: provide alternative when multprocessing is not available
+# TODO: provide alternative when multiprocessing is not available
 try:
     from multiprocessing import Process, Pipe
 except ImportError:
@@ -36,14 +35,17 @@ PY3 = sys.version_info[0] == 3
 
 _TWO_20 = float(2 ** 20)
 
-has_psutil = False
+if PY3:
+    import builtins
+else:
+    import __builtin__ as builtins
 
 # .. get available packages ..
 try:
     import psutil
     has_psutil = True
 except ImportError:
-    pass
+    has_psutil = False
 
 
 def _get_memory(pid, timestamps=False, include_children=False):
@@ -102,7 +104,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
             if timestamps:
                 return (-1, time.time())
             else:
-                    return -1
+                return -1
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
@@ -121,29 +123,21 @@ class MemTimer(Process):
         self.max_usage = max_usage
         self.n_measurements = 1
 
-        if "timestamps" in kw:
-            self.timestamps = kw["timestamps"]
-            del kw["timestamps"]
-        else:
-            self.timestamps = False
-        if "include_children" in kw:
-            self.include_children = kw["include_children"]
-            del kw["include_children"]
-        else:
-            self.include_children = False
+        self.timestamps = kw.pop("timestamps", False)
+        self.include_children = kw.pop("include_children", False)
+
         # get baseline memory usage
         self.mem_usage = [
             _get_memory(self.monitor_pid, timestamps=self.timestamps,
                         include_children=self.include_children)]
         super(MemTimer, self).__init__(*args, **kw)
 
-
     def run(self):
         self.pipe.send(0)  # we're ready
         stop = False
         while True:
             cur_mem = _get_memory(self.monitor_pid, timestamps=self.timestamps,
-                            include_children=self.include_children)
+                                  include_children=self.include_children)
             if not self.max_usage:
                 self.mem_usage.append(cur_mem)
             else:
@@ -223,7 +217,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         # for a Python function wait until it finishes
         max_iter = float('inf')
 
-    if hasattr(proc, '__call__'):
+    if callable(proc):
         proc = (proc, (), {})
     if isinstance(proc, (list, tuple)):
         if len(proc) == 1:
@@ -238,7 +232,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         while True:
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
-                      max_usage=max_usage, include_children=include_children)
+                         max_usage=max_usage, include_children=include_children)
             p.start()
             parent_conn.recv()  # wait until we start getting memory
             returned = f(*args, **kw)
@@ -263,9 +257,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 else:
                     ret.append(mem_usage)
             else:
-                ret = max([ret,
-                           _get_memory(proc.pid,
-                                       include_children=include_children)])
+                ret = max(ret,
+                          _get_memory(proc.pid,
+                                      include_children=include_children))
             time.sleep(interval)
             line_count += 1
             # flush every 50 lines. Make 'tail -f' usable on profile file
@@ -351,7 +345,7 @@ class TimeStamper:
 
     def __call__(self, func=None, precision=None):
         if func is not None:
-            if not hasattr(func, "__call__"):
+            if not callable(func):
                 raise ValueError("Value must be callable")
 
             self.add_function(func)
@@ -380,7 +374,7 @@ class TimeStamper:
         return _TimeStamperCM(timestamps)
 
     def add_function(self, func):
-        if not func in self.functions:
+        if func not in self.functions:
             self.functions[func] = []
 
     def wrap_function(self, func):
@@ -391,11 +385,10 @@ class TimeStamper:
             timestamps = [_get_memory(os.getpid(), timestamps=True)]
             self.functions[func].append(timestamps)
             try:
-                result = func(*args, **kwds)
+                return func(*args, **kwds)
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), timestamps=True))
-            return result
         return f
 
     def show_results(self, stream=None):
@@ -459,10 +452,9 @@ class LineProfiler(object):
         def f(*args, **kwds):
             self.enable_by_count()
             try:
-                result = func(*args, **kwds)
+                return func(*args, **kwds)
             finally:
                 self.disable_by_count()
-            return result
         return f
 
     def run(self, cmd):
@@ -521,8 +513,8 @@ class LineProfiler(object):
         if event in ('line', 'return') and frame.f_code in self.code_map:
             c = _get_memory(-1)
             if c >= self.max_mem:
-                t = ('Current memory {0:.2f} MiB exceeded the maximum'
-                     ''.format(c) + 'of {0:.2f} MiB\n'.format(self.max_mem))
+                t = ('Current memory {0:.2f} MiB exceeded the '
+                     'maximum of {1:.2f} MiB\n'.format(c, self.max_mem))
                 sys.stdout.write(t)
                 sys.stdout.write('Stepping into the debugger \n')
                 frame.f_lineno -= 2
@@ -655,11 +647,8 @@ class MemoryProfilerMagics(Magics):
 
         -c: If present, add the memory usage of any children process to the report.
         """
+        from io import StringIO
         from memory_profiler import show_results, LineProfiler
-        try:
-            from StringIO import StringIO
-        except ImportError:  # Python 3.x
-            from io import StringIO
 
         # Local imports to avoid hard dependency.
         from distutils.version import LooseVersion
@@ -700,11 +689,6 @@ class MemoryProfilerMagics(Magics):
             profile(func)
 
         # Add the profiler to the builtins for @profile.
-        if PY3:
-            import builtins
-        else:
-            import __builtin__ as builtins
-
         if 'profile' in builtins.__dict__:
             had_profile = True
             old_profile = builtins.__dict__['profile']
@@ -714,14 +698,13 @@ class MemoryProfilerMagics(Magics):
         builtins.__dict__['profile'] = profile
 
         try:
-            try:
-                profile.runctx(arg_str, global_ns, local_ns)
-                message = ''
-            except SystemExit:
-                message = "*** SystemExit exception caught in code being profiled."
-            except KeyboardInterrupt:
-                message = ("*** KeyboardInterrupt exception caught in code being "
-                           "profiled.")
+            profile.runctx(arg_str, global_ns, local_ns)
+            message = ''
+        except SystemExit:
+            message = "*** SystemExit exception caught in code being profiled."
+        except KeyboardInterrupt:
+            message = ("*** KeyboardInterrupt exception caught in code being "
+                       "profiled.")
         finally:
             if had_profile:
                 builtins.__dict__['profile'] = old_profile
@@ -888,6 +871,25 @@ def profile(func=None, stream=None, precision=1):
             return profile(f, stream=stream, precision=precision)
         return inner_wrapper
 
+
+# Insert in the built-ins to have profile
+# globally defined (global variables is not enough
+# for all cases, e.g. a script that imports another
+# script where @profile is used)
+if PY3:
+    def exec_with_profiler(filename, profiler):
+        builtins.__dict__['profile'] = profiler
+        # shadow the profile decorator defined above
+        ns = dict(_CLEAN_GLOBALS, profile=profiler)
+        with open(filename) as f:
+            exec(compile(f.read(), filename, 'exec'), ns, ns)
+else:
+    def exec_with_profiler(filename, profiler):
+        builtins.__dict__['profile'] = profiler
+        ns = dict(_CLEAN_GLOBALS, profile=profiler)
+        execfile(filename, ns, ns)
+
+
 class LogFile(object):
     """File-like object to log text using the `logging` module and the log report can be customised."""
 
@@ -905,7 +907,7 @@ class LogFile(object):
 
     def write(self, msg, level=logging.INFO):
         if self.reportIncrementFlag:
-            if "MiB" in msg and float(msg.split("MiB")[1].strip())>0:
+            if "MiB" in msg and float(msg.split("MiB")[1].strip()) > 0:
                 self.logger.log(level, msg)
             elif msg.__contains__("Filename:") or msg.__contains__("Line Contents"):
                 self.logger.log(level, msg)
@@ -915,6 +917,7 @@ class LogFile(object):
     def flush(self):
         for handler in self.logger.handlers:
             handler.flush()
+
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -947,24 +950,9 @@ if __name__ == '__main__':
         prof = TimeStamper()
     else:
         prof = LineProfiler(max_mem=options.max_mem)
-    __file__ = _find_script(args[0])
+    script_filename = _find_script(args[0])
     try:
-        if not PY3:
-            # we need to ovewrite the builtins to have profile
-            # globally defined (global variables is not enough
-            # for all cases, e.g. a script that imports another
-            # script where @profile is used)
-            import __builtin__
-            __builtin__.__dict__['profile'] = prof
-            ns = copy(_CLEAN_GLOBALS)
-            ns['profile'] = prof  # shadow the profile decorator defined above
-            execfile(__file__, ns, ns)
-        else:
-            import builtins
-            builtins.__dict__['profile'] = prof
-            ns = copy(_CLEAN_GLOBALS)
-            ns['profile'] = prof  # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
+        exec_with_profiler(script_filename, prof)
     finally:
         if options.out_filename is not None:
             out_file = open(options.out_filename, "a")
