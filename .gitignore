@@ -1,6 +1,7 @@
 .idea
 dist
 build
-*.pyc
 MANIFEST
+*.egg-info
+*.pyc
 *~
