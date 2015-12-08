@@ -402,15 +402,64 @@ class TimeStamper:
                     (function_name,) + ts[0] + ts[1]))
 
 
+class CodeMap(dict):
+
+    def __init__(self, include_children):
+        self.include_children = include_children
+        self._toplevel = []
+
+    def add(self, code, toplevel_code=None):
+        if code in self:
+            return
+
+        if toplevel_code is None:
+            filename = code.co_filename
+            if filename.endswith((".pyc", ".pyo")):
+                filename = filename[:-1]
+            if not os.path.exists(filename):
+                print('ERROR: Could not find file ' + filename)
+                if filename.startswith(("ipython-input", "<ipython-input")):
+                    print("NOTE: %mprun can only be used on functions defined in "
+                          "physical files, and not in the IPython environment.")
+                return
+
+            toplevel_code = code
+            (sub_lines, start_line) = inspect.getsourcelines(code)
+            linenos = range(start_line,
+                            start_line + len(sub_lines))
+            self._toplevel.append((filename, code, linenos))
+            self[code] = {}
+        else:
+            self[code] = self[toplevel_code]
+
+        for subcode in filter(inspect.iscode, code.co_consts):
+            self.add(subcode, toplevel_code=toplevel_code)
+
+    def trace(self, code, lineno):
+        memory = _get_memory(-1, include_children=self.include_children)
+        # if there is already a measurement for that line get the max
+        previous_memory = self[code].get(lineno, 0)
+        self[code][lineno] = max(memory, previous_memory)
+
+    def items(self):
+        """Iterate on the toplevel code blocks."""
+        for (filename, code, linenos) in self._toplevel:
+            measures = self[code]
+            if not measures:
+                continue    # skip if no measurement
+            line_iterator = ((line, measures.get(line)) for line in linenos)
+            yield (filename, line_iterator)
+
+
 class LineProfiler(object):
     """ A profiler that records the amount of memory for each line """
 
     def __init__(self, **kw):
-        self.code_map = {}
+        include_children = kw.get('include_children', False)
+        self.code_map = CodeMap(include_children=include_children)
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
-        self.prevline = None
-        self.include_children = kw.get('include_children', False)
+        self.prevlines = []
 
     def __call__(self, func=None, precision=1):
         if func is not None:
@@ -426,13 +475,6 @@ class LineProfiler(object):
                 return self.__call__(f, precision=precision)
             return inner_partial
 
-    def add_code(self, code, toplevel_code=None):
-        if code not in self.code_map:
-            self.code_map[code] = {}
-
-            for subcode in filter(inspect.iscode, code.co_consts):
-                self.add_code(subcode)
-
     def add_function(self, func):
         """ Record line profiling information for the given Python function.
         """
@@ -443,7 +485,7 @@ class LineProfiler(object):
             warnings.warn("Could not extract a code object for the object %r"
                           % func)
         else:
-            self.add_code(code)
+            self.code_map.add(code)
 
     def wrap_function(self, func):
         """ Wrap a function to profile it.
@@ -493,15 +535,15 @@ class LineProfiler(object):
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if (event in ('call', 'line', 'return')
-                and frame.f_code in self.code_map):
-            if event != 'call':
+        if frame.f_code in self.code_map:
+            if event == 'call':
                 # "call" event just saves the lineno but not the memory
-                mem = _get_memory(-1, include_children=self.include_children)
-                # if there is already a measurement for that line get the max
-                old_mem = self.code_map[frame.f_code].get(self.prevline, 0)
-                self.code_map[frame.f_code][self.prevline] = max(mem, old_mem)
-            self.prevline = frame.f_lineno
+                self.prevlines.append(frame.f_lineno)
+            elif event == 'line':
+                self.code_map.trace(frame.f_code, self.prevlines[-1])
+                self.prevlines[-1] = frame.f_lineno
+            elif event == 'return':
+                self.code_map.trace(frame.f_code, self.prevlines.pop())
 
         if self._original_trace_function is not None:
             (self._original_trace_function)(frame, event, arg)
@@ -553,45 +595,28 @@ def show_results(prof, stream=None, precision=1):
         stream = sys.stdout
     template = '{0:>6} {1:>12} {2:>12}   {3:<}'
 
-    for code in prof.code_map:
-        lines = prof.code_map[code]
-        if not lines:
-            # .. measurements are empty ..
-            continue
-        filename = code.co_filename
-        if filename.endswith((".pyc", ".pyo")):
-            filename = filename[:-1]
-        stream.write('Filename: ' + filename + '\n\n')
-        if not os.path.exists(filename):
-            stream.write('ERROR: Could not find file ' + filename + '\n')
-            if any([filename.startswith(k) for k in
-                    ("ipython-input", "<ipython-input")]):
-                print("NOTE: %mprun can only be used on functions defined in "
-                      "physical files, and not in the IPython environment.")
-            continue
-        all_lines = linecache.getlines(filename)
-        sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
-        linenos = range(code.co_firstlineno,
-                        code.co_firstlineno + len(sub_lines))
-
+    for (filename, lines) in prof.code_map.items():
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
+
+        stream.write('Filename: ' + filename + '\n\n')
         stream.write(header + '\n')
         stream.write('=' * len(header) + '\n')
 
-        mem_old = lines[min(lines.keys())]
+        all_lines = linecache.getlines(filename)
+        mem_old = None
         float_format = '{0}.{1}f'.format(precision + 4, precision)
         template_mem = '{0:' + float_format + '} MiB'
-        for line in linenos:
-            mem = ''
-            inc = ''
-            if line in lines:
-                mem = lines[line]
-                inc = mem - mem_old
+        for (lineno, mem) in lines:
+            if mem:
+                inc = (mem - mem_old) if mem_old else 0
                 mem_old = mem
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
-            stream.write(template.format(line, mem, inc, all_lines[line - 1]))
+            else:
+                mem = ''
+                inc = ''
+            stream.write(template.format(lineno, mem, inc, all_lines[lineno - 1]))
         stream.write('\n\n')
 
 
