@@ -15,10 +15,9 @@ import warnings
 import linecache
 import inspect
 import subprocess
-from copy import copy
 import logging
 
-# TODO: provide alternative when multprocessing is not available
+# TODO: provide alternative when multiprocessing is not available
 try:
     from multiprocessing import Process, Pipe
 except ImportError:
@@ -36,14 +35,17 @@ PY3 = sys.version_info[0] == 3
 
 _TWO_20 = float(2 ** 20)
 
-has_psutil = False
+if PY3:
+    import builtins
+else:
+    import __builtin__ as builtins
 
 # .. get available packages ..
 try:
     import psutil
     has_psutil = True
 except ImportError:
-    pass
+    has_psutil = False
 
 
 def _get_memory(pid, timestamps=False, include_children=False):
@@ -102,7 +104,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
             if timestamps:
                 return (-1, time.time())
             else:
-                    return -1
+                return -1
     else:
         raise NotImplementedError('The psutil module is required for non-unix '
                                   'platforms')
@@ -121,29 +123,21 @@ class MemTimer(Process):
         self.max_usage = max_usage
         self.n_measurements = 1
 
-        if "timestamps" in kw:
-            self.timestamps = kw["timestamps"]
-            del kw["timestamps"]
-        else:
-            self.timestamps = False
-        if "include_children" in kw:
-            self.include_children = kw["include_children"]
-            del kw["include_children"]
-        else:
-            self.include_children = False
+        self.timestamps = kw.pop("timestamps", False)
+        self.include_children = kw.pop("include_children", False)
+
         # get baseline memory usage
         self.mem_usage = [
             _get_memory(self.monitor_pid, timestamps=self.timestamps,
                         include_children=self.include_children)]
         super(MemTimer, self).__init__(*args, **kw)
 
-
     def run(self):
         self.pipe.send(0)  # we're ready
         stop = False
         while True:
             cur_mem = _get_memory(self.monitor_pid, timestamps=self.timestamps,
-                            include_children=self.include_children)
+                                  include_children=self.include_children)
             if not self.max_usage:
                 self.mem_usage.append(cur_mem)
             else:
@@ -223,7 +217,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         # for a Python function wait until it finishes
         max_iter = float('inf')
 
-    if hasattr(proc, '__call__'):
+    if callable(proc):
         proc = (proc, (), {})
     if isinstance(proc, (list, tuple)):
         if len(proc) == 1:
@@ -238,7 +232,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         while True:
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, timestamps=timestamps,
-                      max_usage=max_usage, include_children=include_children)
+                         max_usage=max_usage, include_children=include_children)
             p.start()
             parent_conn.recv()  # wait until we start getting memory
             returned = f(*args, **kw)
@@ -263,9 +257,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 else:
                     ret.append(mem_usage)
             else:
-                ret = max([ret,
-                           _get_memory(proc.pid,
-                                       include_children=include_children)])
+                ret = max(ret,
+                          _get_memory(proc.pid,
+                                      include_children=include_children))
             time.sleep(interval)
             line_count += 1
             # flush every 50 lines. Make 'tail -f' usable on profile file
@@ -351,7 +345,7 @@ class TimeStamper:
 
     def __call__(self, func=None, precision=None):
         if func is not None:
-            if not hasattr(func, "__call__"):
+            if not callable(func):
                 raise ValueError("Value must be callable")
 
             self.add_function(func)
@@ -380,7 +374,7 @@ class TimeStamper:
         return _TimeStamperCM(timestamps)
 
     def add_function(self, func):
-        if not func in self.functions:
+        if func not in self.functions:
             self.functions[func] = []
 
     def wrap_function(self, func):
@@ -391,11 +385,10 @@ class TimeStamper:
             timestamps = [_get_memory(os.getpid(), timestamps=True)]
             self.functions[func].append(timestamps)
             try:
-                result = func(*args, **kwds)
+                return func(*args, **kwds)
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), timestamps=True))
-            return result
         return f
 
     def show_results(self, stream=None):
@@ -409,15 +402,64 @@ class TimeStamper:
                     (function_name,) + ts[0] + ts[1]))
 
 
+class CodeMap(dict):
+
+    def __init__(self, include_children):
+        self.include_children = include_children
+        self._toplevel = []
+
+    def add(self, code, toplevel_code=None):
+        if code in self:
+            return
+
+        if toplevel_code is None:
+            filename = code.co_filename
+            if filename.endswith((".pyc", ".pyo")):
+                filename = filename[:-1]
+            if not os.path.exists(filename):
+                print('ERROR: Could not find file ' + filename)
+                if filename.startswith(("ipython-input", "<ipython-input")):
+                    print("NOTE: %mprun can only be used on functions defined in "
+                          "physical files, and not in the IPython environment.")
+                return
+
+            toplevel_code = code
+            (sub_lines, start_line) = inspect.getsourcelines(code)
+            linenos = range(start_line,
+                            start_line + len(sub_lines))
+            self._toplevel.append((filename, code, linenos))
+            self[code] = {}
+        else:
+            self[code] = self[toplevel_code]
+
+        for subcode in filter(inspect.iscode, code.co_consts):
+            self.add(subcode, toplevel_code=toplevel_code)
+
+    def trace(self, code, lineno):
+        memory = _get_memory(-1, include_children=self.include_children)
+        # if there is already a measurement for that line get the max
+        previous_memory = self[code].get(lineno, 0)
+        self[code][lineno] = max(memory, previous_memory)
+
+    def items(self):
+        """Iterate on the toplevel code blocks."""
+        for (filename, code, linenos) in self._toplevel:
+            measures = self[code]
+            if not measures:
+                continue    # skip if no measurement
+            line_iterator = ((line, measures.get(line)) for line in linenos)
+            yield (filename, line_iterator)
+
+
 class LineProfiler(object):
     """ A profiler that records the amount of memory for each line """
 
     def __init__(self, **kw):
-        self.code_map = {}
+        include_children = kw.get('include_children', False)
+        self.code_map = CodeMap(include_children=include_children)
         self.enable_count = 0
         self.max_mem = kw.get('max_mem', None)
-        self.prevline = None
-        self.include_children = kw.get('include_children', False)
+        self.prevlines = []
 
     def __call__(self, func=None, precision=1):
         if func is not None:
@@ -433,13 +475,6 @@ class LineProfiler(object):
                 return self.__call__(f, precision=precision)
             return inner_partial
 
-    def add_code(self, code, toplevel_code=None):
-        if code not in self.code_map:
-            self.code_map[code] = {}
-
-            for subcode in filter(inspect.iscode, code.co_consts):
-                self.add_code(subcode)
-
     def add_function(self, func):
         """ Record line profiling information for the given Python function.
         """
@@ -450,7 +485,7 @@ class LineProfiler(object):
             warnings.warn("Could not extract a code object for the object %r"
                           % func)
         else:
-            self.add_code(code)
+            self.code_map.add(code)
 
     def wrap_function(self, func):
         """ Wrap a function to profile it.
@@ -459,10 +494,9 @@ class LineProfiler(object):
         def f(*args, **kwds):
             self.enable_by_count()
             try:
-                result = func(*args, **kwds)
+                return func(*args, **kwds)
             finally:
                 self.disable_by_count()
-            return result
         return f
 
     def run(self, cmd):
@@ -501,15 +535,15 @@ class LineProfiler(object):
 
     def trace_memory_usage(self, frame, event, arg):
         """Callback for sys.settrace"""
-        if (event in ('call', 'line', 'return')
-                and frame.f_code in self.code_map):
-            if event != 'call':
+        if frame.f_code in self.code_map:
+            if event == 'call':
                 # "call" event just saves the lineno but not the memory
-                mem = _get_memory(-1, include_children=self.include_children)
-                # if there is already a measurement for that line get the max
-                old_mem = self.code_map[frame.f_code].get(self.prevline, 0)
-                self.code_map[frame.f_code][self.prevline] = max(mem, old_mem)
-            self.prevline = frame.f_lineno
+                self.prevlines.append(frame.f_lineno)
+            elif event == 'line':
+                self.code_map.trace(frame.f_code, self.prevlines[-1])
+                self.prevlines[-1] = frame.f_lineno
+            elif event == 'return':
+                self.code_map.trace(frame.f_code, self.prevlines.pop())
 
         if self._original_trace_function is not None:
             (self._original_trace_function)(frame, event, arg)
@@ -521,8 +555,8 @@ class LineProfiler(object):
         if event in ('line', 'return') and frame.f_code in self.code_map:
             c = _get_memory(-1)
             if c >= self.max_mem:
-                t = ('Current memory {0:.2f} MiB exceeded the maximum'
-                     ''.format(c) + 'of {0:.2f} MiB\n'.format(self.max_mem))
+                t = ('Current memory {0:.2f} MiB exceeded the '
+                     'maximum of {1:.2f} MiB\n'.format(c, self.max_mem))
                 sys.stdout.write(t)
                 sys.stdout.write('Stepping into the debugger \n')
                 frame.f_lineno -= 2
@@ -561,45 +595,28 @@ def show_results(prof, stream=None, precision=1):
         stream = sys.stdout
     template = '{0:>6} {1:>12} {2:>12}   {3:<}'
 
-    for code in prof.code_map:
-        lines = prof.code_map[code]
-        if not lines:
-            # .. measurements are empty ..
-            continue
-        filename = code.co_filename
-        if filename.endswith((".pyc", ".pyo")):
-            filename = filename[:-1]
-        stream.write('Filename: ' + filename + '\n\n')
-        if not os.path.exists(filename):
-            stream.write('ERROR: Could not find file ' + filename + '\n')
-            if any([filename.startswith(k) for k in
-                    ("ipython-input", "<ipython-input")]):
-                print("NOTE: %mprun can only be used on functions defined in "
-                      "physical files, and not in the IPython environment.")
-            continue
-        all_lines = linecache.getlines(filename)
-        sub_lines = inspect.getblock(all_lines[code.co_firstlineno - 1:])
-        linenos = range(code.co_firstlineno,
-                        code.co_firstlineno + len(sub_lines))
-
+    for (filename, lines) in prof.code_map.items():
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
+
+        stream.write('Filename: ' + filename + '\n\n')
         stream.write(header + '\n')
         stream.write('=' * len(header) + '\n')
 
-        mem_old = lines[min(lines.keys())]
+        all_lines = linecache.getlines(filename)
+        mem_old = None
         float_format = '{0}.{1}f'.format(precision + 4, precision)
         template_mem = '{0:' + float_format + '} MiB'
-        for line in linenos:
-            mem = ''
-            inc = ''
-            if line in lines:
-                mem = lines[line]
-                inc = mem - mem_old
+        for (lineno, mem) in lines:
+            if mem:
+                inc = (mem - mem_old) if mem_old else 0
                 mem_old = mem
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
-            stream.write(template.format(line, mem, inc, all_lines[line - 1]))
+            else:
+                mem = ''
+                inc = ''
+            stream.write(template.format(lineno, mem, inc, all_lines[lineno - 1]))
         stream.write('\n\n')
 
 
@@ -655,11 +672,8 @@ class MemoryProfilerMagics(Magics):
 
         -c: If present, add the memory usage of any children process to the report.
         """
+        from io import StringIO
         from memory_profiler import show_results, LineProfiler
-        try:
-            from StringIO import StringIO
-        except ImportError:  # Python 3.x
-            from io import StringIO
 
         # Local imports to avoid hard dependency.
         from distutils.version import LooseVersion
@@ -700,11 +714,6 @@ class MemoryProfilerMagics(Magics):
             profile(func)
 
         # Add the profiler to the builtins for @profile.
-        if PY3:
-            import builtins
-        else:
-            import __builtin__ as builtins
-
         if 'profile' in builtins.__dict__:
             had_profile = True
             old_profile = builtins.__dict__['profile']
@@ -714,14 +723,13 @@ class MemoryProfilerMagics(Magics):
         builtins.__dict__['profile'] = profile
 
         try:
-            try:
-                profile.runctx(arg_str, global_ns, local_ns)
-                message = ''
-            except SystemExit:
-                message = "*** SystemExit exception caught in code being profiled."
-            except KeyboardInterrupt:
-                message = ("*** KeyboardInterrupt exception caught in code being "
-                           "profiled.")
+            profile.runctx(arg_str, global_ns, local_ns)
+            message = ''
+        except SystemExit:
+            message = "*** SystemExit exception caught in code being profiled."
+        except KeyboardInterrupt:
+            message = ("*** KeyboardInterrupt exception caught in code being "
+                       "profiled.")
         finally:
             if had_profile:
                 builtins.__dict__['profile'] = old_profile
@@ -888,6 +896,25 @@ def profile(func=None, stream=None, precision=1):
             return profile(f, stream=stream, precision=precision)
         return inner_wrapper
 
+
+# Insert in the built-ins to have profile
+# globally defined (global variables is not enough
+# for all cases, e.g. a script that imports another
+# script where @profile is used)
+if PY3:
+    def exec_with_profiler(filename, profiler):
+        builtins.__dict__['profile'] = profiler
+        # shadow the profile decorator defined above
+        ns = dict(_CLEAN_GLOBALS, profile=profiler)
+        with open(filename) as f:
+            exec(compile(f.read(), filename, 'exec'), ns, ns)
+else:
+    def exec_with_profiler(filename, profiler):
+        builtins.__dict__['profile'] = profiler
+        ns = dict(_CLEAN_GLOBALS, profile=profiler)
+        execfile(filename, ns, ns)
+
+
 class LogFile(object):
     """File-like object to log text using the `logging` module and the log report can be customised."""
 
@@ -905,7 +932,7 @@ class LogFile(object):
 
     def write(self, msg, level=logging.INFO):
         if self.reportIncrementFlag:
-            if "MiB" in msg and float(msg.split("MiB")[1].strip())>0:
+            if "MiB" in msg and float(msg.split("MiB")[1].strip()) > 0:
                 self.logger.log(level, msg)
             elif msg.__contains__("Filename:") or msg.__contains__("Line Contents"):
                 self.logger.log(level, msg)
@@ -915,6 +942,7 @@ class LogFile(object):
     def flush(self):
         for handler in self.logger.handlers:
             handler.flush()
+
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -947,24 +975,9 @@ if __name__ == '__main__':
         prof = TimeStamper()
     else:
         prof = LineProfiler(max_mem=options.max_mem)
-    __file__ = _find_script(args[0])
+    script_filename = _find_script(args[0])
     try:
-        if not PY3:
-            # we need to ovewrite the builtins to have profile
-            # globally defined (global variables is not enough
-            # for all cases, e.g. a script that imports another
-            # script where @profile is used)
-            import __builtin__
-            __builtin__.__dict__['profile'] = prof
-            ns = copy(_CLEAN_GLOBALS)
-            ns['profile'] = prof  # shadow the profile decorator defined above
-            execfile(__file__, ns, ns)
-        else:
-            import builtins
-            builtins.__dict__['profile'] = prof
-            ns = copy(_CLEAN_GLOBALS)
-            ns['profile'] = prof  # shadow the profile decorator defined above
-            exec(compile(open(__file__).read(), __file__, 'exec'), ns, ns)
+        exec_with_profiler(script_filename, prof)
     finally:
         if options.out_filename is not None:
             out_file = open(options.out_filename, "a")
