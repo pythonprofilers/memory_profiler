@@ -20,7 +20,7 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy nose
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy nose ipython
   - source activate test-environment
   - python setup.py install
 script:
