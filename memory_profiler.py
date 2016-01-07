@@ -37,6 +37,7 @@ _TWO_20 = float(2 ** 20)
 
 if PY3:
     import builtins
+    def unicode(x): return str(x)
 else:
     import __builtin__ as builtins
 
