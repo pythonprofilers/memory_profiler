@@ -599,14 +599,14 @@ def show_results(prof, stream=None, precision=1):
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
 
-        stream.write('Filename: ' + filename + '\n\n')
-        stream.write(header + '\n')
-        stream.write('=' * len(header) + '\n')
+        stream.write(u'Filename: ' + filename + '\n\n')
+        stream.write(header + u'\n')
+        stream.write(u'=' * len(header) + '\n')
 
         all_lines = linecache.getlines(filename)
         mem_old = None
-        float_format = '{0}.{1}f'.format(precision + 4, precision)
-        template_mem = '{0:' + float_format + '} MiB'
+        float_format = u'{0}.{1}f'.format(precision + 4, precision)
+        template_mem = u'{0:' + float_format + '} MiB'
         for (lineno, mem) in lines:
             if mem:
                 inc = (mem - mem_old) if mem_old else 0
@@ -614,10 +614,11 @@ def show_results(prof, stream=None, precision=1):
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
             else:
-                mem = ''
-                inc = ''
-            stream.write(template.format(lineno, mem, inc, all_lines[lineno - 1]))
-        stream.write('\n\n')
+                mem = u''
+                inc = u''
+            tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
+            stream.write(unicode(tmp))
+        stream.write(u'\n\n')
 
 
 def _func_exec(stmt, ns):
