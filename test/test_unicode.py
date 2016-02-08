@@ -1,15 +1,9 @@
-# coding: utf-8
-
-import time
-
+# -*- coding: utf-8  -*-
+# run only for Python 2.xx
 @profile
-def test_unicode():
+def test_unicode(txt):
     # test when unicode is present
-    exec("β = 0")
-    return
-
+    txt = txt.replace (u"ی", u"ي") #Arabic Yah = ي
+    return txt
 if __name__ == '__main__':
-    # run only for Python 3
-    import sys
-    if sys.version_info >= (3, 0):
-        test_unicode()
+	test_unicode (u"ایست")
