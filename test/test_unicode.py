@@ -5,7 +5,7 @@ import time
 @profile
 def test_unicode():
     # test when unicode is present
-    eval("β = 0")
+    exec("β = 0")
     return
 
 if __name__ == '__main__':
