@@ -39,7 +39,7 @@ if PY2:
     import __builtin__ as builtins
 else:
     import builtins
-    def unicode(x): return str(x)
+    def unicode(x, *args): return str(x)
 
 # .. get available packages ..
 try:
