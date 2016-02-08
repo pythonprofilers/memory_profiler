@@ -3,7 +3,7 @@
 # .. we'll use this to pass it to the child script ..
 _CLEAN_GLOBALS = globals().copy()
 
-__version__ = '0.40'
+__version__ = '0.41'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -31,14 +31,15 @@ except ImportError:
     line_cell_magic = lambda func: func
     magics_class = lambda cls: cls
 
-PY3 = sys.version_info[0] == 3
+PY2 = sys.version_info[0] == 2
 
 _TWO_20 = float(2 ** 20)
 
-if PY3:
-    import builtins
-else:
+if PY2:
     import __builtin__ as builtins
+else:
+    import builtins
+    def unicode(x): return str(x)
 
 # .. get available packages ..
 try:
@@ -599,14 +600,14 @@ def show_results(prof, stream=None, precision=1):
         header = template.format('Line #', 'Mem usage', 'Increment',
                                  'Line Contents')
 
-        stream.write('Filename: ' + filename + '\n\n')
-        stream.write(header + '\n')
-        stream.write('=' * len(header) + '\n')
+        stream.write(u'Filename: ' + filename + '\n\n')
+        stream.write(header + u'\n')
+        stream.write(u'=' * len(header) + '\n')
 
         all_lines = linecache.getlines(filename)
         mem_old = None
-        float_format = '{0}.{1}f'.format(precision + 4, precision)
-        template_mem = '{0:' + float_format + '} MiB'
+        float_format = u'{0}.{1}f'.format(precision + 4, precision)
+        template_mem = u'{0:' + float_format + '} MiB'
         for (lineno, mem) in lines:
             if mem:
                 inc = (mem - mem_old) if mem_old else 0
@@ -614,10 +615,11 @@ def show_results(prof, stream=None, precision=1):
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
             else:
-                mem = ''
-                inc = ''
-            stream.write(template.format(lineno, mem, inc, all_lines[lineno - 1]))
-        stream.write('\n\n')
+                mem = u''
+                inc = u''
+            tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
+            stream.write(unicode(tmp))
+        stream.write(u'\n\n')
 
 
 def _func_exec(stmt, ns):
@@ -901,18 +903,18 @@ def profile(func=None, stream=None, precision=1):
 # globally defined (global variables is not enough
 # for all cases, e.g. a script that imports another
 # script where @profile is used)
-if PY3:
+if PY2:
+    def exec_with_profiler(filename, profiler):
+        builtins.__dict__['profile'] = profiler
+        ns = dict(_CLEAN_GLOBALS, profile=profiler)
+        execfile(filename, ns, ns)
+else:
     def exec_with_profiler(filename, profiler):
         builtins.__dict__['profile'] = profiler
         # shadow the profile decorator defined above
         ns = dict(_CLEAN_GLOBALS, profile=profiler)
         with open(filename) as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
-else:
-    def exec_with_profiler(filename, profiler):
-        builtins.__dict__['profile'] = profiler
-        ns = dict(_CLEAN_GLOBALS, profile=profiler)
-        execfile(filename, ns, ns)
 
 
 class LogFile(object):

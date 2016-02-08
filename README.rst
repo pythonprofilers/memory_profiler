@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/fabianp/memory_profiler.svg?branch=master
+    :target: https://travis-ci.org/fabianp/memory_profiler
+
 =================
  Memory Profiler
 =================
