@@ -817,6 +817,9 @@ class MemoryProfilerMagics(Magics):
         -c: If present, add the memory usage of any children process to the report.
 
         -o: If present, return a object containing memit run details
+
+        -q: If present, be quiet and do not output a result.
+
         Examples
         --------
         ::
@@ -834,7 +837,7 @@ class MemoryProfilerMagics(Magics):
 
         """
         from memory_profiler import memory_usage, _func_exec
-        opts, stmt = self.parse_options(line, 'r:t:i:co', posix=False, strict=False)
+        opts, stmt = self.parse_options(line, 'r:t:i:coq', posix=False, strict=False)
 
         if cell is None:
             setup = 'pass'
@@ -851,6 +854,7 @@ class MemoryProfilerMagics(Magics):
         interval = float(getattr(opts, 'i', 0.1))
         include_children = 'c' in opts
         return_result = 'o' in opts
+        quiet = 'q' in opts
 
         # I've noticed we get less noisier measurements if we run
         # a garbage collection first
@@ -869,13 +873,14 @@ class MemoryProfilerMagics(Magics):
                                include_children=include_children)
             mem_usage.append(tmp[0])
 
-        if mem_usage:
-            max_mem = max(mem_usage)
-            print('peak memory: %.02f MiB, increment: %.02f MiB' %
-                  (max_mem, max_mem - baseline))
-        else:
-            print('ERROR: could not read memory usage, try with a lower interval '
-                  'or more iterations')
+        if not quiet:
+            if mem_usage:
+                max_mem = max(mem_usage)
+                print('peak memory: %.02f MiB, increment: %.02f MiB' %
+                      (max_mem, max_mem - baseline))
+            else:
+                print('ERROR: could not read memory usage, try with a lower interval '
+                      'or more iterations')
 
         if return_result:
             return MemitResult(mem_usage, baseline, repeat, timeout, interval,
