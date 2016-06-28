@@ -63,11 +63,13 @@ class MemitResult(object):
         self.interval = interval
         self.include_children = include_children
 
-    def _repr_pretty_(self, p , cycle):
+    def __str__(self):
         max_mem = max(self.mem_usage)
         inc = max_mem - self.baseline
-        msg = 'peak memory: %.02f MiB, increment: %.02f MiB' % (max_mem, inc)
+        return 'peak memory: %.02f MiB, increment: %.02f MiB' % (max_mem, inc)
 
+    def _repr_pretty_(self, p , cycle):
+        msg = str(self)
         p.text(u'<MemitResult : '+msg+u'>')
 
 
@@ -873,18 +875,18 @@ class MemoryProfilerMagics(Magics):
                                include_children=include_children)
             mem_usage.append(tmp[0])
 
+        result = MemitResult(mem_usage, baseline, repeat, timeout, interval,
+                             include_children)
+
         if not quiet:
             if mem_usage:
-                max_mem = max(mem_usage)
-                print('peak memory: %.02f MiB, increment: %.02f MiB' %
-                      (max_mem, max_mem - baseline))
+                print(result)
             else:
                 print('ERROR: could not read memory usage, try with a lower interval '
                       'or more iterations')
 
         if return_result:
-            return MemitResult(mem_usage, baseline, repeat, timeout, interval,
-                               include_children)
+            return result
 
     @classmethod
     def register_magics(cls, ip):
