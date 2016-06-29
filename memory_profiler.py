@@ -49,6 +49,30 @@ except ImportError:
     has_psutil = False
 
 
+class MemitResult(object):
+    """memit magic run details.
+
+    Object based on IPython's TimeitResult
+    """
+    def __init__(self, mem_usage, baseline, repeat, timeout, interval,
+                 include_children):
+        self.mem_usage = mem_usage
+        self.baseline = baseline
+        self.repeat = repeat
+        self.timeout = timeout
+        self.interval = interval
+        self.include_children = include_children
+
+    def __str__(self):
+        max_mem = max(self.mem_usage)
+        inc = max_mem - self.baseline
+        return 'peak memory: %.02f MiB, increment: %.02f MiB' % (max_mem, inc)
+
+    def _repr_pretty_(self, p , cycle):
+        msg = str(self)
+        p.text(u'<MemitResult : '+msg+u'>')
+
+
 def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
@@ -794,6 +818,10 @@ class MemoryProfilerMagics(Magics):
 
         -c: If present, add the memory usage of any children process to the report.
 
+        -o: If present, return a object containing memit run details
+
+        -q: If present, be quiet and do not output a result.
+
         Examples
         --------
         ::
@@ -811,7 +839,7 @@ class MemoryProfilerMagics(Magics):
 
         """
         from memory_profiler import memory_usage, _func_exec
-        opts, stmt = self.parse_options(line, 'r:t:i:c', posix=False, strict=False)
+        opts, stmt = self.parse_options(line, 'r:t:i:coq', posix=False, strict=False)
 
         if cell is None:
             setup = 'pass'
@@ -827,6 +855,8 @@ class MemoryProfilerMagics(Magics):
             timeout = None
         interval = float(getattr(opts, 'i', 0.1))
         include_children = 'c' in opts
+        return_result = 'o' in opts
+        quiet = 'q' in opts
 
         # I've noticed we get less noisier measurements if we run
         # a garbage collection first
@@ -835,7 +865,7 @@ class MemoryProfilerMagics(Magics):
 
         _func_exec(setup, self.shell.user_ns)
 
-        mem_usage = 0
+        mem_usage = []
         counter = 0
         baseline = memory_usage()[0]
         while counter < repeat:
@@ -843,14 +873,20 @@ class MemoryProfilerMagics(Magics):
             tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
                                timeout=timeout, interval=interval, max_usage=True,
                                include_children=include_children)
-            mem_usage = max(mem_usage, tmp[0])
+            mem_usage.append(tmp[0])
 
-        if mem_usage:
-            print('peak memory: %.02f MiB, increment: %.02f MiB' %
-                  (mem_usage, mem_usage - baseline))
-        else:
-            print('ERROR: could not read memory usage, try with a lower interval '
-                  'or more iterations')
+        result = MemitResult(mem_usage, baseline, repeat, timeout, interval,
+                             include_children)
+
+        if not quiet:
+            if mem_usage:
+                print(result)
+            else:
+                print('ERROR: could not read memory usage, try with a lower interval '
+                      'or more iterations')
+
+        if return_result:
+            return result
 
     @classmethod
     def register_magics(cls, ip):
