@@ -1031,7 +1031,7 @@ else:
             with open(filename) as f:
                 exec(compile(f.read(), filename, 'exec'), ns, ns)
         finally:
-            if tracemalloc.is_tracing():
+            if has_tracemalloc and tracemalloc.is_tracing():
                 tracemalloc.stop()
 
 
