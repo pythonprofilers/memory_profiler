@@ -27,11 +27,11 @@ Type mprof <command> --help for usage help on a specific command.
 For example, mprof plot --help will list all plotting options.
 """
 
+
 def print_usage():
     print("Usage: %s <command> <options> <arguments>"
-                  % osp.basename(sys.argv[0]))
+          % osp.basename(sys.argv[0]))
     print(help_msg)
-
 
 
 def get_action():
@@ -233,7 +233,7 @@ def run_action():
     with open(mprofile_output, "a") as f:
         f.write("CMDLINE {0}\n".format(cmd_line))
         mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                         include_children=options.include_children, stream=f)
+                        include_children=options.include_children, stream=f)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
@@ -257,7 +257,7 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         sys.exit(1)
     height_ratio = 20.
     vsize = (pl.ylim()[1] - pl.ylim()[0]) / height_ratio
-    hsize = (pl.xlim()[1] - pl.xlim()[0]) / (3.*height_ratio)
+    hsize = (pl.xlim()[1] - pl.xlim()[0]) / (3. * height_ratio)
 
     bracket_x = pl.asarray([hsize, 0, 0, hsize])
     bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
@@ -270,16 +270,16 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
                 "-" + color, linewidth=2, label=label)
     if options.xlim is None or options.xlim[0] <= (xloc[1] - xshift) <= options.xlim[1]:
         pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
-                "-" + color, linewidth=2 )
+                "-" + color, linewidth=2)
 
-    # TODO: use matplotlib.patches.Polygon to draw a colored background for
-    # each function.
+        # TODO: use matplotlib.patches.Polygon to draw a colored background for
+        # each function.
 
-    # with maplotlib 1.2, use matplotlib.path.Path to create proper markers
-    # see http://matplotlib.org/examples/pylab_examples/marker_path.html
-    # This works with matplotlib 0.99.1
-    ## pl.plot(xloc[0], yloc[0], "<"+color, markersize=7, label=label)
-    ## pl.plot(xloc[1], yloc[1], ">"+color, markersize=7)
+        # with maplotlib 1.2, use matplotlib.path.Path to create proper markers
+        # see http://matplotlib.org/examples/pylab_examples/marker_path.html
+        # This works with matplotlib 0.99.1
+        ## pl.plot(xloc[0], yloc[0], "<"+color, markersize=7, label=label)
+        ## pl.plot(xloc[1], yloc[1], ">"+color, markersize=7)
 
 
 def read_mprofile_file(filename):
@@ -331,7 +331,6 @@ def read_mprofile_file(filename):
             'cmd_line': cmd_line}
 
 
-
 def plot_file(filename, index=0, timestamps=True, options=None):
     try:
         import pylab as pl
@@ -346,7 +345,7 @@ def plot_file(filename, index=0, timestamps=True, options=None):
               'file.**\nFile path: {0}\n'
               'File may be empty or invalid.\n'
               'It can be deleted with "mprof rm {0}"'.format(
-              mprofile['filename']))
+            mprofile['filename']))
         sys.exit(0)
 
     # Merge function timestamps and memory usage together
@@ -373,11 +372,11 @@ def plot_file(filename, index=0, timestamps=True, options=None):
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
-    all_colors=("c", "y", "g", "r", "b")
-    mem_line_colors=("k", "b", "r", "g", "c", "y", "m")
+    all_colors = ("c", "y", "g", "r", "b")
+    mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
-                                   + ".{0:03d}".format(int(round(math.modf(global_start)[0]*1000)))
+                     + ".{0:03d}".format(int(round(math.modf(global_start)[0] * 1000)))
 
     pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
@@ -392,9 +391,9 @@ def plot_file(filename, index=0, timestamps=True, options=None):
         for f, exec_ts in ts.items():
             for execution in exec_ts:
                 add_brackets(execution[:2], execution[2:], xshift=global_start,
-                             color= all_colors[func_num % len(all_colors)],
+                             color=all_colors[func_num % len(all_colors)],
                              label=f.split(".")[-1]
-                             + " %.3fs" % (execution[1] - execution[0]), options=options)
+                                   + " %.3fs" % (execution[1] - execution[0]), options=options)
             func_num += 1
 
     if timestamps:
@@ -495,6 +494,7 @@ def plot_action():
         pl.savefig(options.output)
     else:
         pl.show()
+
 
 if __name__ == "__main__":
     # Workaround for optparse limitation: insert -- before first negative
