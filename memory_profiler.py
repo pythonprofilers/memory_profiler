@@ -253,6 +253,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
+    if not _backend_chosen:
+        choose_backend()
     if stream is not None:
         timestamps = True
 
