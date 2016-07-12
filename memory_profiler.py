@@ -995,7 +995,19 @@ def choose_backend():
         ('tracemalloc', has_tracemalloc),
         ('no_backend', True)
     ])
-    backends.move_to_end(_backend, last=False)
+
+    def move_to_start(d, key):
+        """
+        Emulation of OrderedDict.move_to_end(last=False) for old versions of Python
+        """
+        items = [(key, d[key])]
+        for _key, _value in d.items():
+            if _key != key:
+                items.append((_key, _value))
+        return OrderedDict(items)
+
+    backends = move_to_start(backends, _backend)
+
     for n_backend, is_available in backends.items():
         if is_available:
             _backend = n_backend
