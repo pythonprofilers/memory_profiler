@@ -1048,7 +1048,7 @@ def choose_backend(new_backend=None):
             'Tracemalloc or psutil module is required for non-unix '
             'platforms')
     if _backend != new_backend and new_backend is not None:
-        print('{} can not be used, {} used instead'.format(new_backend,
+        print('{0} can not be used, {1} used instead'.format(new_backend,
                                                            _backend))
     global _backend_chosen
     _backend_chosen = True
