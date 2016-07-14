@@ -61,8 +61,7 @@ try:
 except ImportError:
     has_tracemalloc = False
 
-_backend_chosen = False
-_backend = 'psutil'
+_backend = None
 
 
 class MemitResult(object):
@@ -995,10 +994,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
     """
     Decorator that will run the function and print a line-by-line profile
     """
-    global _backend
-    if not _backend_chosen:
-        _backend = backend
-        choose_backend()
+    choose_backend(backend)
     if _backend == 'tracemalloc' and not tracemalloc.is_tracing():
         tracemalloc.start()
     if func is not None:
@@ -1017,13 +1013,12 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         return inner_wrapper
 
 
-def choose_backend():
+def choose_backend(new_backend=None):
     """
     Function that tries to setup backend, chosen by user, and if failed,
     setup one of the allowable backends
     """
-    global _backend
-    old_backend = _backend
+
     backends = OrderedDict([
         ('psutil', has_psutil),
         ('posix', os.name == 'posix'),
@@ -1040,19 +1035,20 @@ def choose_backend():
             if _key != key:
                 items.append((_key, _value))
         return OrderedDict(items)
-
-    backends = move_to_start(backends, _backend)
+    if new_backend is not None:
+        backends = move_to_start(backends, new_backend)
 
     for n_backend, is_available in backends.items():
         if is_available:
+            global _backend
             _backend = n_backend
             break
     if _backend == 'no_backend':
         raise NotImplementedError(
             'Tracemalloc or psutil module is required for non-unix '
             'platforms')
-    if _backend != old_backend:
-        print('{} can not be used, {} used instead'.format(old_backend,
+    if _backend != new_backend and new_backend is not None:
+        print('{} can not be used, {} used instead'.format(new_backend,
                                                            _backend))
     global _backend_chosen
     _backend_chosen = True
@@ -1063,19 +1059,19 @@ def choose_backend():
 # for all cases, e.g. a script that imports another
 # script where @profile is used)
 if PY2:
-    def exec_with_profiler(filename, profiler):
+    def exec_with_profiler(filename, profiler, backend):
         builtins.__dict__['profile'] = profiler
         ns = dict(_CLEAN_GLOBALS, profile=profiler)
-        choose_backend()
+        choose_backend(backend)
         execfile(filename, ns, ns)
 else:
-    def exec_with_profiler(filename, profiler):
+    def exec_with_profiler(filename, profiler, backend):
+        choose_backend(backend)
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
         builtins.__dict__['profile'] = profiler
         # shadow the profile decorator defined above
         ns = dict(_CLEAN_GLOBALS, profile=profiler)
-        choose_backend()
         try:
             with open(filename) as f:
                 exec(compile(f.read(), filename, 'exec'), ns, ns)
@@ -1149,7 +1145,6 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     sys.argv[:] = args  # Remove every memory_profiler arguments
-    _backend = options.backend
 
     script_filename = _find_script(args[0])
     if options.timestamp:
@@ -1158,7 +1153,7 @@ if __name__ == '__main__':
         prof = LineProfiler(max_mem=options.max_mem)
 
     try:
-        exec_with_profiler(script_filename, prof)
+        exec_with_profiler(script_filename, prof, options.backend)
     finally:
         if options.out_filename is not None:
             out_file = open(options.out_filename, "a")
