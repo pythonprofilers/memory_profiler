@@ -73,6 +73,34 @@ class MemitResult(object):
         p.text(u'<MemitResult : '+msg+u'>')
 
 
+def _get_child_memory(process, meminfo_attr=None):
+    """
+    Returns a generator that yields memory for all child processes.
+    """
+    if not has_psutil:
+        raise NotImplementedError((
+            "The psutil module is required to monitor the "
+            "memory usage of child processes."
+        ))
+
+    # Convert a pid to a process
+    if isinstance(process, int):
+        if process == -1: process = os.getpid()
+        process = psutil.Process(process)
+
+    if not meminfo_attr:
+        # Use the psutil 2.0 attr if the older version isn't passed in.
+        meminfo_attr = 'memory_info' if hasattr(process, 'memory_info') else 'get_memory_info'
+
+    # Select the psutil function get the children similar to how we selected
+    # the memory_info attr (a change from excepting the AttributeError).
+    children_attr = 'children' if hasattr(process, 'children') else 'get_children'
+
+    # Loop over the child processes and yield their memory
+    for child in getattr(process, children_attr)(recursive=True):
+        yield getattr(child, meminfo_attr)()[0] / _TWO_20
+
+
 def _get_memory(pid, timestamps=False, include_children=False):
 
     # .. only for current process and only on unix..
@@ -88,13 +116,7 @@ def _get_memory(pid, timestamps=False, include_children=False):
             meminfo_attr = 'memory_info' if hasattr(process, 'memory_info') else 'get_memory_info'
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
             if include_children:
-                try:
-                    for p in process.get_children(recursive=True):
-                        mem += getattr(p, meminfo_attr)()[0] / _TWO_20
-                except AttributeError:
-                    # fix for newer psutil
-                    for p in process.children(recursive=True):
-                        mem += getattr(p, meminfo_attr)()[0] / _TWO_20
+                mem +=  sum(_get_child_memory(process, meminfo_attr))
             if timestamps:
                 return (mem, time.time())
             else:
@@ -106,9 +128,11 @@ def _get_memory(pid, timestamps=False, include_children=False):
     # .. scary stuff ..
     if os.name == 'posix':
         if include_children:
-            raise NotImplementedError('The psutil module is required when to'
-                                      ' monitor memory usage of children'
-                                      ' processes')
+            raise NotImplementedError((
+                "The psutil module is required to monitor the "
+                "memory usage of child processes."
+            ))
+
         warnings.warn("psutil module not found. memory_profiler will be slow")
         # ..
         # .. memory usage in MiB ..

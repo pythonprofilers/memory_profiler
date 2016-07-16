@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""
+Multiprocessing version of memory profiling of Python programs.
+"""
+
+import os
+import time
+import glob
+import argparse
+import subprocess
+import memory_profiler as mp
+
+
+# Command Descriptions and Constants
+DESCRIPTION = "Multiprocessing memory profiling over time."
+EPILOG      = "If there are any bugs or concerns, submit an issue on Github"
+VERSION     = "mpmprof v{}".format(mp.__version__)
+FILETIME    = "%Y%m%d%H%M%S"
+BLANKS      = set(' \t')
+
+
+def run_action(args):
+    """
+    Run the given program and profile its memory usage.
+    """
+
+    # Determine where to write the output to
+    if args.output is None:
+        args.output = "mprofile_{}.dat".format(
+            time.strftime(FILETIME, time.localtime())
+        )
+
+    # Determine if the command is a Python command
+    if args.command[0].endswith('.py') and not args.nopython:
+        args.python = True
+
+    # Run the executable with the extra features
+    if args.python:
+        print("running as a Python program ...")
+        if not args.command[0].startswith('python'):
+            args.command.insert(0, 'python')
+
+    # Inform the user we're sampling
+    print("mpmprof: Sampling memory every {} seconds".format(args.interval))
+
+    # Put the command back together from the argument parsing
+    command = " ".join([
+        c if BLANKS.isdisjoint(c) else "'{}'".format(c) for c in args.command
+    ])
+
+    # Open a subprocess to the given command
+    proc = subprocess.Popen(args.command)
+
+    # This is where a call to mp.memory_usage should go.
+    # Instead we're adding the custom code for sampling spawned memory
+    with open(args.output, "a") as f:
+
+        # Write the command to the data file
+        f.write("CMDLINE {}\n".format(command))
+
+        # Continue sampling until the subprocess is over, counting lines
+        lines = 0
+        while True:
+            # Determine if the subprocess is still running
+            if proc.poll() is not None: break
+
+            # Collect memory usage of master program and write to profile
+            mem = mp._get_memory(proc.pid)
+            f.write("MEM {0:.6f} {1:.4f}\n".format(mem, time.time()))
+            lines += 1
+
+            # Collect memory usage of spawned children and write to profile
+            for idx, mem in enumerate(mp._get_child_memory(proc.pid)):
+                f.write("CHLD{0} {1:.6f} {2:.4f}\n".format(idx, mem, time.time()))
+                lines += 1
+
+            # Flush every 50 lines
+            if lines > 50:
+                lines = 0
+                f.flush()
+
+            # Sleep for the given interval
+            time.sleep(args.interval)
+
+    return "memory profile written to {}".format(args.output)
+
+
+def plot_action(args):
+    """
+    Use matplotlib to draw the memory usage of a mprofile .dat file.
+    """
+    raise NotImplementedError("Not implemented yet.")
+
+
+if __name__ == '__main__':
+    # Create the argument parser and subparsers for each command
+    parser = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG)
+    subparsers = parser.add_subparsers(title='commands')
+
+    # Add the version command
+    parser.add_argument('-v', '--version', action='version', version=VERSION)
+
+    # Commands defined in an dictionary for easy adding
+    commands = (
+        # Run command definition
+        {
+            'name': 'run',
+            'action': run_action,
+            'help': 'monitor the memory usage of a command',
+            'args': {
+                '--python': {
+                    'default': False,
+                    'action': 'store_true',
+                    'help': 'activates extra features for Python programs',
+                },
+                '--nopython': {
+                    'default': False,
+                    'action': 'store_true',
+                    'help': 'disables extra features for Python programs',
+                },
+                ('-T', '--interval'): {
+                    'type': float,
+                    'default': 0.1,
+                    'metavar': 'S',
+                    'help': 'sampling period (in seconds), defaults to 0.1',
+                },
+                ('-o', '--output'): {
+                    'type': str,
+                    'default': None,
+                    'metavar': 'PATH',
+                    'help': 'location to write the memory profiler output to',
+                },
+                'command': {
+                    'nargs': argparse.REMAINDER,
+                    'help': 'command to run and profile memory usage',
+                }
+            }
+        },
+
+        # Plot command definition
+        {
+            'name': 'plot',
+            'action': plot_action,
+            'help': 'plot the memory usage of a mprofile data file',
+            'args': {
+                ('-t', '--title'): {
+                    'type': str,
+                    'default': None,
+                    'metavar': 'S',
+                    'help': 'set the title of the figure',
+                },
+                ('-o', '--output'): {
+                    'type': str,
+                    'default': None,
+                    'metavar': 'PATH',
+                    'help': 'write the figure as a png to disk'
+                },
+                'profile': {
+                    'nargs': '*',
+                    'help': 'profile to plot, omit to use the latest',
+                }
+            }
+        }
+    )
+
+    # Add the commands and their arguments.
+    for cmd in commands:
+        # Create the command subparser and add the action
+        cmd_parser = subparsers.add_parser(cmd['name'], help=cmd['help'])
+        cmd_parser.set_defaults(func=cmd['action'])
+
+        # Add the arguments
+        for args, kwargs in cmd['args'].items():
+            if isinstance(args, str):
+                args = (args,)
+            cmd_parser.add_argument(*args, **kwargs)
+
+    # Handle input from the command line
+    args = parser.parse_args()            # Parse the arguments
+    # try:
+    msg = args.func(args)             # Call the default function
+    parser.exit(0, msg+"\n")          # Exit cleanly with message
+    # except Exception as e:
+    #     parser.error(str(e))              # Exit with error
