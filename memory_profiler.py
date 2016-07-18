@@ -262,7 +262,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     ret : return value of the profiled function
         Only returned if retval is set to True
     """
-    if not _backend_chosen:
+    if _backend is None:
         choose_backend()
     if stream is not None:
         timestamps = True
@@ -952,9 +952,8 @@ class MemoryProfilerMagics(Magics):
             if mem_usage:
                 print(result)
             else:
-                print(
-                    'ERROR: could not read memory usage, try with a lower interval '
-                    'or more iterations')
+                print('ERROR: could not read memory usage, try with a '
+                      'lower interval or more iterations')
 
         if return_result:
             return result
@@ -1050,8 +1049,6 @@ def choose_backend(new_backend=None):
     if _backend != new_backend and new_backend is not None:
         print('{0} can not be used, {1} used instead'.format(new_backend,
                                                            _backend))
-    global _backend_chosen
-    _backend_chosen = True
 
 
 # Insert in the built-ins to have profile
