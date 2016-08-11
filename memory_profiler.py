@@ -187,7 +187,6 @@ class MemTimer(Process):
         self.include_children = kw.pop("include_children", False)
 
         # get baseline memory usage
-        # TODO: add filename
         self.mem_usage = [
             _get_memory(self.monitor_pid, timestamps=self.timestamps,
                         include_children=self.include_children)]
@@ -197,7 +196,6 @@ class MemTimer(Process):
         self.pipe.send(0)  # we're ready
         stop = False
         while True:
-            # TODO: add filename
             cur_mem = _get_memory(self.monitor_pid, timestamps=self.timestamps,
                                   include_children=self.include_children)
             if not self.max_usage:
@@ -316,7 +314,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         line_count = 0
         while True:
             if not max_usage:
-                # TODO: add filename
                 mem_usage = _get_memory(proc.pid, timestamps=timestamps,
                                         include_children=include_children)
                 if stream is not None:
@@ -324,7 +321,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 else:
                     ret.append(mem_usage)
             else:
-                # TODO: add filename
                 ret = max(ret,
                           _get_memory(proc.pid,
                                       include_children=include_children))
@@ -349,7 +345,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         while counter < max_iter:
             counter += 1
             if not max_usage:
-                # TODO: add filename
                 mem_usage = _get_memory(proc, timestamps=timestamps,
                                         include_children=include_children)
                 if stream is not None:
@@ -357,7 +352,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 else:
                     ret.append(mem_usage)
             else:
-                # TODO: add filename
                 ret = max([ret,
                            _get_memory(proc, include_children=include_children)
                            ])
