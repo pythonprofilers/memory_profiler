@@ -17,7 +17,6 @@ import inspect
 import subprocess
 import logging
 
-from collections import OrderedDict
 
 # TODO: provide alternative when multiprocessing is not available
 try:
@@ -1012,26 +1011,18 @@ def choose_backend(new_backend=None):
     setup one of the allowable backends
     """
 
-    backends = OrderedDict([
+    backends = [
         ('psutil', has_psutil),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
         ('no_backend', True)
-    ])
+    ]
+    backends_indices = {b[0]: i for i, b in enumerate(backends)}
 
-    def move_to_start(d, key):
-        """
-        Emulation of OrderedDict.move_to_end(last=False) for old versions of Python
-        """
-        items = [(key, d[key])]
-        for _key, _value in d.items():
-            if _key != key:
-                items.append((_key, _value))
-        return OrderedDict(items)
     if new_backend is not None:
-        backends = move_to_start(backends, new_backend)
+        backends.insert(0, backends.pop(backends_indices[new_backend]))
 
-    for n_backend, is_available in backends.items():
+    for n_backend, is_available in backends:
         if is_available:
             global _backend
             _backend = n_backend
