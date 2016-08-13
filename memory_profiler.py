@@ -1012,18 +1012,18 @@ def choose_backend(new_backend=None):
     """
 
     _backend = 'no_backend'
-    backends = [
+    all_backends = [
         ('psutil', has_psutil),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
         ('no_backend', True)
     ]
-    backends_indices = {b[0]: i for i, b in enumerate(backends)}
+    backends_indices = {b[0]: i for i, b in enumerate(all_backends)}
 
     if new_backend is not None:
-        backends.insert(0, backends.pop(backends_indices[new_backend]))
+        all_backends.insert(0, all_backends.pop(backends_indices[new_backend]))
 
-    for n_backend, is_available in backends:
+    for n_backend, is_available in all_backends:
         if is_available:
             _backend = n_backend
             break
