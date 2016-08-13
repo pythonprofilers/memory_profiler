@@ -985,8 +985,9 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
     """
     Decorator that will run the function and print a line-by-line profile
     """
-    if backend == 'tracemalloc' and not tracemalloc.is_tracing():
-        tracemalloc.start()
+    if backend == 'tracemalloc' and has_tracemalloc:
+        if not tracemalloc.is_tracing():
+            tracemalloc.start()
     if func is not None:
         def wrapper(*args, **kwargs):
             prof = LineProfiler(backend=backend)
