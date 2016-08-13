@@ -1009,6 +1009,7 @@ def choose_backend(new_backend=None):
     setup one of the allowable backends
     """
 
+    _backend = 'no_backend'
     backends = [
         ('psutil', has_psutil),
         ('posix', os.name == 'posix'),
