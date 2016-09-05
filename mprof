@@ -253,7 +253,7 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
     try:
         import pylab as pl
     except ImportError:
-        print("matplotlib is needed for plotting.")
+        print("matplotlib is needed for plotting and tkinter for visualisation.")
         sys.exit(1)
     height_ratio = 20.
     vsize = (pl.ylim()[1] - pl.ylim()[0]) / height_ratio
