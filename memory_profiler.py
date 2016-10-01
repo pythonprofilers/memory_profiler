@@ -581,12 +581,18 @@ class CodeMap(dict):
         for subcode in filter(inspect.iscode, code.co_consts):
             self.add(subcode, toplevel_code=toplevel_code)
 
-    def trace(self, code, lineno):
+    def trace(self, code, lineno, prev_lineno):
         memory = _get_memory(-1, self.backend, include_children=self.include_children,
                              filename=code.co_filename)
-        # if there is already a measurement for that line get the max
-        previous_memory = self[code].get(lineno, 0)
-        self[code][lineno] = max(memory, previous_memory)
+        prev_value = self[code].get(lineno, None)
+        previous_memory = prev_value[1] if prev_value else 0
+        previous_inc = prev_value[0] if prev_value else 0
+
+        prev_line_value = self[code].get(prev_lineno, None) if prev_lineno else None
+        prev_line_memory = prev_line_value[1] if prev_line_value else 0
+        #inc = (memory-prev_line_memory)
+        #print('trace lineno=%(lineno)s prev_lineno=%(prev_lineno)s mem=%(memory)s prev_inc=%(previous_inc)s inc=%(inc)s' % locals())
+        self[code][lineno] = (previous_inc + (memory-prev_line_memory), max(memory, previous_memory))
 
     def items(self):
         """Iterate on the toplevel code blocks."""
@@ -610,6 +616,7 @@ class LineProfiler(object):
         self.max_mem = kw.get('max_mem', None)
         self.prevlines = []
         self.backend = choose_backend(kw.get('backend', None))
+        self.prev_lineno = None
 
     def __call__(self, func=None, precision=1):
         if func is not None:
@@ -684,10 +691,15 @@ class LineProfiler(object):
                 # "call" event just saves the lineno but not the memory
                 self.prevlines.append(frame.f_lineno)
             elif event == 'line':
-                self.code_map.trace(frame.f_code, self.prevlines[-1])
+                # trace needs current line and previous line
+                self.code_map.trace(frame.f_code, self.prevlines[-1], self.prev_lineno)
+                # saving previous line
+                self.prev_lineno = self.prevlines[-1]
                 self.prevlines[-1] = frame.f_lineno
             elif event == 'return':
-                self.code_map.trace(frame.f_code, self.prevlines.pop())
+                lineno = self.prevlines.pop()
+                self.code_map.trace(frame.f_code, lineno, self.prev_lineno)
+                self.prev_lineno = lineno
 
         if self._original_trace_function is not None:
             self._original_trace_function(frame, event, arg)
@@ -748,20 +760,20 @@ def show_results(prof, stream=None, precision=1):
         stream.write(u'=' * len(header) + '\n')
 
         all_lines = linecache.getlines(filename)
-        mem_old = None
+
         float_format = u'{0}.{1}f'.format(precision + 4, precision)
         template_mem = u'{0:' + float_format + '} MiB'
         for (lineno, mem) in lines:
             if mem:
-                inc = (mem - mem_old) if mem_old else 0
-                mem_old = mem
+                inc = mem[0]
+                mem = mem[1]
                 mem = template_mem.format(mem)
                 inc = template_mem.format(inc)
             else:
                 mem = u''
                 inc = u''
             tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
-            stream.write(unicode(tmp, 'UTF-8'))
+            stream.write(unicode(tmp))
         stream.write(u'\n\n')
 
 
