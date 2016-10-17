@@ -181,16 +181,14 @@ def get_cmd_line(args):
 
 def run_action():
     import time, subprocess
-    parser = OptionParser(version=mp.__version__)
+    parser = OptionParser(version=mp.__version__, usage="mprof run [options]")
     parser.disable_interspersed_args()
     parser.add_option("--python", dest="python", default=False,
                       action="store_true",
-                      help="""Activates extra features when the profiled executable is
-                      a Python program (currently: function timestamping.)""")
+                      help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
     parser.add_option("--nopython", dest="nopython", default=False,
                       action="store_true",
-                      help="""Disables extra features when the profiled executable is
-                      a Python program (currently: function timestamping.)""")
+                      help="""Disables extra features when the profiled executable is a Python program (currently: function timestamping.)""")
     parser.add_option("--interval", "-T", dest="interval", default="0.1",
                       type="float", action="store",
                       help="Sampling period (in seconds), defaults to 0.1")
