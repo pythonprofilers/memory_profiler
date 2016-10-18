@@ -252,7 +252,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
     Returns
     -------
-    mem_usage : list of floating-poing values
+    mem_usage : list of floating-point values
         memory usage, in MiB. It's length is always < timeout / interval
         if max_usage is given, returns the two elements maximum memory and
         number of measurements effectuated
