@@ -1164,55 +1164,48 @@ class LogFile(object):
 
 
 if __name__ == '__main__':
-    from optparse import OptionParser
+    from argparse import ArgumentParser
 
-    parser = OptionParser(usage=_CMD_USAGE, version=__version__)
-    parser.disable_interspersed_args()
-    parser.add_option(
+    parser = ArgumentParser(usage=_CMD_USAGE)
+    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument(
         '--pdb-mmem', dest='max_mem', metavar='MAXMEM',
-        type='float', action='store',
+        type=float, action='store',
         help='step into the debugger when memory exceeds MAXMEM')
-    parser.add_option(
-        '--precision', dest='precision', type='int',
+    parser.add_argument(
+        '--precision', dest='precision', type=int,
         action='store', default=3,
         help='precision of memory output in number of significant digits')
-    parser.add_option('-o', dest='out_filename', type='str',
-                      action='store', default=None,
-                      help='path to a file where results will be written')
-    parser.add_option('--timestamp', dest='timestamp', default=False,
-                      action='store_true',
-                      help='''print timestamp instead of memory measurement for
-                      decorated functions''')
-    parser.add_option('--backend', dest='backend', type='choice',
-                      action='store',
-                      choices=['tracemalloc', 'psutil', 'posix'],
-                      default='psutil',
-                      help='backend using for getting memory info '
-                           '(one of the {tracemalloc, psutil, posix})')
+    parser.add_argument('-o', dest='out_filename', type=str,
+        action='store', default=None,
+        help='path to a file where results will be written')
+    parser.add_argument('--timestamp', dest='timestamp', default=False,
+        action='store_true',
+        help='''print timestamp instead of memory measurement for
+        decorated functions''')
+    parser.add_argument('--backend', dest='backend', type=str, action='store',
+        choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
+        help='backend using for getting memory info '
+             '(one of the {tracemalloc, psutil, posix})')
+    parser.add_argument('script', help='script file run on memory_profiler')
+    args = parser.parse_args()
 
-    if not sys.argv[1:]:
-        parser.print_help()
-        sys.exit(2)
-
-    (options, args) = parser.parse_args()
-    sys.argv[:] = args  # Remove every memory_profiler arguments
-
-    script_filename = _find_script(args[0])
-    _backend = choose_backend(options.backend)
-    if options.timestamp:
+    script_filename = _find_script(args.script)
+    _backend = choose_backend(args.backend)
+    if args.timestamp:
         prof = TimeStamper(_backend)
     else:
-        prof = LineProfiler(max_mem=options.max_mem, backend=_backend)
+        prof = LineProfiler(max_mem=args.max_mem, backend=_backend)
 
     try:
-        exec_with_profiler(script_filename, prof, options.backend)
+        exec_with_profiler(script_filename, prof, args.backend)
     finally:
-        if options.out_filename is not None:
-            out_file = open(options.out_filename, "a")
+        if args.out_filename is not None:
+            out_file = open(args.out_filename, "a")
         else:
             out_file = sys.stdout
 
-        if options.timestamp:
+        if args.timestamp:
             prof.show_results(stream=out_file)
         else:
-            show_results(prof, precision=options.precision, stream=out_file)
+            show_results(prof, precision=args.precision, stream=out_file)
