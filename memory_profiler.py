@@ -112,10 +112,6 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
             if include_children:
                 try:
-                    for p in process.get_children(recursive=True):
-                        mem += getattr(p, meminfo_attr)()[0] / _TWO_20
-                except AttributeError:
-                    # fix for newer psutil
                     for p in process.children(recursive=True):
                         mem += getattr(p, meminfo_attr)()[0] / _TWO_20
                 except os.OSError:
