@@ -114,7 +114,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 try:
                     for p in process.children(recursive=True):
                         mem += getattr(p, meminfo_attr)()[0] / _TWO_20
-                except os.OSError:
+                except psutil.NoSuchProcess:
                     # https://github.com/fabianp/memory_profiler/issues/71
                     pass
             if timestamps:
