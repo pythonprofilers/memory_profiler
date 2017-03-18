@@ -410,6 +410,7 @@ cleanup.
 
 `Sagar UDAY KUMAR <https://github.com/sagaru>`_ added Report generation feature and examples.
 
+`Dmitriy Novozhilov <https://github.com/demiurg906>`_ and `Sergei Lebedev <https://github.com/superbobry>`_ added support for `tracemalloc <https://docs.python.org/3/library/tracemalloc.html>`_.
 
 =========
  License
