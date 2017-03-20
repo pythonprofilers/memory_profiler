@@ -2,7 +2,7 @@
 An undecorated example of a script that allocates memory in multiprocessing
 workers to demonstrate the use of memory_profiler with multiple processes.
 
-Run this script with mprof run -C python multiprocessing_example.py
+Run this script with mprof run -M python multiprocessing_example.py
 You can then visualize the usage with mprof plot.
 """
 

@@ -9,6 +9,7 @@ import copy
 import time
 import math
 
+from collections import defaultdict
 from optparse import OptionParser, OptionValueError
 
 import memory_profiler as mp
@@ -195,6 +196,9 @@ def run_action():
     parser.add_option("--include-children", "-C", dest="include_children",
                       default=False, action="store_true",
                       help="""Monitors forked processes as well (sum up all process memory)""")
+    parser.add_option("--multiprocess", "-M", dest="multiprocess",
+                      default=False, action="store_true",
+                      help="""Monitors forked processes creating individual plots for each child""")
 
     (options, args) = parser.parse_args()
 
@@ -231,7 +235,8 @@ def run_action():
     with open(mprofile_output, "a") as f:
         f.write("CMDLINE {0}\n".format(cmd_line))
         mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                        include_children=options.include_children, stream=f)
+                        include_children=options.include_children,
+                        multiprocess=options.multiprocess, stream=f)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
@@ -299,6 +304,7 @@ def read_mprofile_file(filename):
     func_ts = {}
     mem_usage = []
     timestamp = []
+    children  = defaultdict(list)
     cmd_line = None
     f = open(filename, "r")
     for l in f:
@@ -319,6 +325,13 @@ def read_mprofile_file(filename):
                        float(mem_start), float(mem_end)])
             func_ts[f_name] = ts
 
+        elif field == "CHLD":
+            values = value.split(' ')
+            chldnum = values[0]
+            children[chldnum].append(
+                (float(values[1]), float(values[2]))
+            )
+
         elif field == "CMDLINE":
             cmd_line = value
         else:
@@ -327,10 +340,10 @@ def read_mprofile_file(filename):
 
     return {"mem_usage": mem_usage, "timestamp": timestamp,
             "func_timestamp": func_ts, 'filename': filename,
-            'cmd_line': cmd_line}
+            'cmd_line': cmd_line, 'children': children}
 
 
-def plot_file(filename, index=0, timestamps=True, options=None):
+def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     try:
         import pylab as pl
     except ImportError:
@@ -351,6 +364,7 @@ def plot_file(filename, index=0, timestamps=True, options=None):
     ts = mprofile['func_timestamp']
     t = mprofile['timestamp']
     mem = mprofile['mem_usage']
+    chld = mprofile['children']
 
     if len(ts) > 0:
         for values in ts.values():
@@ -383,6 +397,17 @@ def plot_file(filename, index=0, timestamps=True, options=None):
     bottom, top = pl.ylim()
     bottom += 0.001
     top -= 0.001
+
+    # plot children, if any
+    if len(chld) > 0 and children:
+        for idx, (proc, data) in enumerate(chld.items()):
+            # Create the numpy arrays from the series data
+            cts  = np.asarray([item[1] for item in data]) - global_start
+            cmem = np.asarray([item[0] for item in data])
+
+            # Plot the line to the figure
+            pl.plot(cts, cmem, "+-"  + mem_line_colors[idx+1 % len(mem_line_colors)],
+                     label="child {}".format(proc))
 
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:

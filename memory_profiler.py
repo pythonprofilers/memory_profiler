@@ -240,8 +240,8 @@ class MemTimer(Process):
 
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
-                 include_children=False, max_usage=False, retval=False,
-                 stream=None, backend=None):
+                 include_children=False, multiprocess=False, max_usage=False,
+                 retval=False, stream=None, backend=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -271,6 +271,12 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
     timestamps : bool, optional
         if True, timestamps of memory usage measurement are collected as well.
+
+    include_children : bool, optional
+        if True, sum the memory of all forked processes as well
+
+    multiprocess : bool, optional
+        if True, track the memory usage of all forked processes.
 
     stream : File
         if stream is a File opened with write access, then results are written
@@ -343,10 +349,18 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 mem_usage = _get_memory(
                     proc.pid, backend, timestamps=timestamps,
                     include_children=include_children)
+
                 if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
+
+                    # Only write children to the stream file, warn if appending to the return.
+                    if multiprocess:
+                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
+                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
                     ret.append(mem_usage)
+                    if multiprocess:
+                        warnings.warn("use include_children not multiprocess without a stream")
             else:
                 ret = max(ret,
                           _get_memory(
@@ -377,8 +391,16 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                     include_children=include_children)
                 if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
+
+                    # Only write children to the stream file, warn if appending to the return.
+                    if multiprocess:
+                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
+                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
                     ret.append(mem_usage)
+
+                    if multiprocess:
+                        warnings.warn("use include_children not multiprocess without a stream")
             else:
                 ret = max([ret,
                            _get_memory(proc, backend, include_children=include_children)
