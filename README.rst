@@ -187,13 +187,13 @@ flag and plot as follows::
 This will create a plot using matplotlib similar to this:
 
 .. image:: https://cloud.githubusercontent.com/assets/745966/24075879/2e85b43a-0bfa-11e7-8dfe-654320dbd2ce.png
-    : target: https://github.com/fabianp/memory_profiler/pull/134
-    : height: 350px
+    :target: https://github.com/fabianp/memory_profiler/pull/134
+    :height: 350px
 
 You can combine both the ``include_children`` and ``multiprocess`` flags to show
 the total memory of the program as well as each child individually.
 
-.. warning:: currently the child tracking only works if a ``stream`` is provided to the ``profile`` (e.g. from the command line or in the decorator).
+.. warning:: Currently the child tracking only works if a ``stream`` is provided to the ``profile`` (e.g. from the command line or in the decorator). If you are using the API to retrieve values then the flag will not do anything.
 
 Setting debugger breakpoints
 =============================
