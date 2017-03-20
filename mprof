@@ -400,6 +400,8 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
     # plot children, if any
     if len(chld) > 0 and children:
+        cmpoint = (0,0) # maximal child memory
+
         for idx, (proc, data) in enumerate(chld.items()):
             # Create the numpy arrays from the series data
             cts  = np.asarray([item[1] for item in data]) - global_start
@@ -408,6 +410,15 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
             # Plot the line to the figure
             pl.plot(cts, cmem, "+-"  + mem_line_colors[idx+1 % len(mem_line_colors)],
                      label="child {}".format(proc))
+
+            # Detect the maximal child memory point
+            cmax_mem = cmem.max()
+            if cmax_mem > cmpoint[1]:
+                cmpoint = (cts[cmem.argmax()], cmax_mem)
+
+        # Add the marker lines for the maximal child memory usage
+        pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, 'r', '--')
+        pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, 'r', '--')
 
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:

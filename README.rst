@@ -107,10 +107,10 @@ decorator function.  Use as follows::
         del b
         return a
 
-If a python script with decorator ``@profile`` is called using ``-m 
+If a python script with decorator ``@profile`` is called using ``-m
 memory_profiler`` in the command line, the ``precision`` parameter is ignored.
 
-Time-based memory usage 
+Time-based memory usage
 ==========================
 Sometimes it is useful to have full memory usage reports as a function of
 time (not line-by-line) of external processes (be it Python scripts or not).
@@ -131,14 +131,14 @@ e.g. `mprof run -h`.
 In the case of a Python script, using the previous command does not
 give you any information on which function is executed at a given
 time. Depending on the case, it can be difficult to identify the part
-of the code that is causing the highest memory usage. 
+of the code that is causing the highest memory usage.
 
 Adding the `profile` decorator to a function and running the Python
-script with 
+script with
 
     mprof run <script>
 
-will record timestamps when entering/leaving the profiled function. Runnning
+will record timestamps when entering/leaving the profiled function. Running
 
     mprof plot
 
@@ -152,15 +152,48 @@ A discussion of these capabilities can be found `here <http://fa.bianp.net/blog/
 
 .. warning:: If your Python file imports the memory profiler `from memory_profiler import profile` these timestamps will not be recorded. Comment out the import, leave your functions decorated, and re-run.
 
-The available commands for `mprof` are: 
+The available commands for `mprof` are:
 
-  - ``mprof run``: running an executable, recording memory usage  
+  - ``mprof run``: running an executable, recording memory usage
   - ``mprof plot``: plotting one the recorded memory usage (by default,
     the last one)
   - ``mprof list``: listing all recorded memory usage files in a
     user-friendly way.
   - ``mprof clean``: removing all recorded memory usage files.
   - ``mprof rm``: removing specific recorded memory usage files
+
+Tracking forked child processes
+===============================
+In a multiprocessing context the main process will spawn child processes whose
+system resources are allocated separately from the parent process. This can
+lead to an inaccurate report of memory usage since by default only the parent
+process is being tracked. The ``mprof`` utility provides two mechanisms to
+track the usage of child processes: sum the memory of all children to the
+parent's usage and track each child individual.
+
+To create a report that combines memory usage of all the children and the
+parent, use the ``include_children`` flag in either the ``profile`` decorator or
+ass a command line argument to ``mprof``::
+
+    mprof run --include-children <script>
+
+The second method tracks each child independently of the main process,
+serializing child rows by index to the output stream. Use the ``multiprocess``
+flag and plot as follows::
+
+    mprof run --multiprocess <script>
+    mprof plot
+
+This will create a plot using matplotlib similar to this:
+
+.. image:: https://cloud.githubusercontent.com/assets/745966/24075879/2e85b43a-0bfa-11e7-8dfe-654320dbd2ce.png
+    : target: https://github.com/fabianp/memory_profiler/pull/134
+    : height: 350px
+
+You can combine both the ``include_children`` and ``multiprocess`` flags to show
+the total memory of the program as well as each child individually.
+
+.. warning:: currently the child tracking only works if a ``stream`` is provided to the ``profile`` (e.g. from the command line or in the decorator).
 
 Setting debugger breakpoints
 =============================
@@ -260,7 +293,7 @@ LogFile of memory profiler module.
     >>> import sys
     >>> sys.stdout = LogFile('memory_profile_log')
 
-``Customised reporting:``
+``Customized reporting:``
 
 Sending everything to the log file while running the memory_profiler
 could be cumbersome and one can choose only entries with increments
@@ -411,6 +444,8 @@ cleanup.
 `Sagar UDAY KUMAR <https://github.com/sagaru>`_ added Report generation feature and examples.
 
 `Dmitriy Novozhilov <https://github.com/demiurg906>`_ and `Sergei Lebedev <https://github.com/superbobry>`_ added support for `tracemalloc <https://docs.python.org/3/library/tracemalloc.html>`_.
+
+`Benjamin Bengfort <https://github.com/bbengfort>`_ added support for tracking the usage of individual child processes and plotting them.
 
 =========
  License
