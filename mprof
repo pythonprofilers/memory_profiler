@@ -223,11 +223,7 @@ def run_action():
             # in multiprocessing mode you want to spawn a separate
             # python process
             args.insert(0, "python")
-        else:
-            options.python = True
-    if options.multiprocess:
-        # multiprocess can't work in python mode
-        options.python = False
+            options.python = False
     if options.python:
         print("running as a Python program...")
         if not args[0].startswith("python"):
