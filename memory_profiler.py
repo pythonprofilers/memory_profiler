@@ -353,14 +353,19 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
 
-                    # Only write children to the stream file, warn if appending to the return.
+                    # Write children to the stream file
                     if multiprocess:
                         for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
                             stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
-                    ret.append(mem_usage)
+                    # Create a nested list with the child memory
                     if multiprocess:
-                        warnings.warn("use include_children not multiprocess without a stream")
+                        mem_usage = [mem_usage]
+                        for chldmem in _get_child_memory(proc.pid):
+                            mem_usage.append(chldmem)
+
+                    # Append the memory usage to the return value
+                    ret.append(mem_usage)
             else:
                 ret = max(ret,
                           _get_memory(
@@ -392,15 +397,19 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 if stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
 
-                    # Only write children to the stream file, warn if appending to the return.
+                    # Write children to the stream file
                     if multiprocess:
                         for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
                             stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
-                    ret.append(mem_usage)
-
+                    # Create a nested list with the child memory
                     if multiprocess:
-                        warnings.warn("use include_children not multiprocess without a stream")
+                        mem_usage = [mem_usage]
+                        for chldmem in _get_child_memory(proc.pid):
+                            mem_usage.append(chldmem)
+
+                    # Append the memory usage to the return value
+                    ret.append(mem_usage)
             else:
                 ret = max([ret,
                            _get_memory(proc, backend, include_children=include_children)

@@ -191,9 +191,9 @@ This will create a plot using matplotlib similar to this:
     :height: 350px
 
 You can combine both the ``include_children`` and ``multiprocess`` flags to show
-the total memory of the program as well as each child individually.
-
-.. warning:: Currently the child tracking only works if a ``stream`` is provided to the ``profile`` (e.g. from the command line or in the decorator). If you are using the API to retrieve values then the flag will not do anything.
+the total memory of the program as well as each child individually. If using
+the API directly, note that the return from ``memory_usage`` will include the
+child memory along with an index identifying the specific child.
 
 Setting debugger breakpoints
 =============================
