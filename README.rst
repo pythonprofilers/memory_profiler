@@ -193,7 +193,7 @@ This will create a plot using matplotlib similar to this:
 You can combine both the ``include_children`` and ``multiprocess`` flags to show
 the total memory of the program as well as each child individually. If using
 the API directly, note that the return from ``memory_usage`` will include the
-child memory along with an index identifying the specific child.
+child memory in a nested list along with the main process memory.
 
 Setting debugger breakpoints
 =============================
