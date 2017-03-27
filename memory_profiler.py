@@ -1077,7 +1077,7 @@ def choose_backend(new_backend=None):
         ('tracemalloc', has_tracemalloc),
         ('no_backend', True)
     ]
-    backends_indices = {b[0]: i for i, b in enumerate(all_backends)}
+    backends_indices = dict((b[0], i) for i, b in enumerate(all_backends))
 
     if new_backend is not None:
         all_backends.insert(0, all_backends.pop(backends_indices[new_backend]))
