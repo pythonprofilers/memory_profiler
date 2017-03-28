@@ -10,8 +10,8 @@ def my_func():
 @profile
 def test_comprehension():
     # Dict comprehension
-    d_comp = {str(k*k): [v] * (1<<17)
-              for (v, k) in enumerate(range(99, 111))}
+    d_comp = dict((str(k*k), [v] * (1<<17))
+                  for (v, k) in enumerate(range(99, 111)))
 
     # List comprehension
     l_comp = [[i] * (i<<9) for i in range(99)]
@@ -20,7 +20,7 @@ def test_comprehension():
 
     def hh(x=1):
         # Set comprehension
-        s_comp = {('Z',) * (k<<13) for k in range(x, 19 + 2*x)}
+        s_comp = set(('Z',) * (k<<13) for k in range(x, 19 + 2*x))
         return s_comp
 
     val = [range(1, 4), max(1, 4), 42 + len(hh())]
