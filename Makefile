@@ -1,5 +1,4 @@
 PYTHON ?= python
-IPYTHON ?= ipython
 
 .PHONY: test
 
@@ -15,5 +14,3 @@ test:
 	$(PYTHON) test/test_import.py
 	$(PYTHON) test/test_memory_usage.py
 	$(PYTHON) test/test_precision_import.py
-	$(IPYTHON) test/test_ipython.py
-
