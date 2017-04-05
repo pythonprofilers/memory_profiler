@@ -16,7 +16,7 @@ import linecache
 import inspect
 import subprocess
 import logging
-
+from collections import defaultdict
 
 # TODO: provide alternative when multiprocessing is not available
 try:
@@ -112,10 +112,10 @@ def _get_child_memory(process, meminfo_attr=None):
     # Loop over the child processes and yield their memory
     try:
         for child in getattr(process, children_attr)(recursive=True):
-            yield getattr(child, meminfo_attr)()[0] / _TWO_20
+            yield child.pid, getattr(child, meminfo_attr)()[0] / _TWO_20
     except psutil.NoSuchProcess:
         # https://github.com/fabianp/memory_profiler/issues/71
-        yield 0.0
+        yield (0,0.0) # need to yield a tuple
 
 
 def _get_memory(pid, backend, timestamps=False, include_children=False, filename=None):
@@ -143,7 +143,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 else 'get_memory_info'
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
             if include_children:
-                mem +=  sum(_get_child_memory(process, meminfo_attr))
+                mem +=  sum((mem for (pid,mem) in _get_child_memory(process, meminfo_attr)))
             if timestamps:
                 return mem, time.time()
             else:
@@ -355,14 +355,14 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
                     # Write children to the stream file
                     if multiprocess:
-                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
-                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
+                        for chldpid, chldmem in _get_child_memory(proc.pid):
+                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(chldpid, chldmem, time.time()))
                 else:
                     # Create a nested list with the child memory
                     if multiprocess:
                         mem_usage = [mem_usage]
-                        for chldmem in _get_child_memory(proc.pid):
-                            mem_usage.append(chldmem)
+                        for chldpid, chldmem in _get_child_memory(proc.pid):
+                            mem_usage.append((chldpid,chldmem))
 
                     # Append the memory usage to the return value
                     ret.append(mem_usage)
@@ -399,14 +399,14 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
                     # Write children to the stream file
                     if multiprocess:
-                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
-                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
+                        for child_pid, chldmem in _get_child_memory(proc):
+                            stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(child_pid, chldmem, time.time()))
                 else:
                     # Create a nested list with the child memory
                     if multiprocess:
                         mem_usage = [mem_usage]
-                        for chldmem in _get_child_memory(proc.pid):
-                            mem_usage.append(chldmem)
+                        for chldpid, chldmem in _get_child_memory(proc):
+                            mem_usage.append((chldpid,chldmem))
 
                     # Append the memory usage to the return value
                     ret.append(mem_usage)
@@ -1207,3 +1207,134 @@ if __name__ == '__main__':
             prof.show_results(stream=out_file)
         else:
             show_results(prof, precision=options.precision, stream=out_file)
+
+
+### I/O
+
+def read_mprofile_file(filename):
+    """Read an mprofile file and return its content.
+
+    Returns
+    =======
+    content: dict
+        Keys:
+
+        - "mem_usage": (list) memory usage values, in MiB
+        - "timestamp": (list) time instant for each memory usage value, in
+            second
+        - "func_timestamp": (dict) for each function, timestamps and memory
+            usage upon entering and exiting.
+        - 'cmd_line': (str) command-line ran for this profile.
+    """
+    func_ts = {}
+    mem_usage = []
+    timestamp = []
+    children  = defaultdict(list)
+    cmd_line = None
+    f = open(filename, "r")
+    for l in f:
+        if l == '\n':
+            raise ValueError('Sampling time was too short')
+        field, value = l.split(' ', 1)
+        if field == "MEM":
+            # mem, timestamp
+            values = value.split(' ')
+            mem_usage.append(float(values[0]))
+            timestamp.append(float(values[1]))
+
+        elif field == "FUNC":
+            values = value.split(' ')
+            f_name, mem_start, start, mem_end, end = values[:5]
+            ts = func_ts.get(f_name, [])
+            ts.append([float(start), float(end),
+                       float(mem_start), float(mem_end)])
+            func_ts[f_name] = ts
+
+        elif field == "CHLD":
+            values = value.split(' ')
+            chldnum = values[0]
+            children[chldnum].append(
+                (float(values[1]), float(values[2]))
+            )
+
+        elif field == "CMDLINE":
+            cmd_line = value
+        else:
+            pass
+    f.close()
+
+    return {"mem_usage": mem_usage, "timestamp": timestamp,
+            "func_timestamp": func_ts, 'filename': filename,
+            'cmd_line': cmd_line, 'children': children}
+
+
+def read_mprofile_file_multiprocess(filename):
+    """Read an mprofile file and return a mem_usage list
+
+    Returns
+    =======
+    content: list
+
+    This is analogous to the list obtained when the `memory_usage` is used
+    """
+
+    mem_usage = []
+    sample = []
+    
+    f = open(filename,'r')
+    
+    for i,l in enumerate(f):
+        if l == '\n':
+            raise ValueError('Sampling time was too short')
+        field, value = l.split(' ', 1)
+        values = value.split(' ')
+              
+        if field=="MEM":
+            # append the existing sample and reset to zero
+            mem_usage.append(sample)
+            sample = []
+            sample.append((float(values[0]), float(values[1])))
+        elif field=="CHLD": 
+            sample.append((int(values[0]), float(values[1])))
+          
+    f.close()
+    return mem_usage[1:]
+
+
+def convert_mem_usage_to_df(filename, is_pickle=False): 
+    """Convert a `mem_usage` list to a `pandas.DataFrame`
+
+    Returns
+    =======
+    content: pandas.DataFrame
+
+    Returns a `pandas.DataFrame` with child IDs as columns and the timestamp as an index
+    """
+
+    import pandas as pd
+    
+    if is_pickle:
+        from cPickle import load
+        with open(filename) as f: 
+            mem_usage = load(f)
+    
+    else:
+        mem_usage = read_mprofile_file_multiprocess(filename)
+        mem_usage = filter(lambda m: len(m) > 1, mem_usage)
+    
+    times =[m[0][1] for m in  mem_usage]
+    pids = np.sort(np.unique([m[0] for n in mem_usage for m in n[1:] if not isinstance(m,float)]))
+    
+    time_lookup = {time: i for i,time in enumerate(times)}
+    pid_lookup = {pid:i for i,pid in enumerate(pids)}
+    
+    data = np.zeros((len(times), len(pids)))
+    
+    for i,m in enumerate(mem_usage):
+        t = m[0][1]
+        try: 
+            for pid,mem in m[1:]:
+                data[time_lookup[t]][pid_lookup[pid]] = mem
+        except TypeError:
+            print 'found a bad value in ', i
+    return pd.DataFrame(data, index=times, columns=pids)
