@@ -1341,10 +1341,7 @@ def convert_mem_usage_to_df(filename, is_pickle=False):
     
     for i,m in enumerate(mem_usage):
         t = m[0][1]
-        try: 
-            for pid,mem in m[1:]:
-                data[time_lookup[t]][pid_lookup[pid]] = mem
-        except TypeError:
-            print 'found a bad value in ', i
-            
+        for pid,mem in m[1:]:
+            data[time_lookup[t]][pid_lookup[pid]] = mem
+
     return pd.DataFrame(data, index=times, columns=pids)
