@@ -1215,7 +1215,7 @@ def read_mprofile_file(filename):
     """Read an mprofile file and return its content.
 
     Returns
-    =======
+    -------
     content: dict
         Keys:
 
@@ -1272,7 +1272,7 @@ def read_mprofile_file_multiprocess(filename):
     """Read an mprofile file and return a mem_usage list
 
     Returns
-    =======
+    -------
     content: list
 
     This is analogous to the list obtained when the `memory_usage` is used
@@ -1304,8 +1304,17 @@ def read_mprofile_file_multiprocess(filename):
 def convert_mem_usage_to_df(filename, is_pickle=False): 
     """Convert a `mem_usage` list to a `pandas.DataFrame`
 
+    Parameters
+    ----------
+    filename: path to the memory profile data; can be either a file
+        created by mprof or a pickle of the result of `memory_usage`
+
+    is_pickle: if True, assume the data is the pickled list 
+        returned by `memory_usage`
+
+    
     Returns
-    =======
+    -------
     content: pandas.DataFrame
 
     Returns a `pandas.DataFrame` with child IDs as columns and the timestamp as an index
