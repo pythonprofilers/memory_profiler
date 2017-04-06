@@ -201,14 +201,14 @@ def run_action():
                       help="""Monitors forked processes creating individual plots for each child""")
     parser.add_option("--pid", "-p", dest="pid",
                       default=False, action="store_true", 
-                      help="""Monitor an existing process given by PID""")
+                      help="""Specify that the argument is a running pid not an executable or script""")
     parser.add_option("--timeout", dest="timeout", 
                       default=None, action="store", type=int,
                       help="""Timeout in seconds""")
 
     (options, args) = parser.parse_args()
 
-    if (len(args) == 0) and not options.pid:
+    if (len(args) == 0):
         print("A program to run or a pid must be provided. Use -h for help")
         sys.exit(1)
 
