@@ -1346,4 +1346,5 @@ def convert_mem_usage_to_df(filename, is_pickle=False):
                 data[time_lookup[t]][pid_lookup[pid]] = mem
         except TypeError:
             print 'found a bad value in ', i
+            
     return pd.DataFrame(data, index=times, columns=pids)
