@@ -1320,8 +1320,12 @@ def convert_mem_usage_to_df(filename, is_pickle=False):
     Returns a `pandas.DataFrame` with child IDs as columns and the timestamp as an index
     """
 
-    import pandas as pd
-    
+    try: 
+        import pandas as pd
+        import numpy as np
+    except ImportError:
+        raise ImportError('Pandas and numpy are required for conversion to DataFrame')
+
     if is_pickle:
         from cPickle import load
         with open(filename) as f: 
@@ -1332,7 +1336,9 @@ def convert_mem_usage_to_df(filename, is_pickle=False):
         mem_usage = filter(lambda m: len(m) > 1, mem_usage)
     
     times =[m[0][1] for m in  mem_usage]
-    pids = np.sort(np.unique([m[0] for n in mem_usage for m in n[1:] if not isinstance(m,float)]))
+
+    # flatten list of lists, extract the pids and attach '0' (parent) at the end 
+    pids = np.sort(np.unique([m[0] for n in mem_usage for m in n[1:] if not isinstance(m,float)] + [0,]))
     
     time_lookup = {time: i for i,time in enumerate(times)}
     pid_lookup = {pid:i for i,pid in enumerate(pids)}
@@ -1341,7 +1347,28 @@ def convert_mem_usage_to_df(filename, is_pickle=False):
     
     for i,m in enumerate(mem_usage):
         t = m[0][1]
+
+        # add the parent memory by hand
+        data[time_lookup[t]][pid_lookup[0]] = m[0][0]
+        
         for pid,mem in m[1:]:
             data[time_lookup[t]][pid_lookup[pid]] = mem
 
     return pd.DataFrame(data, index=times, columns=pids)
+
+def plot_mem_usage(filename, include_parent=True, plot_total=True, is_pickle=False):
+    import matplotlib.pylab as plt
+
+    data_df = convert_mem_usage_to_df(filename, is_pickle)
+    
+    f = plt.figure(figsize=(10,6))
+    
+    if not include_parent:
+        data_df = data_df[data_df.columns[1:]]
+        
+    data_df.plot(legend=False, figsize=(14,10), grid=True, fontsize=14)
+    
+    if plot_total: 
+        data_df.sum(axis=1).plot(style='--', grid=True)
+
+    plt.xlabel('timestamp'); plt.ylabel('memory usage in MB')
