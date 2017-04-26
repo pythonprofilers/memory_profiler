@@ -199,11 +199,17 @@ def run_action():
     parser.add_option("--multiprocess", "-M", dest="multiprocess",
                       default=False, action="store_true",
                       help="""Monitors forked processes creating individual plots for each child""")
+    parser.add_option("--pid", "-p", dest="pid",
+                      default=False, action="store_true", 
+                      help="""Specify that the argument is a running pid not an executable or script""")
+    parser.add_option("--timeout", dest="timeout", 
+                      default=None, action="store", type=int,
+                      help="""Timeout in seconds""")
 
     (options, args) = parser.parse_args()
 
-    if len(args) == 0:
-        print("A program to run must be provided. Use -h for help")
+    if (len(args) == 0):
+        print("A program to run or a pid must be provided. Use -h for help")
         sys.exit(1)
 
     print("{1}: Sampling memory every {0.interval}s".format(
@@ -218,30 +224,36 @@ def run_action():
     mprofile_output = "mprofile_%s.dat" % suffix
 
     # .. TODO: more than one script as argument ? ..
-    if args[0].endswith('.py') and not options.nopython:
-        if not args[0].startswith("python"):
-            args.insert(0, "python")
-        if options.multiprocess:
-            # in multiprocessing mode you want to spawn a separate
-            # python process
-            options.python = False
-    if options.python:
-        print("running as a Python program...")
-        if not args[0].startswith("python"):
-            args.insert(0, "python")
-        cmd_line = get_cmd_line(args)
-        args[1:1] = ("-m", "memory_profiler", "--timestamp",
-                     "-o", mprofile_output)
-        p = subprocess.Popen(args)
+    if not options.pid:
+        if args[0].endswith('.py') and not options.nopython:
+            if not args[0].startswith("python"):
+                args.insert(0, "python")
+            if options.multiprocess:
+                # in multiprocessing mode you want to spawn a separate
+                # python process
+                options.python = False
+        if options.python:
+            print("running as a Python program...")
+            if not args[0].startswith("python"):
+                args.insert(0, "python")
+            cmd_line = get_cmd_line(args)
+            args[1:1] = ("-m", "memory_profiler", "--timestamp",
+                         "-o", mprofile_output)
+            p = subprocess.Popen(args)
+        else:
+            cmd_line = get_cmd_line(args)
+            p = subprocess.Popen(args)
     else:
-        cmd_line = get_cmd_line(args)
-        p = subprocess.Popen(args)
+        p = int(args[0])
 
     with open(mprofile_output, "a") as f:
-        f.write("CMDLINE {0}\n".format(cmd_line))
+        if not options.pid:
+            f.write("CMDLINE {0}\n".format(cmd_line))
+
         mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
                         include_children=options.include_children,
-                        multiprocess=options.multiprocess, stream=f)
+                        multiprocess=options.multiprocess, stream=f,
+                        timeout=options.timeout)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
@@ -291,61 +303,6 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         ## pl.plot(xloc[1], yloc[1], ">"+color, markersize=7)
 
 
-def read_mprofile_file(filename):
-    """Read an mprofile file and return its content.
-
-    Returns
-    =======
-    content: dict
-        Keys:
-
-        - "mem_usage": (list) memory usage values, in MiB
-        - "timestamp": (list) time instant for each memory usage value, in
-            second
-        - "func_timestamp": (dict) for each function, timestamps and memory
-            usage upon entering and exiting.
-        - 'cmd_line': (str) command-line ran for this profile.
-    """
-    func_ts = {}
-    mem_usage = []
-    timestamp = []
-    children  = defaultdict(list)
-    cmd_line = None
-    f = open(filename, "r")
-    for l in f:
-        if l == '\n':
-            raise ValueError('Sampling time was too short')
-        field, value = l.split(' ', 1)
-        if field == "MEM":
-            # mem, timestamp
-            values = value.split(' ')
-            mem_usage.append(float(values[0]))
-            timestamp.append(float(values[1]))
-
-        elif field == "FUNC":
-            values = value.split(' ')
-            f_name, mem_start, start, mem_end, end = values[:5]
-            ts = func_ts.get(f_name, [])
-            ts.append([float(start), float(end),
-                       float(mem_start), float(mem_end)])
-            func_ts[f_name] = ts
-
-        elif field == "CHLD":
-            values = value.split(' ')
-            chldnum = values[0]
-            children[chldnum].append(
-                (float(values[1]), float(values[2]))
-            )
-
-        elif field == "CMDLINE":
-            cmd_line = value
-        else:
-            pass
-    f.close()
-
-    return {"mem_usage": mem_usage, "timestamp": timestamp,
-            "func_timestamp": func_ts, 'filename': filename,
-            'cmd_line': cmd_line, 'children': children}
 
 
 def plot_file(filename, index=0, timestamps=True, children=True, options=None):
@@ -355,7 +312,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         print("matplotlib is needed for plotting.")
         sys.exit(1)
     import numpy as np  # pylab requires numpy anyway
-    mprofile = read_mprofile_file(filename)
+    mprofile = mp.read_mprofile_file(filename)
 
     if len(mprofile['timestamp']) == 0:
         print('** No memory usage values have been found in the profile '
