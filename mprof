@@ -413,7 +413,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
             cmem = np.asarray([item[0] for item in data])
 
             # Plot the line to the figure
-            pl.plot(cts, cmem, "+-"  + mem_line_colors[idx+1 % len(mem_line_colors)],
+            pl.plot(cts, cmem, "+-"  + mem_line_colors[(idx+1) % len(mem_line_colors)],
                      label="child {}".format(proc))
 
             # Detect the maximal child memory point
