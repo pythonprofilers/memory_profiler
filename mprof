@@ -220,7 +220,7 @@ def run_action():
     # .. TODO: more than one script as argument ? ..
     if args[0].endswith('.py') and not options.nopython:
         if not args[0].startswith("python"):
-            args.insert(0, "python")
+            args.insert(0, sys.executable)
         if options.multiprocess:
             # in multiprocessing mode you want to spawn a separate
             # python process
