@@ -228,7 +228,7 @@ def run_action():
     if options.python:
         print("running as a Python program...")
         if not args[0].startswith("python"):
-            args.insert(0, "python")
+            args.insert(0, sys.executable)
         cmd_line = get_cmd_line(args)
         args[1:1] = ("-m", "memory_profiler", "--timestamp",
                      "-o", mprofile_output)
