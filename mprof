@@ -460,8 +460,10 @@ def plot_action():
     except ImportError:
         print("matplotlib is needed for plotting.")
         sys.exit(1)
-
-    parser = OptionParser(version=mp.__version__)
+    desc = """Plots using matplotlib the data file `file.dat` generated
+using `mprof run`. If no .dat file is given, it will take the most recent
+such file in the current directory."""
+    parser = OptionParser(version=mp.__version__, usage="mprof plot [options] [file.dat]", description=desc)
     parser.disable_interspersed_args()
     parser.add_option("--title", "-t", dest="title", default=None,
                       type="str", action="store",
