@@ -1108,7 +1108,7 @@ if PY2:
         execfile(filename, ns, ns)
 else:
     def exec_with_profiler(filename, profiler, backend):
-        choose_backend(backend)
+        _backend = choose_backend(backend)
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
         builtins.__dict__['profile'] = profiler
