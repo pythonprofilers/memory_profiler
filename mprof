@@ -351,8 +351,9 @@ def read_mprofile_file(filename):
 def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     try:
         import pylab as pl
-    except ImportError:
+    except ImportError as e:
         print("matplotlib is needed for plotting.")
+        print(e)
         sys.exit(1)
     import numpy as np  # pylab requires numpy anyway
     mprofile = read_mprofile_file(filename)
@@ -455,11 +456,6 @@ def plot_action():
             raise OptionValueError("'%s' option must contain two numbers separated with a comma" % value)
         setattr(parser.values, option.dest, newvalue)
 
-    try:
-        import pylab as pl
-    except ImportError:
-        print("matplotlib is needed for plotting.")
-        sys.exit(1)
     desc = """Plots using matplotlib the data file `file.dat` generated
 using `mprof run`. If no .dat file is given, it will take the most recent
 such file in the current directory."""
@@ -477,7 +473,20 @@ such file in the current directory."""
                       type="str", action="callback",
                       callback=get_comma_separated_args,
                       help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
+    parser.add_option("--backend", 
+                      help="Specify the Matplotlib backend to use")
     (options, args) = parser.parse_args()
+
+    try:
+        if options.backend is not None:
+            import matplotlib
+            matplotlib.use(options.backend)
+
+        import pylab as pl
+    except ImportError as e:
+        print("matplotlib is needed for plotting.")
+        print(e)
+        sys.exit(1)
 
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
