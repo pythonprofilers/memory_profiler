@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 """Profile the memory usage of a Python program"""
 
 # .. we'll use this to pass it to the child script ..
