@@ -16,6 +16,8 @@ import linecache
 import inspect
 import subprocess
 import logging
+import traceback
+from signal import SIGKILL
 
 
 # TODO: provide alternative when multiprocessing is not available
@@ -239,9 +241,9 @@ class MemTimer(Process):
         self.pipe.send(self.n_measurements)
 
 
-def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
-                 include_children=False, multiprocess=False, max_usage=False,
-                 retval=False, stream=None, backend=None):
+def memory_usage_actual(proc=-1, interval=.1, timeout=None, timestamps=False,
+                        include_children=False, multiprocess=False, max_usage=False,
+                        retval=False, stream=None, backend=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -422,6 +424,27 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     if stream:
         return None
     return ret
+
+
+def memory_usage(*args, **kwargs):
+    """
+    The wrapper function that calls the memory_usage_actual (see above) function!
+
+    When there is an exception in the "proc" - the (spawned) monitoring processes don't get killed.
+    Therefore, the whole process hangs indefinitely. Here, we are ensuring that the process gets killed!
+    """
+    try:
+        return memory_usage_actual(*args, **kwargs)
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+        try:  # catch ImportError for psutil
+            import psutil
+            parent = psutil.Process(os.getpid())
+            for child in parent.children(recursive=True):
+                os.kill(child.pid, SIGKILL)
+            os.kill(os.getpid(), SIGKILL)
+        except ImportError:
+            sys.exit()
 
 
 # ..
