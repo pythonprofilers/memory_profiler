@@ -437,13 +437,12 @@ def memory_usage(*args, **kwargs):
         return memory_usage_actual(*args, **kwargs)
     except Exception:
         print(traceback.format_exc(), file=sys.stderr)
-        try:  # catch ImportError for psutil
-            import psutil
+        if has_psutil:
             parent = psutil.Process(os.getpid())
             for child in parent.children(recursive=True):
                 os.kill(child.pid, SIGKILL)
             os.kill(os.getpid(), SIGKILL)
-        except ImportError:
+        else:
             sys.exit()
 
 
