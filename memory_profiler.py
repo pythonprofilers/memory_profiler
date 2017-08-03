@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """Profile the memory usage of a Python program"""
 
 # .. we'll use this to pass it to the child script ..
@@ -243,9 +241,9 @@ class MemTimer(Process):
         self.pipe.send(self.n_measurements)
 
 
-def memory_usage_actual(proc=-1, interval=.1, timeout=None, timestamps=False,
-                        include_children=False, multiprocess=False, max_usage=False,
-                        retval=False, stream=None, backend=None):
+def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
+                 include_children=False, multiprocess=False, max_usage=False,
+                 retval=False, stream=None, backend=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -335,7 +333,21 @@ def memory_usage_actual(proc=-1, interval=.1, timeout=None, timestamps=False,
                          include_children=include_children)
             p.start()
             parent_conn.recv()  # wait until we start getting memory
-            returned = f(*args, **kw)
+
+            # When there is an exception in the "proc" - the (spawned) monitoring processes don't get killed.
+            # Therefore, the whole process hangs indefinitely. Here, we are ensuring that the process gets killed!
+            try:
+                returned = f(*args, **kw)
+            except Exception:
+                sys.stderr.write(traceback.format_exc())
+                if has_psutil:
+                    parent = psutil.Process(os.getpid())
+                    for child in parent.children(recursive=True):
+                        os.kill(child.pid, SIGKILL)
+                    os.kill(os.getpid(), SIGKILL)
+                else:
+                    sys.exit()
+
             parent_conn.send(0)  # finish timing
             ret = parent_conn.recv()
             n_measurements = parent_conn.recv()
@@ -426,26 +438,6 @@ def memory_usage_actual(proc=-1, interval=.1, timeout=None, timestamps=False,
     if stream:
         return None
     return ret
-
-
-def memory_usage(*args, **kwargs):
-    """
-    The wrapper function that calls the memory_usage_actual (see above) function!
-
-    When there is an exception in the "proc" - the (spawned) monitoring processes don't get killed.
-    Therefore, the whole process hangs indefinitely. Here, we are ensuring that the process gets killed!
-    """
-    try:
-        return memory_usage_actual(*args, **kwargs)
-    except Exception:
-        print(traceback.format_exc(), file=sys.stderr)
-        if has_psutil:
-            parent = psutil.Process(os.getpid())
-            for child in parent.children(recursive=True):
-                os.kill(child.pid, SIGKILL)
-            os.kill(os.getpid(), SIGKILL)
-        else:
-            sys.exit()
 
 
 # ..
