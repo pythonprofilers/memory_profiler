@@ -326,7 +326,6 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             raise ValueError
 
         while True:
-            exit_block = False
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, backend,
                          timestamps=timestamps,
@@ -353,7 +352,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 raise
 
             p.join(5 * interval)
-            if exit_block or n_measurements > 4 or interval < 1e-6:
+            if n_measurements > 4 or interval < 1e-6:
                 break
             interval /= 10.
     elif isinstance(proc, subprocess.Popen):
