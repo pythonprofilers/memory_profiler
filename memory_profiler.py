@@ -16,6 +16,8 @@ import linecache
 import inspect
 import subprocess
 import logging
+import traceback
+from signal import SIGKILL
 
 
 # TODO: provide alternative when multiprocessing is not available
@@ -324,6 +326,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             raise ValueError
 
         while True:
+            exit_block = False
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, backend,
                          timestamps=timestamps,
@@ -331,14 +334,26 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                          include_children=include_children)
             p.start()
             parent_conn.recv()  # wait until we start getting memory
-            returned = f(*args, **kw)
-            parent_conn.send(0)  # finish timing
-            ret = parent_conn.recv()
-            n_measurements = parent_conn.recv()
-            if retval:
-                ret = ret, returned
+
+            # When there is an exception in the "proc" - the (spawned) monitoring processes don't get killed.
+            # Therefore, the whole process hangs indefinitely. Here, we are ensuring that the process gets killed!
+            try:
+                returned = f(*args, **kw)
+                parent_conn.send(0)  # finish timing
+                ret = parent_conn.recv()
+                n_measurements = parent_conn.recv()
+                if retval:
+                    ret = ret, returned
+            except Exception:
+                if has_psutil:
+                    parent = psutil.Process(os.getpid())
+                    for child in parent.children(recursive=True):
+                        os.kill(child.pid, SIGKILL)
+                p.join(0)
+                raise
+
             p.join(5 * interval)
-            if n_measurements > 4 or interval < 1e-6:
+            if exit_block or n_measurements > 4 or interval < 1e-6:
                 break
             interval /= 10.
     elif isinstance(proc, subprocess.Popen):
@@ -1108,7 +1123,7 @@ if PY2:
         execfile(filename, ns, ns)
 else:
     def exec_with_profiler(filename, profiler, backend):
-        choose_backend(backend)
+        _backend = choose_backend(backend)
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
         builtins.__dict__['profile'] = profiler

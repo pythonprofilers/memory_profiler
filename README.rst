@@ -447,6 +447,8 @@ cleanup.
 
 `Benjamin Bengfort <https://github.com/bbengfort>`_ added support for tracking the usage of individual child processes and plotting them.
 
+`Muhammad Haseeb Tariq <https://github.com/mhaseebtariq>`_ fixed issue #152, which made the whole interpreter hang on functions that launched an exception.
+
 =========
  License
 =========
