@@ -326,6 +326,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             raise ValueError
 
         while True:
+            exit_block = False
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, backend,
                          timestamps=timestamps,
@@ -338,23 +339,21 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
             # Therefore, the whole process hangs indefinitely. Here, we are ensuring that the process gets killed!
             try:
                 returned = f(*args, **kw)
+                parent_conn.send(0)  # finish timing
+                ret = parent_conn.recv()
+                n_measurements = parent_conn.recv()
+                if retval:
+                    ret = ret, returned
             except Exception:
-                sys.stderr.write(traceback.format_exc())
                 if has_psutil:
                     parent = psutil.Process(os.getpid())
                     for child in parent.children(recursive=True):
                         os.kill(child.pid, SIGKILL)
-                    os.kill(os.getpid(), SIGKILL)
-                else:
-                    sys.exit()
+                p.join(0)
+                raise
 
-            parent_conn.send(0)  # finish timing
-            ret = parent_conn.recv()
-            n_measurements = parent_conn.recv()
-            if retval:
-                ret = ret, returned
             p.join(5 * interval)
-            if n_measurements > 4 or interval < 1e-6:
+            if exit_block or n_measurements > 4 or interval < 1e-6:
                 break
             interval /= 10.
     elif isinstance(proc, subprocess.Popen):
