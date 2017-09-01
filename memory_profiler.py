@@ -139,7 +139,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
         # .. cross-platform but but requires psutil ..
         process = psutil.Process(pid)
         try:
-            # avoid useing get_memory_info since it does not exists
+            # avoid using get_memory_info since it does not exists
             # in psutil > 2.0 and accessing it will cause exception.
             meminfo_attr = 'memory_info' if hasattr(process, 'memory_info') \
                 else 'get_memory_info'
