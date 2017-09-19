@@ -173,7 +173,7 @@ parent's usage and track each child individual.
 
 To create a report that combines memory usage of all the children and the
 parent, use the ``include_children`` flag in either the ``profile`` decorator or
-ass a command line argument to ``mprof``::
+as a command line argument to ``mprof``::
 
     mprof run --include-children <script>
 
