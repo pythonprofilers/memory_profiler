@@ -1,6 +1,8 @@
 import memory_profiler
 from distutils.core import setup
 import setuptools
+import sys
+import glob
 
 CLASSIFIERS = """\
 Development Status :: 5 - Production/Stable
@@ -19,6 +21,11 @@ Operating System :: POSIX
 Operating System :: Unix
 
 """
+if sys.platform == "win32":
+    script_files = glob.glob("mprof")
+    script_files += glob.glob("mprof.*")
+else:
+    script_files = glob.glob("mprof")
 
 setup(
     name='memory_profiler',
@@ -29,7 +36,7 @@ setup(
     author_email='f@bianp.net',
     url='http://pypi.python.org/pypi/memory_profiler',
     py_modules=['memory_profiler'],
-    scripts=['mprof'],
+    scripts=script_files,
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
 
