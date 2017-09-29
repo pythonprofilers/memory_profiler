@@ -1,6 +1,7 @@
-import memory_profiler
+import sys
 from distutils.core import setup
-import setuptools
+
+import memory_profiler
 
 CLASSIFIERS = """\
 Development Status :: 5 - Production/Stable
@@ -31,6 +32,6 @@ setup(
     py_modules=['memory_profiler'],
     scripts=['mprof'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
-    license='BSD'
-
+    license='BSD',
+    install_requires=['asyncio>=3.4.3'] if sys.version_info < (3, 4) else [],
 )
