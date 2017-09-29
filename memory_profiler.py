@@ -1,6 +1,9 @@
 """Profile the memory usage of a Python program"""
 
+import asyncio
 # .. we'll use this to pass it to the child script ..
+import functools
+
 _CLEAN_GLOBALS = globals().copy()
 
 __version__ = '0.47'
@@ -16,7 +19,6 @@ import linecache
 import inspect
 import subprocess
 import logging
-import traceback
 from signal import SIGKILL
 
 
@@ -654,13 +656,24 @@ class LineProfiler(object):
         """ Wrap a function to profile it.
         """
 
-        def f(*args, **kwds):
-            self.enable_by_count()
-            try:
-                return func(*args, **kwds)
-            finally:
-                self.disable_by_count()
+        if not asyncio.iscoroutinefunction(func):
+            def f(*args, **kwds):
+                self.enable_by_count()
+                try:
+                    return func(*args, **kwds)
+                finally:
+                    self.disable_by_count()
+        else:
+            @asyncio.coroutine
+            def f(*args, **kwds):
+                self.enable_by_count()
+                try:
+                    val = yield from func(*args, **kwds)
+                    return val
+                finally:
+                    self.disable_by_count()
 
+        functools.update_wrapper(f, func)
         return f
 
     def runctx(self, cmd, globals, locals):
@@ -1062,20 +1075,32 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
     if backend == 'tracemalloc' and has_tracemalloc:
         if not tracemalloc.is_tracing():
             tracemalloc.start()
-    if func is not None:
-        def wrapper(*args, **kwargs):
-            prof = LineProfiler(backend=backend)
-            val = prof(func)(*args, **kwargs)
-            show_results(prof, stream=stream, precision=precision)
-            return val
 
-        return wrapper
+    if func is not None:
+        if not asyncio.iscoroutinefunction(func):
+            def wrapper(*args, **kwargs):
+                prof = LineProfiler(backend=backend)
+                val = prof(func)(*args, **kwargs)
+                show_results(prof, stream=stream, precision=precision)
+
+                return val
+        else:
+            @asyncio.coroutine
+            def wrapper(*args, **kwargs):
+                prof = LineProfiler(backend=backend)
+                val = yield from prof(func)(*args, **kwargs)
+                show_results(prof, stream=stream, precision=precision)
+
+                return val
+
     else:
-        def inner_wrapper(f):
+        def wrapper(f):
             return profile(f, stream=stream, precision=precision,
                            backend=backend)
 
-        return inner_wrapper
+    functools.update_wrapper(wrapper, func)
+
+    return wrapper
 
 
 def choose_backend(new_backend=None):
