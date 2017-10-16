@@ -18,13 +18,40 @@ import subprocess
 import logging
 import traceback
 from signal import SIGKILL
-
+import importlib
+import distutils
+from distutils.util import strtobool
 
 # TODO: provide alternative when multiprocessing is not available
-try:
-    from multiprocessing import Process, Pipe
-except ImportError:
-    from multiprocessing.dummy import Process, Pipe
+
+# import Process and Pipe from a multiprocessing library in the following order:
+#
+#   billiard - if and only if MEMPROF_PREFERS_BILLIARD envvar is set and true
+#   multiprocessing
+#   multiprocessing.dummy
+#
+MULTILIBS = (
+    ("billiard", (lambda: True  if "MEMPROF_PREFERS_BILLIARD" in os.environ and
+                                    strtobool(os.environ["MEMPROF_PREFERS_BILLIARD"])
+                                else False)),
+    ("multiprocessing", None,),
+    ("multiprocessing.dummy", None,)
+)
+for module_tuple in MULTILIBS:
+    multi_module_name, use_if_test = module_tuple
+    try:
+        multi_module = importlib.import_module(multi_module_name)
+    except ImportError:
+        if multi_module_name == "multiprocessing.dummy":
+            raise
+        continue
+    if use_if_test is None or use_if_test():
+        try:
+            Process = multi_module.Process
+            Pipe = multi_module.Pipe
+            break
+        except AttributeError:
+            continue
 
 try:
     from IPython.core.magic import Magics, line_cell_magic, magics_class
