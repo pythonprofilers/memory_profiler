@@ -1,4 +1,4 @@
-import memory_profiler
+from constants import MEMPROF_VERSION
 from distutils.core import setup
 import setuptools
 
@@ -24,7 +24,7 @@ setup(
     name='memory_profiler',
     description='A module for monitoring memory usage of a python program',
     long_description=open('README.rst').read(),
-    version=memory_profiler.__version__,
+    version=MEMPROF_VERSION,
     author='Fabian Pedregosa',
     author_email='f@bianp.net',
     url='http://pypi.python.org/pypi/memory_profiler',
