@@ -773,7 +773,7 @@ def show_results(prof, stream=None, precision=1):
                 mem = u''
                 inc = u''
             tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
-            stream.write(unicode(tmp))
+            stream.write(unicode(tmp, 'UTF-8'))
         stream.write(u'\n\n')
 
 
