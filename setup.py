@@ -30,6 +30,7 @@ setup(
     url='http://pypi.python.org/pypi/memory_profiler',
     py_modules=['memory_profiler'],
     scripts=['mprof'],
+    install_requires=['psutil'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
 

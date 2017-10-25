@@ -19,6 +19,8 @@ import logging
 import traceback
 from signal import SIGKILL
 
+import psutil
+
 
 # TODO: provide alternative when multiprocessing is not available
 try:
@@ -48,13 +50,6 @@ else:
         return str(x)
 
 # .. get available packages ..
-try:
-    import psutil
-
-    has_psutil = True
-except ImportError:
-    has_psutil = False
-
 try:
     import tracemalloc
 
@@ -92,12 +87,6 @@ def _get_child_memory(process, meminfo_attr=None):
     """
     Returns a generator that yields memory for all child processes.
     """
-    if not has_psutil:
-        raise NotImplementedError((
-            "The psutil module is required to monitor the "
-            "memory usage of child processes."
-        ))
-
     # Convert a pid to a process
     if isinstance(process, int):
         if process == -1: process = os.getpid()
@@ -344,10 +333,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 if retval:
                     ret = ret, returned
             except Exception:
-                if has_psutil:
-                    parent = psutil.Process(os.getpid())
-                    for child in parent.children(recursive=True):
-                        os.kill(child.pid, SIGKILL)
+                parent = psutil.Process(os.getpid())
+                for child in parent.children(recursive=True):
+                    os.kill(child.pid, SIGKILL)
                 p.join(0)
                 raise
 
@@ -1086,10 +1074,9 @@ def choose_backend(new_backend=None):
 
     _backend = 'no_backend'
     all_backends = [
-        ('psutil', has_psutil),
+        ('psutil', True),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
-        ('no_backend', True)
     ]
     backends_indices = dict((b[0], i) for i, b in enumerate(all_backends))
 
@@ -1100,10 +1087,6 @@ def choose_backend(new_backend=None):
         if is_available:
             _backend = n_backend
             break
-    if _backend == 'no_backend':
-        raise NotImplementedError(
-            'Tracemalloc or psutil module is required for non-unix '
-            'platforms')
     if _backend != new_backend and new_backend is not None:
         warnings.warn('{0} can not be used, {1} used instead'.format(
             new_backend, _backend))

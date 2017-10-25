@@ -7,9 +7,8 @@
 
 This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
-programs. It is a pure python module and has the `psutil
-<http://pypi.python.org/pypi/psutil>`_ module as optional (but highly
-recommended) dependencies.
+programs. It is a pure python module which depends on the `psutil
+<http://pypi.python.org/pypi/psutil>`_ module.
 
 
 ==============
@@ -385,7 +384,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
       between runs.
 
     * Q: Does it work under windows ?
-    * A: Yes, but you will need the
+    * A: Yes, thanks to the
       `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
 
