@@ -1,6 +1,26 @@
-import memory_profiler
+import os
+import io
+import re
 from distutils.core import setup
 import setuptools
+
+
+# https://packaging.python.org/guides/single-sourcing-package-version/
+def read(*names, **kwargs):
+    with io.open(
+        os.path.join(os.path.dirname(__file__), *names),
+        encoding=kwargs.get("encoding", "utf8")
+    ) as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+
 
 CLASSIFIERS = """\
 Development Status :: 5 - Production/Stable
@@ -24,7 +44,7 @@ setup(
     name='memory_profiler',
     description='A module for monitoring memory usage of a python program',
     long_description=open('README.rst').read(),
-    version=memory_profiler.__version__,
+    version=find_version("memory_profiler.py"),
     author='Fabian Pedregosa',
     author_email='f@bianp.net',
     url='http://pypi.python.org/pypi/memory_profiler',
