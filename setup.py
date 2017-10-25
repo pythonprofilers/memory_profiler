@@ -1,8 +1,7 @@
 import os
 import io
 import re
-from distutils.core import setup
-import setuptools
+from setuptools import setup
 
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
@@ -53,5 +52,4 @@ setup(
     install_requires=['psutil'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
-
 )
