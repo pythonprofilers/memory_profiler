@@ -6,6 +6,11 @@ python:
   - "3.5"
   - "3.6"
 
+matrix:
+  allow_failures:
+    - python: "pypy3"
+    - python: "3.7-dev"
+
 install:
   - python -m pip install numpy ipython
   - python -m pip install .
