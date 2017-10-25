@@ -448,6 +448,8 @@ cleanup.
 
 `Muhammad Haseeb Tariq <https://github.com/mhaseebtariq>`_ fixed issue #152, which made the whole interpreter hang on functions that launched an exception.
 
+`Juan Luis Cano <https://github.com/Juanlu001>`_ modernized the infrastructure and helped with various things.
+
 =========
  License
 =========
