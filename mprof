@@ -10,7 +10,7 @@ import time
 import math
 
 from collections import defaultdict
-from optparse import OptionParser, OptionValueError
+from argparse import ArgumentParser, ArgumentError
 
 import memory_profiler as mp
 
@@ -107,14 +107,10 @@ def get_profile_filenames(args):
 
 def list_action():
     """Display existing profiles, with indices."""
-    parser = OptionParser(version=mp.__version__)
-    parser.disable_interspersed_args()
-
-    (options, args) = parser.parse_args()
-
-    if len(args) > 0:
-        print("This command takes no argument.")
-        sys.exit(1)
+    parser = ArgumentParser(
+            usage='mprof list\nThis command takes no argument.')
+    parser.add_argument('--version', action='version', version=mp.__version__)
+    args = parser.parse_args()
 
     filenames = get_profile_filenames("all")
     for n, filename in enumerate(filenames):
@@ -127,20 +123,21 @@ def list_action():
 
 def rm_action():
     """TODO: merge with clean_action (@pgervais)"""
-    parser = OptionParser(version=mp.__version__)
-    parser.disable_interspersed_args()
-    parser.add_option("--dry-run", dest="dry_run", default=False,
-                      action="store_true",
-                      help="""Show what will be done, without actually doing it.""")
+    parser = ArgumentParser(usage='mprof rm [options] numbers_or_filenames')
+    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--dry-run", dest="dry_run", default=False,
+                        action="store_true",
+                        help="""Show what will be done, without actually doing it.""")
+    parser.add_argument("numbers_or_filenames", nargs='*',
+                        help="""numbers or filenames removed""")
+    args = parser.parse_args()
 
-    (options, args) = parser.parse_args()
-
-    if len(args) == 0:
+    if len(args.numbers_or_filenames) == 0:
         print("A profile to remove must be provided (number or filename)")
         sys.exit(1)
 
-    filenames = get_profile_filenames(args)
-    if options.dry_run:
+    filenames = get_profile_filenames(args.numbers_or_filenames)
+    if args.dry_run:
         print("Files to be removed: ")
         for filename in filenames:
             print(filename)
@@ -151,20 +148,16 @@ def rm_action():
 
 def clean_action():
     """Remove every profile file in current directory."""
-    parser = OptionParser(version=mp.__version__)
-    parser.disable_interspersed_args()
-    parser.add_option("--dry-run", dest="dry_run", default=False,
-                      action="store_true",
-                      help="""Show what will be done, without actually doing it.""")
-
-    (options, args) = parser.parse_args()
-
-    if len(args) > 0:
-        print("This command takes no argument.")
-        sys.exit(1)
+    parser = ArgumentParser(
+            usage='mprof clean\nThis command takes no argument.')
+    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--dry-run", dest="dry_run", default=False,
+                        action="store_true",
+                        help="""Show what will be done, without actually doing it.""")
+    args = parser.parse_args()
 
     filenames = get_profile_filenames("all")
-    if options.dry_run:
+    if args.dry_run:
         print("Files to be removed: ")
         for filename in filenames:
             print(filename)
@@ -182,32 +175,27 @@ def get_cmd_line(args):
 
 def run_action():
     import time, subprocess
-    parser = OptionParser(version=mp.__version__, usage="mprof run [options]")
-    parser.disable_interspersed_args()
-    parser.add_option("--python", dest="python", default=False,
-                      action="store_true",
-                      help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
-    parser.add_option("--nopython", dest="nopython", default=False,
-                      action="store_true",
-                      help="""Disables extra features when the profiled executable is a Python program (currently: function timestamping.)""")
-    parser.add_option("--interval", "-T", dest="interval", default="0.1",
-                      type="float", action="store",
-                      help="Sampling period (in seconds), defaults to 0.1")
-    parser.add_option("--include-children", "-C", dest="include_children",
-                      default=False, action="store_true",
-                      help="""Monitors forked processes as well (sum up all process memory)""")
-    parser.add_option("--multiprocess", "-M", dest="multiprocess",
-                      default=False, action="store_true",
-                      help="""Monitors forked processes creating individual plots for each child""")
+    parser = ArgumentParser(usage="mprof run [options] program")
+    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--python", dest="python", action="store_true",
+                        help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
+    parser.add_argument("--nopython", dest="nopython", action="store_true",
+                        help="""Disables extra features when the profiled executable is a Python program (currently: function timestamping.)""")
+    parser.add_argument("--interval", "-T", dest="interval", default="0.1", type=float, action="store",
+                        help="Sampling period (in seconds), defaults to 0.1")
+    parser.add_argument("--include-children", "-C", dest="include_children", action="store_true",
+                        help="""Monitors forked processes as well (sum up all process memory)""")
+    parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
+                        help="""Monitors forked processes creating individual plots for each child""")
+    parser.add_argument("program", nargs='*')
+    args = parser.parse_args()
 
-    (options, args) = parser.parse_args()
-
-    if len(args) == 0:
+    if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
 
-    print("{1}: Sampling memory every {0.interval}s".format(
-        options, osp.basename(sys.argv[0])))
+    print("{1}: Sampling memory every {0}s".format(
+        args.interval, osp.basename(sys.argv[0])))
 
     ## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
     ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
@@ -218,30 +206,31 @@ def run_action():
     mprofile_output = "mprofile_%s.dat" % suffix
 
     # .. TODO: more than one script as argument ? ..
-    if args[0].endswith('.py') and not options.nopython:
-        if not args[0].startswith("python"):
-            args.insert(0, sys.executable)
-        if options.multiprocess:
+    program = args.program
+    if program[0].endswith('.py') and not args.nopython:
+        if not program[0].startswith("python"):
+            program.insert(0, sys.executable)
+        if args.multiprocess:
             # in multiprocessing mode you want to spawn a separate
             # python process
-            options.python = False
-    if options.python:
+            args.python = False
+    if args.python:
         print("running as a Python program...")
-        if not args[0].startswith("python"):
-            args.insert(0, sys.executable)
-        cmd_line = get_cmd_line(args)
-        args[1:1] = ("-m", "memory_profiler", "--timestamp",
-                     "-o", mprofile_output)
-        p = subprocess.Popen(args)
+        if not program[0].startswith("python"):
+            program.insert(0, sys.executable)
+        cmd_line = get_cmd_line(program)
+        program[1:1] = ("-m", "memory_profiler", "--timestamp",
+                        "-o", mprofile_output)
+        p = subprocess.Popen(program)
     else:
-        cmd_line = get_cmd_line(args)
-        p = subprocess.Popen(args)
+        cmd_line = get_cmd_line(program)
+        p = subprocess.Popen(program)
 
     with open(mprofile_output, "a") as f:
         f.write("CMDLINE {0}\n".format(cmd_line))
-        mp.memory_usage(proc=p, interval=options.interval, timestamps=True,
-                        include_children=options.include_children,
-                        multiprocess=options.multiprocess, stream=f)
+        mp.memory_usage(proc=p, interval=args.interval, timestamps=True,
+                        include_children=args.include_children,
+                        multiprocess=args.multiprocess, stream=f)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
@@ -447,40 +436,39 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
 
 def plot_action():
-    def get_comma_separated_args(option, opt, value, parser):
+    def xlim_type(value):
         try:
             newvalue = [float(x) for x in value.split(',')]
         except:
-            raise OptionValueError("'%s' option must contain two numbers separated with a comma" % value)
+            raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
         if len(newvalue) != 2:
-            raise OptionValueError("'%s' option must contain two numbers separated with a comma" % value)
-        setattr(parser.values, option.dest, newvalue)
+            raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
+        return newvalue
 
     desc = """Plots using matplotlib the data file `file.dat` generated
 using `mprof run`. If no .dat file is given, it will take the most recent
 such file in the current directory."""
-    parser = OptionParser(version=mp.__version__, usage="mprof plot [options] [file.dat]", description=desc)
-    parser.disable_interspersed_args()
-    parser.add_option("--title", "-t", dest="title", default=None,
-                      type="str", action="store",
-                      help="String shown as plot title")
-    parser.add_option("--no-function-ts", "-n", dest="no_timestamps",
-                      default=False, action="store_true",
-                      help="Do not display function timestamps on plot.")
-    parser.add_option("--output", "-o",
-                      help="Save plot to file instead of displaying it.")
-    parser.add_option("--window", "-w", dest="xlim",
-                      type="str", action="callback",
-                      callback=get_comma_separated_args,
-                      help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
-    parser.add_option("--backend", 
+    parser = ArgumentParser(usage="mprof plot [options] [file.dat]", description=desc)
+    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--title", "-t", dest="title", default=None,
+                        type=str, action="store",
+                        help="String shown as plot title")
+    parser.add_argument("--no-function-ts", "-n", dest="no_timestamps", action="store_true",
+                        help="Do not display function timestamps on plot.")
+    parser.add_argument("--output", "-o",
+                        help="Save plot to file instead of displaying it.")
+    parser.add_argument("--window", "-w", dest="xlim", type=xlim_type,
+                        help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
+    parser.add_argument("--backend", 
                       help="Specify the Matplotlib backend to use")
-    (options, args) = parser.parse_args()
+    parser.add_argument("profiles", nargs="*",
+                        help="profiles made by mprof run")
+    args = parser.parse_args()
 
     try:
-        if options.backend is not None:
+        if args.backend is not None:
             import matplotlib
-            matplotlib.use(options.backend)
+            matplotlib.use(args.backend)
 
         import pylab as pl
     except ImportError as e:
@@ -491,7 +479,7 @@ such file in the current directory."""
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
 
-    if len(args) == 0:
+    if len(args.profiles) == 0:
         if len(profiles) == 0:
             print("No input file found. \nThis program looks for "
                   "mprofile_*.dat files, generated by the "
@@ -501,48 +489,48 @@ such file in the current directory."""
         filenames = [profiles[-1]]
     else:
         filenames = []
-        for arg in args:
-            if osp.exists(arg):
-                if not arg in filenames:
-                    filenames.append(arg)
+        for prof in args.profiles:
+            if osp.exists(prof):
+                if not prof in filenames:
+                    filenames.append(prof)
             else:
                 try:
-                    n = int(arg)
+                    n = int(prof)
                     if not profiles[n] in filenames:
                         filenames.append(profiles[n])
                 except ValueError:
-                    print("Input file not found: " + arg)
+                    print("Input file not found: " + prof)
     if not len(filenames):
         print("No files found from given input.")
         sys.exit(-1)
 
     fig = pl.figure(figsize=(14, 6), dpi=90)
     ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
-    if options.xlim is not None:
-        pl.xlim(options.xlim[0], options.xlim[1])
+    if args.xlim is not None:
+        pl.xlim(args.xlim[0], args.xlim[1])
 
-    if len(filenames) > 1 or options.no_timestamps:
+    if len(filenames) > 1 or args.no_timestamps:
         timestamps = False
     else:
         timestamps = True
     for n, filename in enumerate(filenames):
-        mprofile = plot_file(filename, index=n, timestamps=timestamps, options=options)
+        mprofile = plot_file(filename, index=n, timestamps=timestamps, options=args)
     pl.xlabel("time (in seconds)")
     pl.ylabel("memory used (in MiB)")
 
-    if options.title is None and len(filenames) == 1:
+    if args.title is None and len(filenames) == 1:
         pl.title(mprofile['cmd_line'])
     else:
-        if options.title is not None:
-            pl.title(options.title)
+        if args.title is not None:
+            pl.title(args.title)
 
     # place legend within the plot, make partially transparent in
     # case it obscures part of the lineplot
     leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     leg.get_frame().set_alpha(0.5)
     pl.grid()
-    if options.output:
-        pl.savefig(options.output)
+    if args.output:
+        pl.savefig(args.output)
     else:
         pl.show()
 
