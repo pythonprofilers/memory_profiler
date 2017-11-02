@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.org/fabianp/memory_profiler.svg?branch=master
-    :target: https://travis-ci.org/fabianp/memory_profiler
+.. image:: https://travis-ci.org/pythonprofilers/memory_profiler.svg?branch=master
+    :target: https://travis-ci.org/pythonprofilers/memory_profiler
 
 =================
  Memory Profiler
@@ -186,7 +186,7 @@ flag and plot as follows::
 This will create a plot using matplotlib similar to this:
 
 .. image:: https://cloud.githubusercontent.com/assets/745966/24075879/2e85b43a-0bfa-11e7-8dfe-654320dbd2ce.png
-    :target: https://github.com/fabianp/memory_profiler/pull/134
+    :target: https://github.com/pythonprofilers/memory_profiler/pull/134
     :height: 350px
 
 You can combine both the ``include_children`` and ``multiprocess`` flags to show
@@ -395,7 +395,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
 For support, please ask your question on `stack overflow
 <http://stackoverflow.com/>`_ and add the `*memory-profiling* tag <http://stackoverflow.com/questions/tagged/memory-profiling>`_.
 Send issues, proposals, etc. to `github's issue tracker
-<https://github.com/fabianp/memory_profiler/issues>`_ .
+<https://github.com/pythonprofilers/memory_profiler/issues>`_ .
 
 If you've got questions regarding development, you can email me
 directly at fabian@fseoane.net
@@ -408,7 +408,7 @@ directly at fabian@fseoane.net
 =============
 Latest sources are available from github:
 
-    https://github.com/fabianp/memory_profiler
+    https://github.com/pythonprofilers/memory_profiler
 
 ===============================
 Projects using memory_profiler
