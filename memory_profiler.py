@@ -104,7 +104,7 @@ def _get_child_memory(process, meminfo_attr=None):
     try:
         for child in getattr(process, children_attr)(recursive=True):
             yield getattr(child, meminfo_attr)()[0] / _TWO_20
-    except psutil.NoSuchProcess:
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
         # https://github.com/fabianp/memory_profiler/issues/71
         yield 0.0
 
