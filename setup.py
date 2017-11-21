@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import sys
 from setuptools import setup
 
 
@@ -39,6 +40,10 @@ Operating System :: Unix
 
 """
 
+scripts = ['mprof']
+if sys.platform == "win32":
+    scripts.append('mprof.bat')
+
 setup(
     name='memory_profiler',
     description='A module for monitoring memory usage of a python program',
@@ -48,7 +53,7 @@ setup(
     author_email='f@bianp.net',
     url='http://pypi.python.org/pypi/memory_profiler',
     py_modules=['memory_profiler'],
-    scripts=['mprof'],
+    scripts=scripts,
     install_requires=['psutil'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
