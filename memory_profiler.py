@@ -17,8 +17,12 @@ import inspect
 import subprocess
 import logging
 import traceback
-from signal import SIGKILL
-
+if sys.platform == "win32":
+    # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
+    # can be used to kill a process unconditionally in Windows
+    SIGKILL = -1
+else:
+    from signal import SIGKILL
 import psutil
 
 
