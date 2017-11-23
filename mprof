@@ -216,8 +216,10 @@ def run_action():
             args.python = False
     if args.python:
         print("running as a Python program...")
-        if not program[0].startswith("python"):
-            program.insert(0, sys.executable)
+        print("Note: Remove 'memory_profiler import profile' to measure the "\
+              "timestamps of\nfunctions decorated with @profile\n")
+        # sys.executable is inserted in prev condition (.py and not nopython)
+        # TODO: should --python and --nopython be mutually exclusive?
         cmd_line = get_cmd_line(program)
         program[1:1] = ("-m", "memory_profiler", "--timestamp",
                         "-o", mprofile_output)
