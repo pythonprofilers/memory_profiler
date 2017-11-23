@@ -4,7 +4,6 @@ import glob
 import os
 import os.path as osp
 import sys
-import re
 import copy
 import time
 import math
@@ -538,13 +537,6 @@ such file in the current directory."""
 
 
 if __name__ == "__main__":
-    # Workaround for optparse limitation: insert -- before first negative
-    # number found.
-    negint = re.compile("-[0-9]+")
-    for n, arg in enumerate(sys.argv):
-        if negint.match(arg):
-            sys.argv.insert(n, "--")
-            break
     actions = {"rm": rm_action,
                "clean": clean_action,
                "list": list_action,
