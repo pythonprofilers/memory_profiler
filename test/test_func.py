@@ -8,4 +8,4 @@ def test_1(i):
 
 if __name__ == '__main__':
     test_1(10)
-    test_1(10000)
+    test_1(100)
