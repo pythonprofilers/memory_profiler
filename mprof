@@ -223,7 +223,6 @@ def run_action():
         cmd_line = get_cmd_line(program)
         program[1:1] = ("-m", "memory_profiler", "--timestamp",
                         "-o", mprofile_output)
-        print(program)
         p = subprocess.Popen(program)
     else:
         cmd_line = get_cmd_line(program)
