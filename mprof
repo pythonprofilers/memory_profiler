@@ -208,12 +208,14 @@ def run_action():
     # .. TODO: more than one script as argument ? ..
     program = args.program
     if program[0].endswith('.py') and not args.nopython:
-        if not program[0].startswith("python"):
-            program.insert(0, sys.executable)
         if args.multiprocess:
             # in multiprocessing mode you want to spawn a separate
             # python process
+            if not program[0].startswith("python"):
+                program.insert(0, sys.executable)
             args.python = False
+        else:
+            args.python = True
     if args.python:
         print("running as a Python program...")
         if not program[0].startswith("python"):
@@ -221,6 +223,7 @@ def run_action():
         cmd_line = get_cmd_line(program)
         program[1:1] = ("-m", "memory_profiler", "--timestamp",
                         "-o", mprofile_output)
+        print(program)
         p = subprocess.Popen(program)
     else:
         cmd_line = get_cmd_line(program)
