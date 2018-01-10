@@ -46,12 +46,10 @@ _TWO_20 = float(2 ** 20)
 
 if PY2:
     import __builtin__ as builtins
+    to_str = lambda x: x
 else:
     import builtins
-
-
-    def unicode(x, *args):
-        return str(x)
+    to_str = lambda x: str(x)
 
 # .. get available packages ..
 try:
@@ -777,7 +775,7 @@ def show_results(prof, stream=None, precision=1):
                 mem = u''
                 inc = u''
             tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
-            stream.write(unicode(tmp, 'UTF-8'))
+            stream.write(to_str(tmp))
         stream.write(u'\n\n')
 
 
