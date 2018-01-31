@@ -1113,23 +1113,38 @@ def choose_backend(new_backend=None):
 # globally defined (global variables is not enough
 # for all cases, e.g. a script that imports another
 # script where @profile is used)
-if PY2:
-    def exec_with_profiler(filename, profiler, backend):
-        builtins.__dict__['profile'] = profiler
-        ns = dict(_CLEAN_GLOBALS, profile=profiler)
-        choose_backend(backend)
+def exec_with_profiler(filename, profiler, backend, passed_args=[]):
+    from runpy import run_module
+    builtins.__dict__['profile'] = profiler
+    ns = dict(_CLEAN_GLOBALS, profile=profiler)
+    _backend = choose_backend(backend)
+    sys.argv = [filename] + passed_args
+    if PY2:
         execfile(filename, ns, ns)
-else:
-    def exec_with_profiler(filename, profiler, backend):
-        _backend = choose_backend(backend)
+    else:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
-        builtins.__dict__['profile'] = profiler
-        # shadow the profile decorator defined above
-        ns = dict(_CLEAN_GLOBALS, profile=profiler)
         try:
             with open(filename) as f:
                 exec(compile(f.read(), filename, 'exec'), ns, ns)
+        finally:
+            if has_tracemalloc and tracemalloc.is_tracing():
+                tracemalloc.stop()
+
+
+def run_module_with_profiler(module, profiler, backend, passed_args=[]):
+    from runpy import run_module
+    builtins.__dict__['profile'] = profiler
+    ns = dict(_CLEAN_GLOBALS, profile=profiler)
+    _backend = choose_backend(backend)
+    sys.argv = [module] + passed_args
+    if PY2:
+        run_module(module, run_name="__main__", init_globals=ns)
+    else:
+        if _backend == 'tracemalloc' and has_tracemalloc:
+            tracemalloc.start()
+        try:
+            run_module(module, run_name="__main__", init_globals=ns)
         finally:
             if has_tracemalloc and tracemalloc.is_tracing():
                 tracemalloc.stop()
@@ -1168,7 +1183,7 @@ class LogFile(object):
 
 
 if __name__ == '__main__':
-    from argparse import ArgumentParser
+    from argparse import ArgumentParser, REMAINDER
 
     parser = ArgumentParser(usage=_CMD_USAGE)
     parser.add_argument('--version', action='version', version=__version__)
@@ -1191,10 +1206,16 @@ if __name__ == '__main__':
         choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
         help='backend using for getting memory info '
              '(one of the {tracemalloc, psutil, posix})')
-    parser.add_argument('script', help='script file run on memory_profiler')
+    parser.add_argument("program", nargs=REMAINDER,
+        help='python script or module followed by command line arguements to run')
     args = parser.parse_args()
 
-    script_filename = _find_script(args.script)
+    if len(args.program) == 0:
+        print("A program to run must be provided. Use -h for help")
+        sys.exit(1)
+
+    target = args.program[0]
+    script_args = args.program[1:]
     _backend = choose_backend(args.backend)
     if args.timestamp:
         prof = TimeStamper(_backend)
@@ -1202,7 +1223,11 @@ if __name__ == '__main__':
         prof = LineProfiler(max_mem=args.max_mem, backend=_backend)
 
     try:
-        exec_with_profiler(script_filename, prof, args.backend)
+        if args.program[0].endswith('.py'):
+            script_filename = _find_script(args.program[0])
+            exec_with_profiler(script_filename, prof, args.backend, script_args)
+        else:
+            run_module_with_profiler(target, prof, args.backend, script_args)
     finally:
         if args.out_filename is not None:
             out_file = open(args.out_filename, "a")

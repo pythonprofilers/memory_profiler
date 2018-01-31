@@ -10,7 +10,7 @@ import time
 import math
 
 from collections import defaultdict
-from argparse import ArgumentParser, ArgumentError
+from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
 
 import memory_profiler as mp
 
@@ -175,7 +175,7 @@ def get_cmd_line(args):
 
 def run_action():
     import time, subprocess
-    parser = ArgumentParser(usage="mprof run [options] program")
+    parser = ArgumentParser(usage="mprof run [options] program", formatter_class=RawTextHelpFormatter)
     parser.add_argument('--version', action='version', version=mp.__version__)
     parser.add_argument("--python", dest="python", action="store_true",
                         help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
@@ -186,8 +186,13 @@ def run_action():
     parser.add_argument("--include-children", "-C", dest="include_children", action="store_true",
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
-                        help="""Monitors forked processes creating individual plots for each child""")
-    parser.add_argument("program", nargs='*')
+                        help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
+    parser.add_argument("program", nargs=REMAINDER,
+                        help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
+                             'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
+                             'Option 3: (--python flag present) "<PYTHON_EXECUTABLE> <PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script with specified interpreter\n'
+                             'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
+                        )
     args = parser.parse_args()
 
     if len(args.program) == 0:
