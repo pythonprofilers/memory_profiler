@@ -405,13 +405,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
                     # Write children to the stream file
                     if multiprocess:
-                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
+                        for idx, chldmem in enumerate(_get_child_memory(proc)):
                             stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
                     # Create a nested list with the child memory
                     if multiprocess:
                         mem_usage = [mem_usage]
-                        for chldmem in _get_child_memory(proc.pid):
+                        for chldmem in _get_child_memory(proc):
                             mem_usage.append(chldmem)
 
                     # Append the memory usage to the return value
