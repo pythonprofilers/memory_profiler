@@ -187,6 +187,10 @@ def run_action():
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
                         help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
+    parser.add_argument("--output", "-o", dest="filename",
+                        default="mprofile_<YYYYMMDDhhmmss>.dat",
+                        help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat',
+(where <YYYYMMDDhhmmss> is the date-time of the program start)""")
     parser.add_argument("program", nargs=REMAINDER,
                         help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
                              'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
@@ -202,13 +206,16 @@ def run_action():
     print("{1}: Sampling memory every {0}s".format(
         args.interval, osp.basename(sys.argv[0])))
 
-    ## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
-    ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
-    ## directory. This file contains the process memory consumption, in Mb (one
-    ## value per line). Memory is sampled twice each second."""
+    if args.filename is None:
+        ## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
+        ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
+        ## directory. This file contains the process memory consumption, in Mb (one
+        ## value per line). Memory is sampled twice each second."""
 
-    suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
-    mprofile_output = "mprofile_%s.dat" % suffix
+        suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
+        mprofile_output = "mprofile_%s.dat" % suffix
+    else:
+        mprofile_output = args.filename
 
     # .. TODO: more than one script as argument ? ..
     program = args.program
