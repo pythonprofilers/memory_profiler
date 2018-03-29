@@ -135,13 +135,13 @@ of the code that is causing the highest memory usage.
 Adding the `profile` decorator to a function and running the Python
 script with
 
-    mprof run <script>
+    mprof run --python <script>
 
 will record timestamps when entering/leaving the profiled function. Running
 
     mprof plot
 
-afterward will plot the result, making plots (using matplotlib) similar to these:
+afterwards will plot the result, making plots (using matplotlib) similar to these:
 
 .. image:: https://camo.githubusercontent.com/3a584c7cfbae38c9220a755aa21b5ef926c1031d/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f313930383631382f3836313332302f63623865376337382d663563632d313165322d386531652d3539373237623636663462322e706e67
    :target: https://github.com/scikit-learn/scikit-learn/pull/2248
