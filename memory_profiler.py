@@ -3,20 +3,22 @@
 # .. we'll use this to pass it to the child script ..
 _CLEAN_GLOBALS = globals().copy()
 
-__version__ = '0.50.0'
+__version__ = '0.53.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-import time
-import sys
+from functools import wraps
+import inspect
+import linecache
+import logging
 import os
 import pdb
-import warnings
-import linecache
-import inspect
 import subprocess
-import logging
+import sys
+import time
 import traceback
+import warnings
+
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
     # can be used to kill a process unconditionally in Windows
@@ -1067,6 +1069,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         if not tracemalloc.is_tracing():
             tracemalloc.start()
     if func is not None:
+        @wraps(func)
         def wrapper(*args, **kwargs):
             prof = LineProfiler(backend=backend)
             val = prof(func)(*args, **kwargs)
