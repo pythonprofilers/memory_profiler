@@ -5,6 +5,7 @@ PYTHON ?= python
 test:
 	$(PYTHON) -m memory_profiler test/test_func.py
 	$(PYTHON) -m memory_profiler test/test_loop.py
+	$(PYTHON) -m memory_profiler test/test_mprofile.py
 	$(PYTHON) -m memory_profiler test/test_as.py
 	$(PYTHON) -m memory_profiler test/test_global.py
 	$(PYTHON) -m memory_profiler test/test_precision_command_line.py
