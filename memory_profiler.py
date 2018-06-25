@@ -48,6 +48,7 @@ _TWO_20 = float(2 ** 20)
 
 if PY2:
     import __builtin__ as builtins
+    from future_builtins import filter
 else:
     import builtins
 
@@ -1122,11 +1123,11 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     ns = dict(_CLEAN_GLOBALS, profile=profiler)
     _backend = choose_backend(backend)
     sys.argv = [filename] + passed_args
+    if _backend == 'tracemalloc' and has_tracemalloc:
+        tracemalloc.start()
     if PY2:
         execfile(filename, ns, ns)
     else:
-        if _backend == 'tracemalloc' and has_tracemalloc:
-            tracemalloc.start()
         try:
             with open(filename) as f:
                 exec(compile(f.read(), filename, 'exec'), ns, ns)
