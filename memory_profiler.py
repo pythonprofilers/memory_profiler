@@ -1123,17 +1123,17 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     ns = dict(_CLEAN_GLOBALS, profile=profiler)
     _backend = choose_backend(backend)
     sys.argv = [filename] + passed_args
-    if _backend == 'tracemalloc' and has_tracemalloc:
-        tracemalloc.start()
-    if PY2:
-        execfile(filename, ns, ns)
-    else:
-        try:
+    try:
+        if _backend == 'tracemalloc' and has_tracemalloc:
+            tracemalloc.start()
+        if PY2:
+            execfile(filename, ns, ns)
+        else:
             with open(filename) as f:
                 exec(compile(f.read(), filename, 'exec'), ns, ns)
-        finally:
-            if has_tracemalloc and tracemalloc.is_tracing():
-                tracemalloc.stop()
+    finally:
+        if has_tracemalloc and tracemalloc.is_tracing():
+            tracemalloc.stop()
 
 
 def run_module_with_profiler(module, profiler, backend, passed_args=[]):
