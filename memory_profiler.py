@@ -597,9 +597,7 @@ class CodeMap(dict):
 
         prev_line_value = self[code].get(prev_lineno, None) if prev_lineno else None
         prev_line_memory = prev_line_value[1] if prev_line_value else 0
-        #inc = (memory-prev_line_memory)
-        #print('trace lineno=%(lineno)s prev_lineno=%(prev_lineno)s mem=%(memory)s prev_inc=%(previous_inc)s inc=%(inc)s' % locals())
-        self[code][lineno] = (previous_inc + (memory-prev_line_memory), max(memory, previous_memory))
+        self[code][lineno] = (max(previous_inc, memory-prev_line_memory), max(memory, previous_memory))
 
     def items(self):
         """Iterate on the toplevel code blocks."""
