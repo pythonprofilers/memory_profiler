@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import glob
 import os
 import os.path as osp
@@ -465,7 +463,7 @@ such file in the current directory."""
                         help="Save plot to file instead of displaying it.")
     parser.add_argument("--window", "-w", dest="xlim", type=xlim_type,
                         help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
-    parser.add_argument("--backend", 
+    parser.add_argument("--backend",
                       help="Specify the Matplotlib backend to use")
     parser.add_argument("profiles", nargs="*",
                         help="profiles made by mprof run")
@@ -540,8 +538,7 @@ such file in the current directory."""
     else:
         pl.show()
 
-
-if __name__ == "__main__":
+def main():
     # Workaround for optparse limitation: insert -- before first negative
     # number found.
     negint = re.compile("-[0-9]+")
@@ -555,3 +552,6 @@ if __name__ == "__main__":
                "run": run_action,
                "plot": plot_action}
     actions[get_action()]()
+
+if __name__ == "__main__":
+    main()
