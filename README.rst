@@ -18,7 +18,7 @@ To install through easy_install or pip::
 
     $ easy_install -U memory_profiler # pip install -U memory_profiler
 
-The package is also available on ```conda-forge`` 
+The package is also available on `conda-forge
 <https://github.com/conda-forge/memory_profiler-feedstock>`_.
 
 To install from source, download the package, extract and type::
