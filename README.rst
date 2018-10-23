@@ -14,9 +14,9 @@ programs. It is a pure python module which depends on the `psutil
 ==============
  Installation
 ==============
-To install through easy_install or pip::
+Install via pip::
 
-    $ easy_install -U memory_profiler # pip install -U memory_profiler
+    $ pip install -U memory_profiler
 
 The package is also available on `conda-forge
 <https://github.com/conda-forge/memory_profiler-feedstock>`_.
