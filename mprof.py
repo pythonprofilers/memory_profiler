@@ -422,11 +422,12 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:
         func_num = 0
+        f_labels = function_labels(ts.keys())
         for f, exec_ts in ts.items():
             for execution in exec_ts:
                 add_brackets(execution[:2], execution[2:], xshift=global_start,
                              color=all_colors[func_num % len(all_colors)],
-                             label=f.split(".")[-1]
+                             label=f_labels[f]
                                    + " %.3fs" % (execution[1] - execution[0]), options=options)
             func_num += 1
 
@@ -437,6 +438,33 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         pl.vlines(t[max_mem_ind], bottom, top,
                   colors="r", linestyles="--")
     return mprofile
+
+
+def function_labels(dotted_function_names):
+    state = {}
+
+    def set_state_for(function_names, level):
+        for fn in function_names:
+            label = ".".join(fn.split(".")[-level:])
+            label_state = state.setdefault(label, {"functions": [],
+                                                   "level": level})
+            label_state["functions"].append(fn)`
+
+    set_state_for(dotted_function_names, 1)
+
+    while True:
+        ambiguous_labels = [label for label in state if len(state[label]["functions"]) > 1]
+        for ambiguous_label in ambiguous_labels:
+            function_names = state[ambiguous_label]["functions"]
+            new_level = state[ambiguous_label]["level"] + 1
+            del state[ambiguous_label]
+            set_state_for(function_names, new_level)
+        if len(ambiguous_labels) == 0:
+            break
+
+    fn_to_label = { label_state["functions"][0] : label for label, label_state in state.items() }
+
+    return fn_to_label
 
 
 def plot_action():
