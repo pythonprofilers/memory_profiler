@@ -448,7 +448,7 @@ def function_labels(dotted_function_names):
             label = ".".join(fn.split(".")[-level:])
             label_state = state.setdefault(label, {"functions": [],
                                                    "level": level})
-            label_state["functions"].append(fn)`
+            label_state["functions"].append(fn)
 
     set_state_for(dotted_function_names, 1)
 
