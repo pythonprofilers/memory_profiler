@@ -189,8 +189,7 @@ def run_action():
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
                         help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
-    parser.add_argument("--exit-code", "-E", dest="exit_code", action="store_true",
-                        help="""Propagate the exit code""")
+    parser.add_argument("--exit-code", "-E", dest="exit_code", action="store_true", help="""Propagate the exit code""")
     parser.add_argument("--output", "-o", dest="filename",
                         default="mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime()),
                         help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat' in the current directory,
@@ -203,7 +202,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
                              'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
                         )
     args = parser.parse_args()
-
+    print(args)
     if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
