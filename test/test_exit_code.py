@@ -2,6 +2,7 @@ import unittest
 import sys
 import tempfile
 
+
 class TestExitCode(unittest.TestCase):
 
     def setUp(self):
@@ -28,6 +29,14 @@ class TestExitCode(unittest.TestCase):
             sys.argv = ['<ignored>', '--exit-code', tmpfile.name]
             self.assertRaisesRegex(SystemExit, '1', self.run_action)
 
+    def test_no_exit_code_success(self):
+        s = "raise RuntimeError('I am not working nicely')"
+        tmpfile = tempfile.NamedTemporaryFile('w', suffix='.py')
+        with tmpfile as ofile:
+            ofile.write(s)
+            ofile.flush()
+            sys.argv = ['<ignored>', tmpfile.name]
+            self.run_action()
 
 if __name__ == '__main__':
     unittest.main()
