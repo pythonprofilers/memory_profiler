@@ -6,6 +6,7 @@ import re
 import copy
 import time
 import math
+import logging
 
 from collections import defaultdict
 from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
@@ -25,6 +26,9 @@ Available commands:
 Type mprof <command> --help for usage help on a specific command.
 For example, mprof plot --help will list all plotting options.
 """
+
+logger = logging.getLogger(__name__)
+logging.basicConfig()
 
 
 def print_usage():
@@ -185,6 +189,7 @@ def run_action():
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
                         help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
+    parser.add_argument("--exit-code", "-E", dest="exit_code", action="store_true", help="""Propagate the exit code""")
     parser.add_argument("--output", "-o", dest="filename",
                         default="mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime()),
                         help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat' in the current directory,
@@ -197,7 +202,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
                              'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
                         )
     args = parser.parse_args()
-
+    
     if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
@@ -235,6 +240,11 @@ This file contains the process memory consumption, in Mb (one value per line).""
         mp.memory_usage(proc=p, interval=args.interval, timestamps=True,
                         include_children=args.include_children,
                         multiprocess=args.multiprocess, stream=f)
+
+    if args.exit_code:
+        if p.returncode != 0:
+            logger.error('Program resulted with a non-zero exit code: %s', p.returncode)
+        sys.exit(p.returncode)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
