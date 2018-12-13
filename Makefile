@@ -17,6 +17,7 @@ test:
 	$(PYTHON) test/test_precision_import.py
 	$(PYTHON) test/test_exception.py
 	$(PYTHON) test/test_exit_code.py
+	$(PYTHON) test/test_mprof.py
 
 develop:
 	pip install -e .
