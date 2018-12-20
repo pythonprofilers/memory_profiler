@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import glob
 import os
 import os.path as osp
@@ -8,9 +6,10 @@ import re
 import copy
 import time
 import math
+import logging
 
 from collections import defaultdict
-from argparse import ArgumentParser, ArgumentError
+from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
 
 import memory_profiler as mp
 
@@ -27,6 +26,9 @@ Available commands:
 Type mprof <command> --help for usage help on a specific command.
 For example, mprof plot --help will list all plotting options.
 """
+
+logger = logging.getLogger(__name__)
+logging.basicConfig()
 
 
 def print_usage():
@@ -175,7 +177,7 @@ def get_cmd_line(args):
 
 def run_action():
     import time, subprocess
-    parser = ArgumentParser(usage="mprof run [options] program")
+    parser = ArgumentParser(usage="mprof run [options] program", formatter_class=RawTextHelpFormatter)
     parser.add_argument('--version', action='version', version=mp.__version__)
     parser.add_argument("--python", dest="python", action="store_true",
                         help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
@@ -186,10 +188,21 @@ def run_action():
     parser.add_argument("--include-children", "-C", dest="include_children", action="store_true",
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
-                        help="""Monitors forked processes creating individual plots for each child""")
-    parser.add_argument("program", nargs='*')
+                        help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
+    parser.add_argument("--exit-code", "-E", dest="exit_code", action="store_true", help="""Propagate the exit code""")
+    parser.add_argument("--output", "-o", dest="filename",
+                        default="mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime()),
+                        help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat' in the current directory,
+(where <YYYYMMDDhhmmss> is the date-time of the program start).
+This file contains the process memory consumption, in Mb (one value per line).""")
+    parser.add_argument("program", nargs=REMAINDER,
+                        help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
+                             'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
+                             'Option 3: (--python flag present) "<PYTHON_EXECUTABLE> <PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script with specified interpreter\n'
+                             'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
+                        )
     args = parser.parse_args()
-
+    
     if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
@@ -197,13 +210,7 @@ def run_action():
     print("{1}: Sampling memory every {0}s".format(
         args.interval, osp.basename(sys.argv[0])))
 
-    ## Output results in a file called "mprofile_<YYYYMMDDhhmmss>.dat" (where
-    ## <YYYYMMDDhhmmss> is the date-time of the program start) in the current
-    ## directory. This file contains the process memory consumption, in Mb (one
-    ## value per line). Memory is sampled twice each second."""
-
-    suffix = time.strftime("%Y%m%d%H%M%S", time.localtime())
-    mprofile_output = "mprofile_%s.dat" % suffix
+    mprofile_output = args.filename
 
     # .. TODO: more than one script as argument ? ..
     program = args.program
@@ -233,6 +240,11 @@ def run_action():
         mp.memory_usage(proc=p, interval=args.interval, timestamps=True,
                         include_children=args.include_children,
                         multiprocess=args.multiprocess, stream=f)
+
+    if args.exit_code:
+        if p.returncode != 0:
+            logger.error('Program resulted with a non-zero exit code: %s', p.returncode)
+        sys.exit(p.returncode)
 
 
 def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
@@ -420,11 +432,12 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:
         func_num = 0
+        f_labels = function_labels(ts.keys())
         for f, exec_ts in ts.items():
             for execution in exec_ts:
                 add_brackets(execution[:2], execution[2:], xshift=global_start,
                              color=all_colors[func_num % len(all_colors)],
-                             label=f.split(".")[-1]
+                             label=f_labels[f]
                                    + " %.3fs" % (execution[1] - execution[0]), options=options)
             func_num += 1
 
@@ -435,6 +448,33 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         pl.vlines(t[max_mem_ind], bottom, top,
                   colors="r", linestyles="--")
     return mprofile
+
+
+def function_labels(dotted_function_names):
+    state = {}
+
+    def set_state_for(function_names, level):
+        for fn in function_names:
+            label = ".".join(fn.split(".")[-level:])
+            label_state = state.setdefault(label, {"functions": [],
+                                                   "level": level})
+            label_state["functions"].append(fn)
+
+    set_state_for(dotted_function_names, 1)
+
+    while True:
+        ambiguous_labels = [label for label in state if len(state[label]["functions"]) > 1]
+        for ambiguous_label in ambiguous_labels:
+            function_names = state[ambiguous_label]["functions"]
+            new_level = state[ambiguous_label]["level"] + 1
+            del state[ambiguous_label]
+            set_state_for(function_names, new_level)
+        if len(ambiguous_labels) == 0:
+            break
+
+    fn_to_label = { label_state["functions"][0] : label for label, label_state in state.items() }
+
+    return fn_to_label
 
 
 def plot_action():
@@ -461,7 +501,7 @@ such file in the current directory."""
                         help="Save plot to file instead of displaying it.")
     parser.add_argument("--window", "-w", dest="xlim", type=xlim_type,
                         help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
-    parser.add_argument("--backend", 
+    parser.add_argument("--backend",
                       help="Specify the Matplotlib backend to use")
     parser.add_argument("profiles", nargs="*",
                         help="profiles made by mprof run")
@@ -536,8 +576,7 @@ such file in the current directory."""
     else:
         pl.show()
 
-
-if __name__ == "__main__":
+def main():
     # Workaround for optparse limitation: insert -- before first negative
     # number found.
     negint = re.compile("-[0-9]+")
@@ -551,3 +590,6 @@ if __name__ == "__main__":
                "run": run_action,
                "plot": plot_action}
     actions[get_action()]()
+
+if __name__ == "__main__":
+    main()

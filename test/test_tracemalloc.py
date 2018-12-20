@@ -18,8 +18,6 @@ EPSILON = 0.0001
 def test_memory_profiler(test_input, expected):
     mem_prof(test_input)
     inc, dec = parse_mem_prof()
-    assert abs(inc - dec) <= EPSILON, \
-        'inc = {}, dec = {}, err = {}'.format(inc, dec, abs(inc - dec))
     assert abs(inc - expected) <= EPSILON, \
         'inc = {}, size = {}, err = {}'.format(
             inc, expected, abs(inc - expected)
