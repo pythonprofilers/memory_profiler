@@ -301,7 +301,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         ret = -1
 
     if timeout is not None:
-        max_iter = int(timeout / interval)
+        max_iter = int(round(timeout / interval))
     elif isinstance(proc, int):
         # external process and no timeout
         max_iter = 1
