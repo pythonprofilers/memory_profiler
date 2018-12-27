@@ -339,6 +339,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 n_measurements = parent_conn.recv()
                 if retval:
                     ret = ret, returned
+                if max_usage:
+                    ret = ret[0]
             except Exception:
                 parent = psutil.Process(os.getpid())
                 for child in parent.children(recursive=True):
