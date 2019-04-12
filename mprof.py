@@ -7,6 +7,7 @@ import copy
 import time
 import math
 import logging
+import itertools
 
 from collections import defaultdict
 from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
@@ -492,6 +493,15 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     mem = mem[ind]
     t = t[ind]
     stack_size = 1 + max(ex[4] for executions in ts.values() for ex in executions)
+    def level_to_saturation(level):
+        return 1 - 0.75 * level / stack_size
+
+    colors = [
+        itertools.cycle([
+            pl.matplotlib.colors.hsv_to_rgb((0, level_to_saturation(level), 1)),
+            pl.matplotlib.colors.hsv_to_rgb((0.1, level_to_saturation(level), 1)),
+        ]) for level in range(stack_size)
+    ]
 
     # Plot curves
     global_start = float(t[0])
@@ -500,7 +510,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
-    cmap = pl.cm.get_cmap('gist_rainbow')
+    # cmap = pl.cm.get_cmap('gist_rainbow')
     mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
@@ -547,7 +557,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 x0, x1 = execution[:2]
                 y0 = execution[4]
                 y1 = y0 + 1
-                color = cmap(0.5)
+                color = next(colors[y0])
                 add_timestamp_rectangle(
                     timestamp_ax,
                     x0, x1, y0, y1,
