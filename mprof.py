@@ -491,6 +491,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     ind = t.argsort()
     mem = mem[ind]
     t = t[ind]
+    stack_size = 1 + max(ex[4] for executions in ts.values() for ex in executions)
 
     # Plot curves
     global_start = float(t[0])
@@ -499,7 +500,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
-    all_colors = ("c", "y", "g", "r", "b")
+    cmap = pl.cm.get_cmap('gist_rainbow')
     mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
@@ -511,6 +512,9 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     bottom, top = pl.ylim()
     bottom += 0.001
     top -= 0.001
+
+    timestamp_ax = pl.twinx()
+    timestamp_ax.set_ylim((0, stack_size))
 
     # plot children, if any
     if len(chld) > 0 and children:
@@ -540,10 +544,16 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
         f_labels = function_labels(ts.keys())
         for f, exec_ts in ts.items():
             for execution in exec_ts:
-                add_brackets(execution[:2], execution[2:], xshift=global_start,
-                             color=all_colors[func_num % len(all_colors)],
-                             label=f_labels[f]
-                                   + " %.3fs" % (execution[1] - execution[0]), options=options)
+                x0, x1 = execution[:2]
+                y0 = execution[4]
+                y1 = y0 + 1
+                color = cmap(0.5)
+                add_timestamp_rectangle(
+                    timestamp_ax,
+                    x0, x1, y0, y1,
+                    xshift=global_start,
+                    color=color
+                )
             func_num += 1
 
     if timestamps:
@@ -553,6 +563,14 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
         pl.vlines(t[max_mem_ind], bottom, top,
                   colors="r", linestyles="--")
     return mprofile
+
+
+def add_timestamp_rectangle(ax, x0, x1, y0, y1, *, xshift=0, color='none'):
+    x0 -= xshift
+    x1 -= xshift
+    print(f"Drawing rectangle ({x0}, {y0}, {x1}, {y1})")
+    print(color)
+    ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
 
 
 def function_labels(dotted_function_names):
