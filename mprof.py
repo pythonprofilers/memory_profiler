@@ -492,6 +492,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     ind = t.argsort()
     mem = mem[ind]
     t = t[ind]
+
     stack_size = 1 + max(ex[4] for executions in ts.values() for ex in executions)
     def level_to_saturation(level):
         return 1 - 0.75 * level / stack_size
@@ -516,15 +517,17 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                                    time.localtime(global_start)) \
                      + ".{0:03d}".format(int(round(math.modf(global_start)[0] * 1000)))
 
-    pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
+    pl.plot(t, mem, "-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
 
     bottom, top = pl.ylim()
     bottom += 0.001
     top -= 0.001
 
+    pl.gca().grid(True)
     timestamp_ax = pl.twinx()
     timestamp_ax.set_ylim((0, stack_size))
+    timestamp_ax.grid(False)
 
     # plot children, if any
     if len(chld) > 0 and children:
@@ -578,8 +581,6 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
 def add_timestamp_rectangle(ax, x0, x1, y0, y1, *, xshift=0, color='none'):
     x0 -= xshift
     x1 -= xshift
-    print(f"Drawing rectangle ({x0}, {y0}, {x1}, {y1})")
-    print(color)
     ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
 
 
@@ -682,7 +683,10 @@ such file in the current directory."""
         sys.exit(-1)
 
     fig = pl.figure(figsize=(14, 6), dpi=90)
-    ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
+    if not args.flame_mode:
+        ax = fig.add_axes([0.1, 0.1, 0.6, 0.75])
+    else:
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     if args.xlim is not None:
         pl.xlim(args.xlim[0], args.xlim[1])
 
@@ -706,9 +710,11 @@ such file in the current directory."""
 
     # place legend within the plot, make partially transparent in
     # case it obscures part of the lineplot
-    leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    leg.get_frame().set_alpha(0.5)
-    pl.grid()
+    if not args.flame_mode:
+        leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        leg.get_frame().set_alpha(0.5)
+        pl.grid()
+
     if args.output:
         pl.savefig(args.output)
     else:
