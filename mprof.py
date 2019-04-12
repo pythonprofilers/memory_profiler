@@ -555,19 +555,40 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     if len(ts) > 0 and timestamps:
         func_num = 0
         f_labels = function_labels(ts.keys())
+        rectangles = {}
         for f, exec_ts in ts.items():
             for execution in exec_ts:
                 x0, x1 = execution[:2]
                 y0 = execution[4]
                 y1 = y0 + 1
+                x0 -= global_start
+                x1 -= global_start
                 color = next(colors[y0])
-                add_timestamp_rectangle(
+                rect = add_timestamp_rectangle(
                     timestamp_ax,
                     x0, x1, y0, y1,
-                    xshift=global_start,
                     color=color
                 )
+                rectangles[(x0, y0, x1, y1)] = f
             func_num += 1
+
+    label = pl.text(0, 0, "")
+    def mouse_motion_handler(event):
+        x, y = event.xdata, event.ydata
+        if x is None or y is None:
+            return
+
+        for rect, func_name in rectangles.items():
+            x0, y0, x1, y1 = rect
+            if x0 < x < x1 and y0 < y < y1:
+                print(x, y)
+                label.set_position((x, y))
+                label.set_text(func_name)
+                pl.draw()
+                return
+            label.set_text("")
+
+    pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
 
     if timestamps:
         pl.hlines(max_mem,
@@ -578,10 +599,8 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     return mprofile
 
 
-def add_timestamp_rectangle(ax, x0, x1, y0, y1, *, xshift=0, color='none'):
-    x0 -= xshift
-    x1 -= xshift
-    ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
+def add_timestamp_rectangle(ax, x0, x1, y0, y1, *, color='none'):
+    return ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
 
 
 def function_labels(dotted_function_names):
