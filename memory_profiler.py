@@ -461,16 +461,25 @@ def _find_script(script_name):
 class _TimeStamperCM(object):
     """Time-stamping context manager."""
 
-    def __init__(self, timestamps, filename, backend):
+    def __init__(self, timestamps, filename, backend, timestamper=None, func=None):
         self.timestamps = timestamps
         self.filename = filename
         self.backend = backend
+        self.ts = timestamper
+        self.func = func
 
     def __enter__(self):
+        if self.ts is not None:
+            self.ts.current_stack_level += 1
+            self.ts.stack[self.func].append(self.ts.current_stack_level)
+
         self.timestamps.append(
             _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
 
     def __exit__(self, *args):
+        if self.ts is not None:
+            self.ts.current_stack_level -= 1
+
         self.timestamps.append(
             _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
 
@@ -519,7 +528,13 @@ class TimeStamper:
             filename = inspect.getsourcefile(func)
         except TypeError:
             filename = '<unknown>'
-        return _TimeStamperCM(timestamps, filename, self.backend)
+        return _TimeStamperCM(
+            timestamps,
+            filename,
+            self.backend,
+            timestamper=self,
+            func=func
+        )
 
     def add_function(self, func):
         if func not in self.functions:
