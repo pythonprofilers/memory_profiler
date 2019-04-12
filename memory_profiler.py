@@ -579,9 +579,9 @@ class TimeStamper:
 
         for func, timestamps in self.functions.items():
             function_name = "%s.%s" % (func.__module__, func.__name__)
-            for ts in timestamps:
-                stream.write("FUNC %s %.4f %.4f %.4f %.4f\n" % (
-                    (function_name,) + ts[0] + ts[1]))
+            for ts, level in zip(timestamps, self.stack[func]):
+                stream.write("FUNC %s %.4f %.4f %.4f %.4f %d\n" % (
+                    (function_name,) + ts[0] + ts[1] + (level,)))
 
 
 class CodeMap(dict):
