@@ -18,6 +18,7 @@ import sys
 import time
 import traceback
 import warnings
+import contextlib
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -482,6 +483,8 @@ class TimeStamper:
     def __init__(self, backend):
         self.functions = {}
         self.backend = backend
+        self.current_stack_level = -1
+        self.stack = {}
 
     def __call__(self, func=None, precision=None):
         if func is not None:
@@ -521,6 +524,7 @@ class TimeStamper:
     def add_function(self, func):
         if func not in self.functions:
             self.functions[func] = []
+            self.stack[func] = []
 
     def wrap_function(self, func):
         """ Wrap a function to timestamp it.
@@ -536,13 +540,23 @@ class TimeStamper:
                 _get_memory(os.getpid(), self.backend, timestamps=True, filename=filename)]
             self.functions[func].append(timestamps)
             try:
-                return func(*args, **kwds)
+                with self.call_on_stack(*args, **kwds) as result:
+                    return result
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), self.backend, timestamps=True,
                                               filename=filename))
 
         return f
+
+    @contextlib.contextmanager
+    def call_on_stack(self, func, *args, **kwds):
+        self.current_stack_level += 1
+        self.stack[func].append(self.current_stack_level)
+
+        yield func(*args, **kwds)
+
+        self.current_stack_level -= 1
 
     def show_results(self, stream=None):
         if stream is None:
