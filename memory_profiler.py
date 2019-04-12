@@ -555,7 +555,7 @@ class TimeStamper:
                 _get_memory(os.getpid(), self.backend, timestamps=True, filename=filename)]
             self.functions[func].append(timestamps)
             try:
-                with self.call_on_stack(*args, **kwds) as result:
+                with self.call_on_stack(func, *args, **kwds) as result:
                     return result
             finally:
                 # end time
