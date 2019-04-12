@@ -11,7 +11,9 @@ import logging
 from collections import defaultdict
 from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
 
-import memory_profiler as mp
+import importlib
+mp = importlib.import_module("memory_profiler", __file__)
+# import memory_profiler as mp
 
 ALL_ACTIONS = ("run", "rm", "clean", "list", "plot")
 help_msg = """
@@ -202,7 +204,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
                              'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
                         )
     args = parser.parse_args()
-    
+
     if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
@@ -329,8 +331,12 @@ def read_mprofile_file(filename):
             values = value.split(' ')
             f_name, mem_start, start, mem_end, end = values[:5]
             ts = func_ts.get(f_name, [])
-            ts.append([float(start), float(end),
-                       float(mem_start), float(mem_end)])
+            to_append = [float(start), float(end), float(mem_start), float(mem_end)]
+            if len(values) >= 6:
+                # There is a stack level field
+                stack_level = values[5]
+                to_append.append(int(stack_level))
+            ts.append(to_append)
             func_ts[f_name] = ts
 
         elif field == "CHLD":
