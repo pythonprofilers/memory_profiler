@@ -332,7 +332,6 @@ def read_mprofile_file(filename):
             values = value.split(' ')
             f_name, mem_start, start, mem_end, end = values[:5]
             ts = func_ts.get(f_name, [])
-            print(f_name, mem_start, start, mem_end, end)
             to_append = [float(start), float(end), float(mem_start), float(mem_end)]
             if len(values) >= 6:
                 # There is a stack level field
@@ -458,6 +457,12 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     return mprofile
 
 
+
+FLAME_PLOTTER_VARS = {
+    'hovered_rect': None,
+    'alpha': None
+}
+
 def flame_plotter(filename, index=0, timestamps=True, children=True, options=None):
     try:
         import pylab as pl
@@ -565,32 +570,48 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 x0 -= global_start
                 x1 -= global_start
                 color = next(colors[y0])
-                _rect, text = add_timestamp_rectangle(
+                rect, text = add_timestamp_rectangle(
                     timestamp_ax,
                     x0, x1, y0, y1, f,
                     color=color
                 )
-                rectangles[(x0, y0, x1, y1)] = (f, text)
+                rectangles[(x0, y0, x1, y1)] = (f, text, rect)
             func_num += 1
 
     def mouse_motion_handler(event):
+        print(FLAME_PLOTTER_VARS['hovered_rect'])
         x, y = event.xdata, event.ydata
-        if x is None or y is None:
-            return
+        if x is not None and y is not None:
+            for coord, (name, text, rect) in rectangles.items():
+                x0, y0, x1, y1 = coord
+                if x0 < x < x1 and y0 < y < y1:
+                    if FLAME_PLOTTER_VARS['hovered_rect'] == rect:
+                        return
 
-        for rect, func_name in rectangles.items():
-            x0, y0, x1, y1 = rect
-            if x0 < x < x1 and y0 < y < y1:
-                # pl.draw()
-                return
+                    if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
+                        FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
+                        FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
+
+                    FLAME_PLOTTER_VARS['hovered_rect'] = rect
+                    FLAME_PLOTTER_VARS['alpha'] = rect.get_alpha()
+                    FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(0.8)
+                    FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(3)
+                    pl.draw()
+                    return
+
+        if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
+            FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
+            FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
+            pl.draw()
+            FLAME_PLOTTER_VARS['hovered_rect'] = None
 
     def mouse_click_handler(event):
         x, y = event.xdata, event.ydata
         if x is None or y is None:
             return
 
-        for rect, func_name in rectangles.items():
-            x0, y0, x1, y1 = rect
+        for coord, _ in rectangles.items():
+            x0, y0, x1, y1 = coord
             if x0 < x < x1 and y0 < y < y1:
                 toolbar = pl.gcf().canvas.toolbar
                 toolbar.push_current()
@@ -600,7 +621,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 return
 
     pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
-    pl.gcf().canvas.mpl_connect('button_press_event', mouse_click_handler)
+    pl.gcf().canvas.mpl_connect('button_release_event', mouse_click_handler)
 
     if timestamps:
         pl.hlines(max_mem,
