@@ -620,7 +620,9 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 pl.draw()
                 return
 
-    pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
+    # Disable hovering if there are too many rectangle to prevent slow down
+    if len(rectangles) < 100:
+        pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
     pl.gcf().canvas.mpl_connect('button_release_event', mouse_click_handler)
 
     if timestamps:
