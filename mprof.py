@@ -579,7 +579,6 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
             func_num += 1
 
     def mouse_motion_handler(event):
-        print(FLAME_PLOTTER_VARS['hovered_rect'])
         x, y = event.xdata, event.ydata
         if x is not None and y is not None:
             for coord, (name, text, rect) in rectangles.items():
