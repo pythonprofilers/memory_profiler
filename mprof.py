@@ -332,6 +332,7 @@ def read_mprofile_file(filename):
             values = value.split(' ')
             f_name, mem_start, start, mem_end, end = values[:5]
             ts = func_ts.get(f_name, [])
+            print(f_name, mem_start, start, mem_end, end)
             to_append = [float(start), float(end), float(mem_start), float(mem_end)]
             if len(values) >= 6:
                 # There is a stack level field
@@ -526,7 +527,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
 
     pl.gca().grid(True)
     timestamp_ax = pl.twinx()
-    timestamp_ax.set_ylim((0, stack_size))
+    timestamp_ax.set_ylim((0, stack_size + 1))
     timestamp_ax.grid(False)
 
     # plot children, if any
@@ -564,15 +565,14 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 x0 -= global_start
                 x1 -= global_start
                 color = next(colors[y0])
-                rect = add_timestamp_rectangle(
+                _rect, text = add_timestamp_rectangle(
                     timestamp_ax,
-                    x0, x1, y0, y1,
+                    x0, x1, y0, y1, f,
                     color=color
                 )
-                rectangles[(x0, y0, x1, y1)] = f
+                rectangles[(x0, y0, x1, y1)] = (f, text)
             func_num += 1
 
-    label = pl.text(0, 0, "")
     def mouse_motion_handler(event):
         x, y = event.xdata, event.ydata
         if x is None or y is None:
@@ -581,14 +581,26 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
         for rect, func_name in rectangles.items():
             x0, y0, x1, y1 = rect
             if x0 < x < x1 and y0 < y < y1:
-                print(x, y)
-                label.set_position((x, y))
-                label.set_text(func_name)
+                # pl.draw()
+                return
+
+    def mouse_click_handler(event):
+        x, y = event.xdata, event.ydata
+        if x is None or y is None:
+            return
+
+        for rect, func_name in rectangles.items():
+            x0, y0, x1, y1 = rect
+            if x0 < x < x1 and y0 < y < y1:
+                toolbar = pl.gcf().canvas.toolbar
+                toolbar.push_current()
+                timestamp_ax.set_xlim(x0, x1)
+                toolbar.push_current()
                 pl.draw()
                 return
-            label.set_text("")
 
     pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
+    pl.gcf().canvas.mpl_connect('button_press_event', mouse_click_handler)
 
     if timestamps:
         pl.hlines(max_mem,
@@ -599,8 +611,13 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     return mprofile
 
 
-def add_timestamp_rectangle(ax, x0, x1, y0, y1, *, color='none'):
-    return ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
+def add_timestamp_rectangle(ax, x0, x1, y0, y1, func_name, color='none'):
+    rect = ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
+    text = ax.text(x0, y1, func_name,
+        horizontalalignment='left',
+        verticalalignment='top',
+    )
+    return rect, text
 
 
 def function_labels(dotted_function_names):
