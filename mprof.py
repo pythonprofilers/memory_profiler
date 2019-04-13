@@ -615,6 +615,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 toolbar = pl.gcf().canvas.toolbar
                 toolbar.push_current()
                 timestamp_ax.set_xlim(x0, x1)
+                timestamp_ax.set_ylim(y0, stack_size + 1)
                 toolbar.push_current()
                 pl.draw()
                 return
