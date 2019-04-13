@@ -13,8 +13,7 @@ from collections import defaultdict
 from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
 
 import importlib
-mp = importlib.import_module("memory_profiler", __file__)
-# import memory_profiler as mp
+import memory_profiler as mp
 
 ALL_ACTIONS = ("run", "rm", "clean", "list", "plot")
 help_msg = """
