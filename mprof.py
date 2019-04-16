@@ -459,6 +459,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
 FLAME_PLOTTER_VARS = {
     'hovered_rect': None,
+    'hovered_text': None,
     'alpha': None
 }
 
@@ -498,7 +499,10 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     mem = mem[ind]
     t = t[ind]
 
-    stack_size = 1 + max(ex[4] for executions in ts.values() for ex in executions)
+    if ts:
+        stack_size = 1 + max(ex[4] for executions in ts.values() for ex in executions)
+    else:
+        stack_size = 0
     def level_to_saturation(level):
         return 1 - 0.75 * level / stack_size
 
@@ -588,20 +592,25 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
 
                     if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
                         FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
+                        FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 0))
                         FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
 
+                    FLAME_PLOTTER_VARS['hovered_text'] = text
                     FLAME_PLOTTER_VARS['hovered_rect'] = rect
                     FLAME_PLOTTER_VARS['alpha'] = rect.get_alpha()
                     FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(0.8)
                     FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(3)
+                    FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 1))
                     pl.draw()
                     return
 
         if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
+            FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 0))
             FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
             FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
             pl.draw()
             FLAME_PLOTTER_VARS['hovered_rect'] = None
+            FLAME_PLOTTER_VARS['hovered_text'] = None
 
     def mouse_click_handler(event):
         x, y = event.xdata, event.ydata
@@ -638,6 +647,7 @@ def add_timestamp_rectangle(ax, x0, x1, y0, y1, func_name, color='none'):
     text = ax.text(x0, y1, func_name,
         horizontalalignment='left',
         verticalalignment='top',
+        color=(0, 0, 0, 0)
     )
     return rect, text
 
