@@ -1119,7 +1119,15 @@ def choose_backend(new_backend=None):
 def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     from runpy import run_module
     builtins.__dict__['profile'] = profiler
-    ns = dict(_CLEAN_GLOBALS, profile=profiler)
+    ns = dict(_CLEAN_GLOBALS,
+              profile=profiler, 
+             # Make sure the __file__ variable is usable
+             # by the script we're profiling
+              __file__=filename)
+    # Make sure the script's directory in on sys.path
+    # credit to line_profiler
+    sys.path.insert(0, os.path.dirname(script_filename))
+    
     _backend = choose_backend(backend)
     sys.argv = [filename] + passed_args
     try:
