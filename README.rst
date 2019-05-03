@@ -150,6 +150,11 @@ afterward will plot the result, making plots (using matplotlib) similar to these
    :target: https://github.com/scikit-learn/scikit-learn/pull/2248
    :height: 350px
 
+or, with the ``--flame`` option (``mprof plot --flame``):
+
+.. image:: images/flamegraph.py
+   :height: 350px
+
 A discussion of these capabilities can be found `here <http://fa.bianp.net/blog/2014/plot-memory-usage-as-a-function-of-time/>`_.
 
 .. warning:: If your Python file imports the memory profiler `from memory_profiler import profile` these timestamps will not be recorded. Comment out the import, leave your functions decorated, and re-run.
