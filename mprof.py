@@ -533,8 +533,10 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     bottom += 0.001
     top -= 0.001
 
-    pl.gca().grid(True)
-    timestamp_ax = pl.twinx()
+    ax = pl.gca()
+    ax.grid(True)
+    timestamp_ax = ax.twinx()
+    timestamp_ax.set_yticks([])
     timestamp_ax.set_ylim((0, stack_size + 1))
     timestamp_ax.grid(False)
 
@@ -639,6 +641,9 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                   colors="r", linestyles="--")
         pl.vlines(t[max_mem_ind], bottom, top,
                   colors="r", linestyles="--")
+
+    pl.sca(ax)
+
     return mprofile
 
 
