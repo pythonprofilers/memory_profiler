@@ -562,27 +562,6 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
         pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, 'r', '--')
         pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, 'r', '--')
 
-    # plot timestamps, if any
-    if len(ts) > 0 and timestamps:
-        func_num = 0
-        f_labels = function_labels(ts.keys())
-        rectangles = {}
-        for f, exec_ts in ts.items():
-            for execution in exec_ts:
-                x0, x1 = execution[:2]
-                y0 = execution[4]
-                y1 = y0 + 1
-                x0 -= global_start
-                x1 -= global_start
-                color = next(colors[y0])
-                rect, text = add_timestamp_rectangle(
-                    timestamp_ax,
-                    x0, x1, y0, y1, f,
-                    color=color
-                )
-                rectangles[(x0, y0, x1, y1)] = (f, text, rect)
-            func_num += 1
-
     def mouse_motion_handler(event):
         x, y = event.xdata, event.ydata
         if x is not None and y is not None:
@@ -630,10 +609,31 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 pl.draw()
                 return
 
-    # Disable hovering if there are too many rectangle to prevent slow down
-    if len(rectangles) < 100:
-        pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
-    pl.gcf().canvas.mpl_connect('button_release_event', mouse_click_handler)
+    # plot timestamps, if any
+    if len(ts) > 0 and timestamps:
+        func_num = 0
+        f_labels = function_labels(ts.keys())
+        rectangles = {}
+        for f, exec_ts in ts.items():
+            for execution in exec_ts:
+                x0, x1 = execution[:2]
+                y0 = execution[4]
+                y1 = y0 + 1
+                x0 -= global_start
+                x1 -= global_start
+                color = next(colors[y0])
+                rect, text = add_timestamp_rectangle(
+                    timestamp_ax,
+                    x0, x1, y0, y1, f,
+                    color=color
+                )
+                rectangles[(x0, y0, x1, y1)] = (f, text, rect)
+            func_num += 1
+
+        # Disable hovering if there are too many rectangle to prevent slow down
+        if len(rectangles) < 100:
+            pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
+        pl.gcf().canvas.mpl_connect('button_release_event', mouse_click_handler)
 
     if timestamps:
         pl.hlines(max_mem,
