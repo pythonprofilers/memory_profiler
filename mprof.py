@@ -202,7 +202,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
                              'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
                         )
     args = parser.parse_args()
-    
+
     if len(args.program) == 0:
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
@@ -517,6 +517,7 @@ such file in the current directory."""
         print("matplotlib is needed for plotting.")
         print(e)
         sys.exit(1)
+    pl.ioff()
 
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
