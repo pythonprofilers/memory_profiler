@@ -335,11 +335,11 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 parent_conn.send(0)  # finish timing
                 ret = parent_conn.recv()
                 n_measurements = parent_conn.recv()
-                if retval:
-                    ret = ret, returned
                 if max_usage:
                     # Convert the one element list produced by MemTimer to a singular value
                     ret = ret[0]
+                if retval:
+                    ret = ret, returned
             except Exception:
                 parent = psutil.Process(os.getpid())
                 for child in parent.children(recursive=True):
@@ -1120,14 +1120,14 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     from runpy import run_module
     builtins.__dict__['profile'] = profiler
     ns = dict(_CLEAN_GLOBALS,
-              profile=profiler, 
+              profile=profiler,
              # Make sure the __file__ variable is usable
              # by the script we're profiling
               __file__=filename)
     # Make sure the script's directory in on sys.path
     # credit to line_profiler
     sys.path.insert(0, os.path.dirname(script_filename))
-    
+
     _backend = choose_backend(backend)
     sys.argv = [filename] + passed_args
     try:
