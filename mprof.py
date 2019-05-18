@@ -726,6 +726,7 @@ such file in the current directory."""
         print("matplotlib is needed for plotting.")
         print(e)
         sys.exit(1)
+    pl.ioff()
 
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
