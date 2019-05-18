@@ -18,6 +18,7 @@ import sys
 import time
 import traceback
 import warnings
+import contextlib
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -460,16 +461,25 @@ def _find_script(script_name):
 class _TimeStamperCM(object):
     """Time-stamping context manager."""
 
-    def __init__(self, timestamps, filename, backend):
+    def __init__(self, timestamps, filename, backend, timestamper=None, func=None):
         self.timestamps = timestamps
         self.filename = filename
         self.backend = backend
+        self.ts = timestamper
+        self.func = func
 
     def __enter__(self):
+        if self.ts is not None:
+            self.ts.current_stack_level += 1
+            self.ts.stack[self.func].append(self.ts.current_stack_level)
+
         self.timestamps.append(
             _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
 
     def __exit__(self, *args):
+        if self.ts is not None:
+            self.ts.current_stack_level -= 1
+
         self.timestamps.append(
             _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
 
@@ -482,6 +492,8 @@ class TimeStamper:
     def __init__(self, backend):
         self.functions = {}
         self.backend = backend
+        self.current_stack_level = -1
+        self.stack = {}
 
     def __call__(self, func=None, precision=None):
         if func is not None:
@@ -516,11 +528,18 @@ class TimeStamper:
             filename = inspect.getsourcefile(func)
         except TypeError:
             filename = '<unknown>'
-        return _TimeStamperCM(timestamps, filename, self.backend)
+        return _TimeStamperCM(
+            timestamps,
+            filename,
+            self.backend,
+            timestamper=self,
+            func=func
+        )
 
     def add_function(self, func):
         if func not in self.functions:
             self.functions[func] = []
+            self.stack[func] = []
 
     def wrap_function(self, func):
         """ Wrap a function to timestamp it.
@@ -536,7 +555,8 @@ class TimeStamper:
                 _get_memory(os.getpid(), self.backend, timestamps=True, filename=filename)]
             self.functions[func].append(timestamps)
             try:
-                return func(*args, **kwds)
+                with self.call_on_stack(func, *args, **kwds) as result:
+                    return result
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), self.backend, timestamps=True,
@@ -544,15 +564,24 @@ class TimeStamper:
 
         return f
 
+    @contextlib.contextmanager
+    def call_on_stack(self, func, *args, **kwds):
+        self.current_stack_level += 1
+        self.stack[func].append(self.current_stack_level)
+
+        yield func(*args, **kwds)
+
+        self.current_stack_level -= 1
+
     def show_results(self, stream=None):
         if stream is None:
             stream = sys.stdout
 
         for func, timestamps in self.functions.items():
             function_name = "%s.%s" % (func.__module__, func.__name__)
-            for ts in timestamps:
-                stream.write("FUNC %s %.4f %.4f %.4f %.4f\n" % (
-                    (function_name,) + ts[0] + ts[1]))
+            for ts, level in zip(timestamps, self.stack[func]):
+                stream.write("FUNC %s %.4f %.4f %.4f %.4f %d\n" % (
+                    (function_name,) + ts[0] + ts[1] + (level,)))
 
 
 class CodeMap(dict):
