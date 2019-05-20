@@ -202,6 +202,19 @@ the total memory of the program as well as each child individually. If using
 the API directly, note that the return from ``memory_usage`` will include the
 child memory in a nested list along with the main process memory.
 
+Plot settings
+===============================
+
+By default, the command line call is set as the graph title. If you wish to customize it, you can use the ``-t`` option to manually set the figure title.
+
+
+    mprof plot -t 'Recorded memory usage'
+
+You can also hide the function timestamps using the ``n`` flag, such as
+
+    mprof plot -n
+
+
 Setting debugger breakpoints
 =============================
 It is possible to set breakpoints depending on the amount of memory used.
