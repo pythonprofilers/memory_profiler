@@ -12,6 +12,7 @@ import inspect
 import linecache
 import logging
 import os
+from io import open
 import pdb
 import subprocess
 import sys
@@ -19,6 +20,7 @@ import time
 import traceback
 import warnings
 import contextlib
+
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
