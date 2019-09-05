@@ -51,7 +51,7 @@ setup(
     entry_points={
         'console_scripts' : ['mprof = mprof:main'],
     },
-    install_requires=['psutil'],
+    install_requires=['psutil','matplotlib'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
 )
