@@ -238,7 +238,7 @@ class MemTimer(Process):
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                  include_children=False, multiprocess=False, max_usage=False,
-                 retval=False, stream=None, backend=None):
+                 retval=False, stream=None, backend=None, max_iterations=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -307,6 +307,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     else:
         # for a Python function wait until it finishes
         max_iter = float('inf')
+        if max_iterations is not None:
+            max_iter = max_iterations
 
     if callable(proc):
         proc = (proc, (), {})
@@ -320,7 +322,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         else:
             raise ValueError
 
+        current_iter = 0
         while True:
+            current_iter += 1
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, backend,
                          timestamps=timestamps,
@@ -349,7 +353,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 raise
 
             p.join(5 * interval)
-            if n_measurements > 4 or interval < 1e-6:
+            
+            if (n_measurements > 4) or (current_iter == max_iter) or (interval < 1e-6):
                 break
             interval /= 10.
     elif isinstance(proc, subprocess.Popen):
