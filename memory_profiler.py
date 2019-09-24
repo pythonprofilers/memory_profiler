@@ -280,6 +280,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         to this file instead of stored in memory and returned at the end of
         the subprocess. Useful for long-running processes.
         Implies timestamps=True.
+        
+    max_iterations : int
+        Limits the number of iterations (calls to the process being monitored). Relevent
+        when the process is a python function. 
 
     Returns
     -------
