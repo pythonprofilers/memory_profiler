@@ -616,7 +616,15 @@ class CodeMap(dict):
                 return
 
             toplevel_code = code
-            (sub_lines, start_line) = inspect.getsourcelines(code)
+            if code.co_name == '<module>':
+                # inspect.getsourcelines() on a module just gives you the
+                # first line :'(.
+                start_line = 1
+                with open(code.co_filename) as f:
+                    sub_lines = f.readlines()
+            else:
+                (sub_lines, start_line) = inspect.getsourcelines(code)
+
             linenos = range(start_line,
                             start_line + len(sub_lines))
             self._toplevel.append((filename, code, linenos))
@@ -1154,7 +1162,8 @@ def choose_backend(new_backend=None):
 # globally defined (global variables is not enough
 # for all cases, e.g. a script that imports another
 # script where @profile is used)
-def exec_with_profiler(filename, profiler, backend, passed_args=[]):
+def exec_with_profiler(
+        filename, profiler, backend, passed_args=[], profile_top_level=False):
     from runpy import run_module
     builtins.__dict__['profile'] = profiler
     ns = dict(_CLEAN_GLOBALS,
@@ -1172,7 +1181,14 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
         with open(filename) as f:
-            exec(compile(f.read(), filename, 'exec'), ns, ns)
+            compiled = compile(f.read(), filename, 'exec')
+
+        if profile_top_level:
+            profiler.code_map.add(compiled)
+            with profiler:
+                exec(compiled, ns, ns)
+        else:
+            exec(compiled, ns, ns)
     finally:
         if has_tracemalloc and tracemalloc.is_tracing():
             tracemalloc.stop()
@@ -1252,6 +1268,9 @@ if __name__ == '__main__':
         choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
         help='backend using for getting memory info '
              '(one of the {tracemalloc, psutil, posix})')
+    parser.add_argument('--profile-top-level', dest='profile_top_level', default=False,
+        action='store_true',
+        help='profile top level script as well as decorated functions')
     parser.add_argument("program", nargs=REMAINDER,
         help='python script or module followed by command line arguements to run')
     args = parser.parse_args()
@@ -1271,7 +1290,8 @@ if __name__ == '__main__':
     try:
         if args.program[0].endswith('.py'):
             script_filename = _find_script(args.program[0])
-            exec_with_profiler(script_filename, prof, args.backend, script_args)
+            exec_with_profiler(
+                script_filename, prof, args.backend, script_args, args.profile_top_level)
         else:
             run_module_with_profiler(target, prof, args.backend, script_args)
     finally:
