@@ -46,7 +46,7 @@ setup(
     version=find_version("memory_profiler.py"),
     author='Fabian Pedregosa',
     author_email='f@bianp.net',
-    url='http://pypi.python.org/pypi/memory_profiler',
+    url='https://github.com/pythonprofilers/memory_profiler',
     py_modules=['memory_profiler', 'mprof'],
     entry_points={
         'console_scripts' : ['mprof = mprof:main'],
