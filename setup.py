@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import sys
 from setuptools import setup
 
 
@@ -21,6 +22,14 @@ def find_version(*file_paths):
         return version_match.group(1)
 
 
+async_modules = []
+if sys.version_info > (3, 3):
+    if sys.version_info < (3, 5):
+        async_modules = ['_aio_34']
+    else:
+        async_modules = ['_aio_35']
+
+
 CLASSIFIERS = """\
 Development Status :: 5 - Production/Stable
 Intended Audience :: Science/Research
@@ -39,6 +48,7 @@ Operating System :: Unix
 
 """
 
+
 setup(
     name='memory_profiler',
     description='A module for monitoring memory usage of a python program',
@@ -47,7 +57,7 @@ setup(
     author='Fabian Pedregosa',
     author_email='f@bianp.net',
     url='https://github.com/pythonprofilers/memory_profiler',
-    py_modules=['memory_profiler', 'mprof'],
+    py_modules=['memory_profiler', 'mprof'] + async_modules,
     entry_points={
         'console_scripts' : ['mprof = mprof:main'],
     },
