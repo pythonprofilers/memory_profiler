@@ -29,6 +29,16 @@ else:
 import psutil
 
 
+if sys.version_info > (3, 3):
+    if sys.version_info < (3, 5):
+        from asyncio import iscoroutinefunction
+    else:
+        from inspect import iscoroutinefunction
+else:
+    def iscoroutinefunction(_):
+        return False
+
+
 # TODO: provide alternative when multiprocessing is not available
 try:
     from multiprocessing import Process, Pipe
