@@ -32,7 +32,7 @@ import dis
 
 try:
     from guppy import hpy
-    guppy_inastalled = True
+    guppy_installed = True
     _hpy = hpy()
 except ImportError:
     guppy_installed = False
@@ -1158,7 +1158,7 @@ def choose_backend(new_backend=None):
         ('psutil', True),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
-        ('guppy', guppy_inastalled),
+        ('guppy', guppy_installed),
     ]
     backends_indices = dict((b[0], i) for i, b in enumerate(all_backends))
 
