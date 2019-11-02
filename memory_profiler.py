@@ -27,6 +27,15 @@ if sys.platform == "win32":
 else:
     from signal import SIGKILL
 import psutil
+import dis
+
+
+try:
+    from guppy import hpy
+    guppy_inastalled = True
+    _hpy = hpy()
+except ImportError:
+    guppy_installed = False
 
 
 # TODO: provide alternative when multiprocessing is not available
@@ -179,6 +188,13 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
             else:
                 return -1
 
+    def guppy_memory():
+        size = _hpy.heap().size / (1024 * 1024)
+        if timestamps:
+            return size, time.time()
+        else:
+            return size
+
     if backend == 'tracemalloc' and \
             (filename is None or filename == '<unknown>'):
         raise RuntimeError(
@@ -187,7 +203,9 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
 
     tools = {'tracemalloc': tracemalloc_tool,
              'psutil': ps_util_tool,
-             'posix': posix_tool}
+             'posix': posix_tool,
+             'guppy': guppy_memory,
+             }
     return tools[backend]()
 
 
@@ -736,10 +754,16 @@ class LineProfiler(object):
                 self.prevlines.append(frame.f_lineno)
             elif event == 'line':
                 # trace needs current line and previous line
-                self.code_map.trace(frame.f_code, self.prevlines[-1], self.prev_lineno)
-                # saving previous line
-                self.prev_lineno = self.prevlines[-1]
-                self.prevlines[-1] = frame.f_lineno
+                _run = True
+                if self.backend == 'guppy':
+                    if self.prevlines[-1] == self.prev_lineno:
+                        # the reason for this is because for code like [i for i in range(0, 1000000)] guppy will be extremely slow
+                        _run = False
+                if _run:
+                    self.code_map.trace(frame.f_code, self.prevlines[-1], self.prev_lineno)
+                    # saving previous line
+                    self.prev_lineno = self.prevlines[-1]
+                    self.prevlines[-1] = frame.f_lineno
             elif event == 'return':
                 lineno = self.prevlines.pop()
                 self.code_map.trace(frame.f_code, lineno, self.prev_lineno)
@@ -1134,6 +1158,7 @@ def choose_backend(new_backend=None):
         ('psutil', True),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
+        ('guppy', guppy_inastalled),
     ]
     backends_indices = dict((b[0], i) for i, b in enumerate(all_backends))
 
@@ -1249,7 +1274,7 @@ if __name__ == '__main__':
         help='''print timestamp instead of memory measurement for
         decorated functions''')
     parser.add_argument('--backend', dest='backend', type=str, action='store',
-        choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
+        choices=['tracemalloc', 'psutil', 'posix', 'guppy'], default='psutil',
         help='backend using for getting memory info '
              '(one of the {tracemalloc, psutil, posix})')
     parser.add_argument("program", nargs=REMAINDER,
