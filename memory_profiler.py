@@ -470,12 +470,14 @@ def _find_script(script_name):
 class _TimeStamperCM(object):
     """Time-stamping context manager."""
 
-    def __init__(self, timestamps, filename, backend, timestamper=None, func=None):
+    def __init__(self, timestamps, filename, backend, timestamper=None, func=None,
+                 include_children=False):
         self.timestamps = timestamps
         self.filename = filename
         self.backend = backend
         self.ts = timestamper
         self.func = func
+        self.include_children = include_children
 
     def __enter__(self):
         if self.ts is not None:
@@ -483,14 +485,16 @@ class _TimeStamperCM(object):
             self.ts.stack[self.func].append(self.ts.current_stack_level)
 
         self.timestamps.append(
-            _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
+            _get_memory(os.getpid(), self.backend, timestamps=True,
+                        include_children=self.include_children, filename=self.filename))
 
     def __exit__(self, *args):
         if self.ts is not None:
             self.ts.current_stack_level -= 1
 
         self.timestamps.append(
-            _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
+            _get_memory(os.getpid(), self.backend, timestamps=True,
+                        include_children=self.include_children, filename=self.filename))
 
 
 class TimeStamper:
@@ -498,9 +502,10 @@ class TimeStamper:
     any decorated function.
     """
 
-    def __init__(self, backend):
+    def __init__(self, backend, include_children=False):
         self.functions = {}
         self.backend = backend
+        self.include_children = include_children
         self.current_stack_level = -1
         self.stack = {}
 
@@ -561,7 +566,8 @@ class TimeStamper:
             except TypeError:
                 filename = '<unknown>'
             timestamps = [
-                _get_memory(os.getpid(), self.backend, timestamps=True, filename=filename)]
+                _get_memory(os.getpid(), self.backend, timestamps=True,
+                            include_children=self.include_children, filename=filename)]
             self.functions[func].append(timestamps)
             try:
                 with self.call_on_stack(func, *args, **kwds) as result:
@@ -569,6 +575,7 @@ class TimeStamper:
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), self.backend, timestamps=True,
+                                              include_children=self.include_children,
                                               filename=filename))
 
         return f
@@ -1248,6 +1255,9 @@ if __name__ == '__main__':
         action='store_true',
         help='''print timestamp instead of memory measurement for
         decorated functions''')
+    parser.add_argument('--include-children', dest='include_children',
+        default=False, action='store_true',
+        help='also include memory used by child processes')
     parser.add_argument('--backend', dest='backend', type=str, action='store',
         choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
         help='backend using for getting memory info '
@@ -1264,7 +1274,7 @@ if __name__ == '__main__':
     script_args = args.program[1:]
     _backend = choose_backend(args.backend)
     if args.timestamp:
-        prof = TimeStamper(_backend)
+        prof = TimeStamper(_backend, include_children=args.include_children)
     else:
         prof = LineProfiler(max_mem=args.max_mem, backend=_backend)
 
