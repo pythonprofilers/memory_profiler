@@ -1,8 +1,7 @@
 import os
 import io
 import re
-import sys
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
@@ -20,14 +19,6 @@ def find_version(*file_paths):
                               version_file, re.M)
     if version_match:
         return version_match.group(1)
-
-
-async_modules = []
-if sys.version_info > (3, 3):
-    if sys.version_info < (3, 5):
-        async_modules = ['_aio_34']
-    else:
-        async_modules = ['_aio_35']
 
 
 CLASSIFIERS = """\
@@ -53,13 +44,14 @@ setup(
     name='memory_profiler',
     description='A module for monitoring memory usage of a python program',
     long_description=open('README.rst').read(),
-    version=find_version("memory_profiler.py"),
+    version=find_version("memory_profiler", "__init__.py"),
     author='Fabian Pedregosa',
     author_email='f@bianp.net',
     url='https://github.com/pythonprofilers/memory_profiler',
-    py_modules=['memory_profiler', 'mprof'] + async_modules,
+    py_modules=['mprof'],
+    packages=find_packages(include='memory_profiler'),
     entry_points={
-        'console_scripts' : ['mprof = mprof:main'],
+        'console_scripts': ['mprof = mprof:main'],
     },
     install_requires=['psutil'],
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
