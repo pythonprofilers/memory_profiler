@@ -17,14 +17,19 @@ import traceback
 import warnings
 import contextlib
 
-from .common import PY2, HAS_TRACEMALLOC
+from .common import PY2, PY34, PY35, HAS_TRACEMALLOC
 from .utils import (
     show_results,
     choose_backend,
     get_memory as _get_memory,
     get_child_memory as _get_child_memory,
 )
-from .line_profiler import LineProfiler
+from .line_profiler import LineProfiler, get_profile_wrapper
+
+if PY34:
+    from ._aio_34 import get_profile_wrapper
+elif PY35:
+    from ._aio_35 import get_profile_wrapper
 
 
 if sys.platform == "win32":
@@ -758,14 +763,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         if not tracemalloc.is_tracing():
             tracemalloc.start()
     if func is not None:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            prof = LineProfiler(backend=backend)
-            val = prof(func)(*args, **kwargs)
-            show_results(prof, stream=stream, precision=precision)
-            return val
-
-        return wrapper
+        return get_profile_wrapper(func, precision, backend, stream)
     else:
         def inner_wrapper(f):
             return profile(f, stream=stream, precision=precision,

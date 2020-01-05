@@ -3,6 +3,9 @@ import sys
 
 PY2 = sys.version_info[0] == 2
 
+PY34 = (3, 4) < sys.version_info < (3, 5)
+PY35 = (3, 5) < sys.version_info
+
 try:
     import tracemalloc  # noqa
 except ImportError:
