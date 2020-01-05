@@ -1,6 +1,7 @@
 import pdb
 import sys
 import warnings
+from contextlib import contextmanager
 from functools import wraps
 
 from .code_map import CodeMap
@@ -48,27 +49,29 @@ class LineProfiler(object):
         else:
             self.code_map.add(code)
 
+    @contextmanager
+    def count_ctxmgr(self):
+        self.enable_by_count()
+        try:
+            yield
+        finally:
+            self.disable_by_count()
+
     def wrap_function(self, func):
         """ Wrap a function to profile it.
         """
 
         def f(*args, **kwds):
-            self.enable_by_count()
-            try:
+            with self.count_ctxmgr():
                 return func(*args, **kwds)
-            finally:
-                self.disable_by_count()
 
         return f
 
     def runctx(self, cmd, globals, locals):
         """ Profile a single executable statement in the given namespaces.
         """
-        self.enable_by_count()
-        try:
+        with self.count_ctxmgr():
             exec(cmd, globals, locals)
-        finally:
-            self.disable_by_count()
         return self
 
     def enable_by_count(self):
