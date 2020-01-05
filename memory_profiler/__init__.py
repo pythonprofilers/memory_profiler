@@ -17,6 +17,7 @@ import traceback
 import warnings
 import contextlib
 
+from .code_map import CodeMap
 from .common import PY2, PY34, PY35, HAS_TRACEMALLOC
 from .utils import (
     show_results,
