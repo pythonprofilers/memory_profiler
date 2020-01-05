@@ -49,7 +49,7 @@ setup(
     author_email='f@bianp.net',
     url='https://github.com/pythonprofilers/memory_profiler',
     py_modules=['mprof'],
-    packages=find_packages(include='memory_profiler'),
+    packages=find_packages(include=('memory_profiler',)),
     entry_points={
         'console_scripts': ['mprof = mprof:main'],
     },
