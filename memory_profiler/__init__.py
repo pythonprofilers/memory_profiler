@@ -18,7 +18,7 @@ import warnings
 import contextlib
 
 from .code_map import CodeMap
-from .common import PY2, PY34, PY35, HAS_TRACEMALLOC
+from .common import PY2, PY34, HAS_TRACEMALLOC
 from .utils import (
     show_results,
     choose_backend,
@@ -28,9 +28,7 @@ from .utils import (
 from .line_profiler import LineProfiler, get_profile_wrapper
 
 if PY34:
-    from ._aio_34 import get_profile_wrapper
-elif PY35:
-    from ._aio_35 import get_profile_wrapper
+    from ._async import get_profile_wrapper
 
 
 if sys.platform == "win32":
