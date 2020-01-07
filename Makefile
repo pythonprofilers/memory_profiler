@@ -1,6 +1,8 @@
 PYTHON ?= python
+PY_34 ?= $(shell ! python -c \
+		 'import sys; print((3, 4) < sys.version_info)')
 
-.PHONY: test
+.PHONY: test develop
 
 test:
 	$(PYTHON) -m memory_profiler test/test_func.py
@@ -18,6 +20,9 @@ test:
 	$(PYTHON) test/test_exception.py
 	$(PYTHON) test/test_exit_code.py
 	$(PYTHON) test/test_mprof.py
+	if [ $(PY_34) = True ]; then \
+		$(PYTHON) test/test_aio_34.py; \
+	fi
 
 develop:
 	pip install -e .
