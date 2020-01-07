@@ -21,7 +21,7 @@ test:
 	$(PYTHON) test/test_exit_code.py
 	$(PYTHON) test/test_mprof.py
 	if [ $(PY_34) = True ]; then \
-		$(PYTHON) test/test_aio_34.py; \
+		$(PYTHON) test/test_async.py; \
 	fi
 
 develop:
