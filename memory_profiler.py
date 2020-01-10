@@ -1052,7 +1052,7 @@ class MemoryProfilerMagics(Magics):
                                timeout=timeout, interval=interval,
                                max_usage=True,
                                include_children=include_children)
-            mem_usage.append(tmp[0])
+            mem_usage.append(tmp)
 
         result = MemitResult(mem_usage, baseline, repeat, timeout, interval,
                              include_children)
