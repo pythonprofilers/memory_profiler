@@ -419,9 +419,9 @@ Send issues, proposals, etc. to `github's issue tracker
 <https://github.com/pythonprofilers/memory_profiler/issues>`_ .
 
 If you've got questions regarding development, you can email me
-directly at fabian@fseoane.net
+directly at f@bianp.net
 
-.. image:: http://fseoane.net/static/tux_memory_small.png
+.. image:: http://fa.bianp.net/static/tux_memory_small.png
 
 
 =============
