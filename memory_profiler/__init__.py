@@ -3,7 +3,7 @@
 # .. we'll use this to pass it to the child script ..
 _CLEAN_GLOBALS = globals().copy()
 
-__version__ = '0.56.0'
+__version__ = '0.57.0'
 
 
 from functools import wraps
@@ -707,7 +707,7 @@ class MemoryProfilerMagics(Magics):
                                timeout=timeout, interval=interval,
                                max_usage=True,
                                include_children=include_children)
-            mem_usage.append(tmp[0])
+            mem_usage.append(tmp)
 
         result = MemitResult(mem_usage, baseline, repeat, timeout, interval,
                              include_children)
