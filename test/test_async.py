@@ -8,7 +8,6 @@ from memory_profiler import profile
 def my_func():
     a = [1] * (10 ** 6)
     b = [2] * (2 * 10 ** 7)
-    print('kek')
     yield from asyncio.sleep(1e-2)
     del b
 
