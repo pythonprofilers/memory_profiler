@@ -412,17 +412,17 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     mem_trend = None
     if show_trend_slope:
         # Compute trend line
-        mem_slope = np.polyfit(t, mem, 1)
-        mem_trend = np.poly1d(mem_slope)
+        mem_trend = np.polyfit(t, mem, 1)
+
         # Append slope to label
-        mem_line_label = mem_line_label + " slope {0:.5f}".format(mem_slope[0])
+        mem_line_label = mem_line_label + " slope {0:.5f}".format(mem_trend[0])
 
     pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
 
     if show_trend_slope:
         # Plot the trend line
-        pl.plot(t, mem_trend(mem), "--", linewidth=0.5, color="#00e3d8")
+        pl.plot(t, t*mem_trend[0] + mem_trend[1], "--", linewidth=0.5, color="#00e3d8")
 
     bottom, top = pl.ylim()
     bottom += 0.001
@@ -441,9 +441,9 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
             child_mem_trend_label = ""
             if show_trend_slope:
                 # Compute trend line
-                child_mem_slope = np.polyfit(cts, cmem, 1)
-                cmem_trend = np.poly1d(child_mem_slope)
-                child_mem_trend_label = " slope {0:.5f}".format(child_mem_slope[0])
+                cmem_trend = np.polyfit(cts, cmem, 1)
+
+                child_mem_trend_label = " slope {0:.5f}".format(cmem_trend[0])
 
             # Plot the line to the figure
             pl.plot(cts, cmem, "+-" + mem_line_colors[(idx + 1) % len(mem_line_colors)],
@@ -451,7 +451,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
             if show_trend_slope:
                 # Plot the trend line
-                pl.plot(cts, cmem_trend(cts), "--", linewidth=0.5, color="black")
+                pl.plot(cts, cts*cmem_trend[0] + cmem_trend[1], "--", linewidth=0.5, color="black")
 
             # Detect the maximal child memory point
             cmax_mem = cmem.max()
