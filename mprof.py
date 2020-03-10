@@ -402,12 +402,27 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
     all_colors = ("c", "y", "g", "r", "b")
     mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
+
+    show_trend_slope = options is not None and hasattr(options, 'slope') and options.slope is True
+
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
                      + ".{0:03d}".format(int(round(math.modf(global_start)[0] * 1000)))
 
+    mem_trend = None
+    if show_trend_slope:
+        # Compute trend line
+        mem_slope = np.polyfit(t, mem, 1)
+        mem_trend = np.poly1d(mem_slope)
+        # Append slope to label
+        mem_line_label = mem_line_label + " slope {0:.5f}".format(mem_slope[0])
+
     pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
+
+    if show_trend_slope:
+        # Plot the trend line
+        pl.plot(t, mem_trend(mem), "--", linewidth=0.5, color="#00e3d8")
 
     bottom, top = pl.ylim()
     bottom += 0.001
@@ -422,9 +437,21 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
             cts  = np.asarray([item[1] for item in data]) - global_start
             cmem = np.asarray([item[0] for item in data])
 
+            cmem_trend = None
+            child_mem_trend_label = ""
+            if show_trend_slope:
+                # Compute trend line
+                child_mem_slope = np.polyfit(cts, cmem, 1)
+                cmem_trend = np.poly1d(child_mem_slope)
+                child_mem_trend_label = " slope {0:.5f}".format(child_mem_slope[0])
+
             # Plot the line to the figure
-            pl.plot(cts, cmem, "+-"  + mem_line_colors[(idx+1) % len(mem_line_colors)],
-                     label="child {}".format(proc))
+            pl.plot(cts, cmem, "+-" + mem_line_colors[(idx + 1) % len(mem_line_colors)],
+                    label="child {}{}".format(proc, child_mem_trend_label))
+
+            if show_trend_slope:
+                # Plot the trend line
+                pl.plot(cts, cmem_trend(cts), "--", linewidth=0.5, color="black")
 
             # Detect the maximal child memory point
             cmax_mem = cmem.max()
@@ -710,6 +737,8 @@ such file in the current directory."""
                         help="Plot a time-subset of the data. E.g. to plot between 0 and 20.5 seconds: --window 0,20.5")
     parser.add_argument("--flame", "-f", dest="flame_mode", action="store_true",
                         help="Plot the timestamps as a flame-graph instead of the default brackets")
+    parser.add_argument("--slope", "-s", dest="slope", action="store_true",
+                        help="Plot a trend line and its numerical slope")
     parser.add_argument("--backend",
                       help="Specify the Matplotlib backend to use")
     parser.add_argument("profiles", nargs="*",
