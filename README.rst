@@ -214,6 +214,9 @@ You can also hide the function timestamps using the ``n`` flag, such as
 
     mprof plot -n
 
+Trend lines and its numeric slope can be plotted using the ``s`` flag, such as
+
+    mprof plot -s
 
 Setting debugger breakpoints
 =============================
