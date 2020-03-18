@@ -218,6 +218,9 @@ Trend lines and its numeric slope can be plotted using the ``s`` flag, such as
 
     mprof plot -s
 
+.. image:: ./images/trend_slope.png
+   :height: 350px
+
 Setting debugger breakpoints
 =============================
 It is possible to set breakpoints depending on the amount of memory used.
