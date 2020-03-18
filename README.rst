@@ -221,6 +221,15 @@ Trend lines and its numeric slope can be plotted using the ``s`` flag, such as
 .. image:: ./images/trend_slope.png
    :height: 350px
 
+The intended usage of the -s switch is to check the labels' numerical slope over a significant time period for : 
+
+    >0 - it might mean a memory leak.
+    ~0 - if 0 or near 0, the memory usage may be considered stable.
+    <0 - to be interpreted depending on the expected process memory usage patterns, also might mean that the sampling period is too small.
+
+The trend lines are for ilustrative purposes and are plotted as (very) small dashed lines.
+
+
 Setting debugger breakpoints
 =============================
 It is possible to set breakpoints depending on the amount of memory used.
