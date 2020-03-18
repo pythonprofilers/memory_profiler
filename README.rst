@@ -225,7 +225,6 @@ The intended usage of the -s switch is to check the labels' numerical slope over
 
   - ``>0`` it might mean a memory leak.
   - ``~0`` if 0 or near 0, the memory usage may be considered stable.
-    the last one)
   - ``<0`` to be interpreted depending on the expected process memory usage patterns, also might mean that the sampling period is too small.
 
 The trend lines are for ilustrative purposes and are plotted as (very) small dashed lines.
