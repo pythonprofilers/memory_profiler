@@ -230,8 +230,10 @@ This file contains the process memory consumption, in Mb (one value per line).""
         if not program[0].startswith("python"):
             program.insert(0, sys.executable)
         cmd_line = get_cmd_line(program)
-        program[1:1] = ("-m", "memory_profiler", "--timestamp",
-                        "-o", mprofile_output)
+        extra_args = ["-m", "memory_profiler", "--timestamp", "-o", mprofile_output]
+        if args.include_children:
+            extra_args.append("--include-children")
+        program[1:1] = extra_args
         p = subprocess.Popen(program)
     else:
         cmd_line = get_cmd_line(program)
