@@ -280,10 +280,10 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         to this file instead of stored in memory and returned at the end of
         the subprocess. Useful for long-running processes.
         Implies timestamps=True.
-        
+
     max_iterations : int
         Limits the number of iterations (calls to the process being monitored). Relevent
-        when the process is a python function. 
+        when the process is a python function.
 
     Returns
     -------
@@ -357,7 +357,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 raise
 
             p.join(5 * interval)
-            
+
             if (n_measurements > 4) or (current_iter == max_iter) or (interval < 1e-6):
                 break
             interval /= 10.
@@ -643,7 +643,12 @@ class CodeMap(dict):
 
         prev_line_value = self[code].get(prev_lineno, None) if prev_lineno else None
         prev_line_memory = prev_line_value[1] if prev_line_value else 0
-        self[code][lineno] = (max(previous_inc, memory-prev_line_memory), max(memory, previous_memory))
+        occ_count = self[code][lineno][2] + 1 if lineno in self[code] else 1
+        self[code][lineno] = (
+            previous_inc + (memory - prev_line_memory),
+            max(memory, previous_memory),
+            occ_count,
+        )
 
     def items(self):
         """Iterate on the toplevel code blocks."""
@@ -800,10 +805,10 @@ class LineProfiler(object):
 def show_results(prof, stream=None, precision=1):
     if stream is None:
         stream = sys.stdout
-    template = '{0:>6} {1:>12} {2:>12}   {3:<}'
+    template = '{0:>6} {1:>12} {2:>12}  {3:>10}   {4:<}'
 
     for (filename, lines) in prof.code_map.items():
-        header = template.format('Line #', 'Mem usage', 'Increment',
+        header = template.format('Line #', 'Mem usage', 'Increment', 'Occurences',
                                  'Line Contents')
 
         stream.write(u'Filename: ' + filename + '\n\n')
@@ -817,13 +822,15 @@ def show_results(prof, stream=None, precision=1):
         for (lineno, mem) in lines:
             if mem:
                 inc = mem[0]
-                mem = mem[1]
-                mem = template_mem.format(mem)
+                total_mem = mem[1]
+                total_mem = template_mem.format(total_mem)
+                occurences = mem[2]
                 inc = template_mem.format(inc)
             else:
-                mem = u''
+                total_mem = u''
                 inc = u''
-            tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
+                occurences = u''
+            tmp = template.format(lineno, total_mem, inc, occurences, all_lines[lineno - 1])
             stream.write(to_str(tmp))
         stream.write(u'\n\n')
 
