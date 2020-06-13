@@ -1,6 +1,4 @@
 PYTHON ?= python
-PY_34 ?= $(shell ! python -c \
-		 'import sys; print((3, 4) < sys.version_info)')
 
 .PHONY: test develop
 
