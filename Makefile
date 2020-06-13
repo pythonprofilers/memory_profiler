@@ -20,9 +20,7 @@ test:
 	$(PYTHON) test/test_exception.py
 	$(PYTHON) test/test_exit_code.py
 	$(PYTHON) test/test_mprof.py
-	if [ $(PY_34) = True ]; then \
-		$(PYTHON) test/test_async.py; \
-	fi
+	$(PYTHON) test/test_async.py
 
 develop:
 	pip install -e .
