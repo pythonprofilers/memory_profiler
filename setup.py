@@ -1,22 +1,14 @@
-import os
-import io
 import re
 from setuptools import setup
 
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
-def read(*names, **kwargs):
-    with io.open(
-        os.path.join(os.path.dirname(__file__), *names),
-        encoding=kwargs.get("encoding", "utf8")
-    ) as fp:
-        return fp.read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+def find_version(file_paths):
+    with open(file_paths) as f:
+        version_file = f.read()
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
+    )
     if version_match:
         return version_match.group(1)
 
@@ -27,17 +19,13 @@ Intended Audience :: Science/Research
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Programming Language :: Python
-Programming Language :: Python :: 2
-Programming Language :: Python :: 2.6
-Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
-Programming Language :: Python :: 3.2
-Programming Language :: Python :: 3.3
 Topic :: Software Development
 Operating System :: POSIX
 Operating System :: Unix
 
 """
+
 
 setup(
     name='memory_profiler',
@@ -49,9 +37,10 @@ setup(
     url='https://github.com/pythonprofilers/memory_profiler',
     py_modules=['memory_profiler', 'mprof'],
     entry_points={
-        'console_scripts' : ['mprof = mprof:main'],
+        'console_scripts': ['mprof = mprof:main'],
     },
     install_requires=['psutil'],
+    python_requires='>=3.4',
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     license='BSD'
 )

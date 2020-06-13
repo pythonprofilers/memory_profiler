@@ -11,3 +11,4 @@ mprofile_*.dat
 
 # virtual environment
 venv/
+.python-version

@@ -7,7 +7,10 @@ __version__ = '0.57.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-from functools import wraps
+from asyncio import coroutine, iscoroutinefunction
+from contextlib import contextmanager
+from functools import partial, wraps
+import builtins
 import inspect
 import linecache
 import logging
@@ -18,7 +21,6 @@ import sys
 import time
 import traceback
 import warnings
-import contextlib
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -43,17 +45,8 @@ except ImportError:
     line_cell_magic = lambda func: func
     magics_class = lambda cls: cls
 
-PY2 = sys.version_info[0] == 2
-
 _TWO_20 = float(2 ** 20)
 
-if PY2:
-    import __builtin__ as builtins
-    to_str = lambda x: x
-    from future_builtins import filter
-else:
-    import builtins
-    to_str = lambda x: str(x)
 
 # .. get available packages ..
 try:
@@ -580,7 +573,7 @@ class TimeStamper:
 
         return f
 
-    @contextlib.contextmanager
+    @contextmanager
     def call_on_stack(self, func, *args, **kwds):
         self.current_stack_level += 1
         self.stack[func].append(self.current_stack_level)
@@ -701,16 +694,27 @@ class LineProfiler(object):
         else:
             self.code_map.add(code)
 
+    @contextmanager
+    def _count_ctxmgr(self):
+        self.enable_by_count()
+        try:
+            yield
+        finally:
+            self.disable_by_count()
+
     def wrap_function(self, func):
         """ Wrap a function to profile it.
         """
 
-        def f(*args, **kwds):
-            self.enable_by_count()
-            try:
-                return func(*args, **kwds)
-            finally:
-                self.disable_by_count()
+        if iscoroutinefunction(func):
+            @coroutine
+            def f(*args, **kwargs):
+                with self._count_ctxmgr():
+                    yield from func(*args, **kwargs)
+        else:
+            def f(*args, **kwds):
+                with self._count_ctxmgr():
+                    return func(*args, **kwds)
 
         return f
 
@@ -831,7 +835,7 @@ def show_results(prof, stream=None, precision=1):
                 inc = u''
                 occurences = u''
             tmp = template.format(lineno, total_mem, inc, occurences, all_lines[lineno - 1])
-            stream.write(to_str(tmp))
+            stream.write(tmp)
         stream.write(u'\n\n')
 
 
@@ -1121,12 +1125,23 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         if not tracemalloc.is_tracing():
             tracemalloc.start()
     if func is not None:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            prof = LineProfiler(backend=backend)
-            val = prof(func)(*args, **kwargs)
-            show_results(prof, stream=stream, precision=precision)
-            return val
+        get_prof = partial(LineProfiler, backend=backend)
+        show_results_bound = partial(
+            show_results, stream=stream, precision=precision
+        )
+        if iscoroutinefunction(func):
+            @coroutine
+            def wrapper(*args, **kwargs):
+                prof = get_prof()
+                val = yield from prof(func)(*args, **kwargs)
+                show_results_bound(prof)
+                return val
+        else:
+            def wrapper(*args, **kwargs):
+                prof = get_prof()
+                val = prof(func)(*args, **kwargs)
+                show_results_bound(prof)
+                return val
 
         return wrapper
     else:
@@ -1198,16 +1213,13 @@ def run_module_with_profiler(module, profiler, backend, passed_args=[]):
     ns = dict(_CLEAN_GLOBALS, profile=profiler)
     _backend = choose_backend(backend)
     sys.argv = [module] + passed_args
-    if PY2:
+    if _backend == 'tracemalloc' and has_tracemalloc:
+        tracemalloc.start()
+    try:
         run_module(module, run_name="__main__", init_globals=ns)
-    else:
-        if _backend == 'tracemalloc' and has_tracemalloc:
-            tracemalloc.start()
-        try:
-            run_module(module, run_name="__main__", init_globals=ns)
-        finally:
-            if has_tracemalloc and tracemalloc.is_tracing():
-                tracemalloc.stop()
+    finally:
+        if has_tracemalloc and tracemalloc.is_tracing():
+            tracemalloc.stop()
 
 
 class LogFile(object):

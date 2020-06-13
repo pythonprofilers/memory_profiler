@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: test
+.PHONY: test develop
 
 test:
 	$(PYTHON) -m memory_profiler test/test_func.py
@@ -18,6 +18,7 @@ test:
 	$(PYTHON) test/test_exception.py
 	$(PYTHON) test/test_exit_code.py
 	$(PYTHON) test/test_mprof.py
+	$(PYTHON) test/test_async.py
 
 develop:
 	pip install -e .
