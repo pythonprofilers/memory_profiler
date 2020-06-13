@@ -64,14 +64,14 @@ this would result in::
 
 Output will follow::
 
-    Line #    Mem usage  Increment   Line Contents
-    ==============================================
-         3                           @profile
-         4      5.97 MB    0.00 MB   def my_func():
-         5     13.61 MB    7.64 MB       a = [1] * (10 ** 6)
-         6    166.20 MB  152.59 MB       b = [2] * (2 * 10 ** 7)
-         7     13.61 MB -152.59 MB       del b
-         8     13.61 MB    0.00 MB       return a
+    Line #    Mem usage    Increment  Occurences   Line Contents
+    ============================================================
+         3   38.816 MiB   38.816 MiB           1   @profile
+         4                                         def my_func():
+         5   46.492 MiB    7.676 MiB           1       a = [1] * (10 ** 6)
+         6  199.117 MiB  152.625 MiB           1       b = [2] * (2 * 10 ** 7)
+         7   46.629 MiB -152.488 MiB           1       del b
+         8   46.629 MiB    0.000 MiB           1       return a
 
 
 The first column represents the line number of the code that has been
@@ -213,6 +213,21 @@ By default, the command line call is set as the graph title. If you wish to cust
 You can also hide the function timestamps using the ``n`` flag, such as
 
     mprof plot -n
+
+Trend lines and its numeric slope can be plotted using the ``s`` flag, such as
+
+    mprof plot -s
+
+.. image:: ./images/trend_slope.png
+   :height: 350px
+
+The intended usage of the -s switch is to check the labels' numerical slope over a significant time period for : 
+
+  - ``>0`` it might mean a memory leak.
+  - ``~0`` if 0 or near 0, the memory usage may be considered stable.
+  - ``<0`` to be interpreted depending on the expected process memory usage patterns, also might mean that the sampling period is too small.
+
+The trend lines are for ilustrative purposes and are plotted as (very) small dashed lines.
 
 
 Setting debugger breakpoints
