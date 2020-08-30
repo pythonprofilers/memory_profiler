@@ -19,6 +19,7 @@ test:
 	$(PYTHON) test/test_exit_code.py
 	$(PYTHON) test/test_mprof.py
 	$(PYTHON) test/test_async.py
+	mprof run test/test_func.py
 
 develop:
 	pip install -e .
