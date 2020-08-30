@@ -743,7 +743,7 @@ def function_labels(dotted_function_names):
         if len(ambiguous_labels) == 0:
             break
 
-    fn_to_label = { label_state["functions"][0] : label for label, label_state in state.items() }
+    fn_to_label = dict((label_state["functions"][0] , label) for label, label_state in state.items())
 
     return fn_to_label
 
