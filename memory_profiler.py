@@ -1200,7 +1200,7 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     try:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
-        with open(filename) as f:
+        with open(filename, encoding='utf-8') as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
     finally:
         if has_tracemalloc and tracemalloc.is_tracing():
