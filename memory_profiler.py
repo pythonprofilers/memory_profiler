@@ -1130,6 +1130,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
             show_results, stream=stream, precision=precision
         )
         if iscoroutinefunction(func):
+            @wraps(wrapped=func)
             @coroutine
             def wrapper(*args, **kwargs):
                 prof = get_prof()
@@ -1137,6 +1138,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
                 show_results_bound(prof)
                 return val
         else:
+            @wraps(wrapped=func)
             def wrapper(*args, **kwargs):
                 prof = get_prof()
                 val = prof(func)(*args, **kwargs)
