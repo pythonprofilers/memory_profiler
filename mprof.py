@@ -74,7 +74,7 @@ def get_profile_filenames(args):
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
 
-    if args is "all":
+    if args == "all":
         filenames = copy.copy(profiles)
     else:
         filenames = []
