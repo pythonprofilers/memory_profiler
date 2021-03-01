@@ -841,13 +841,17 @@ using `mprof run`. If no .dat file is given, it will take the most recent
 such file in the current directory."""
     parser = ArgumentParser(usage="mprof peak [options] [file.dat]", description=desc)
     parser.add_argument("profiles", nargs="*",
-                    help="profiles made by mprof run") 
+                    help="profiles made by mprof run")
     args = parser.parse_args()
     filenames = get_profiles(args)
 
     for filename in filenames:
         prof = read_mprofile_file(filename)
         print("{}\t{:.3f} MiB".format(prof["filename"], max(prof["mem_usage"])))
+        for child, values in prof["children"].items():
+            child_peak = max([ mem_ts[0] for mem_ts in values ])
+            print("  Child {}\t\t\t{:.3f} MiB".format(child, child_peak))
+        
 
 def get_profiles(args):
     profiles = glob.glob("mprofile_??????????????.dat")
