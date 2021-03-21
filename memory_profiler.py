@@ -710,7 +710,8 @@ class LineProfiler(object):
             @coroutine
             def f(*args, **kwargs):
                 with self._count_ctxmgr():
-                    yield from func(*args, **kwargs)
+                    res = yield from func(*args, **kwargs)
+                    return res
         else:
             def f(*args, **kwds):
                 with self._count_ctxmgr():
