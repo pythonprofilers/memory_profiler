@@ -82,7 +82,7 @@ class MemitResult(object):
         p.text(u'<MemitResult : ' + msg + u'>')
 
 
-def _get_child_memory(process, meminfo_attr=None):
+def _get_child_memory(process, meminfo_attr=None, memory_metric=0):
     """
     Returns a generator that yields memory for all child processes.
     """
@@ -102,7 +102,11 @@ def _get_child_memory(process, meminfo_attr=None):
     # Loop over the child processes and yield their memory
     try:
         for child in getattr(process, children_attr)(recursive=True):
-            yield getattr(child, meminfo_attr)()[0] / _TWO_20
+            if isinstance(memory_metric, str):
+                meminfo = getattr(child, meminfo_attr)()
+                yield getattr(meminfo, memory_metric) / _TWO_20
+            else:
+                yield getattr(child, meminfo_attr)()[memory_metric] / _TWO_20
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         # https://github.com/fabianp/memory_profiler/issues/71
         yield 0.0
@@ -138,6 +142,35 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 return mem, time.time()
             else:
                 return mem
+        except psutil.AccessDenied:
+            pass
+            # continue and try to get this from ps
+
+    def _ps_util_full_tool(memory_metric):
+
+        # .. cross-platform but but requires psutil ..
+        process = psutil.Process(pid)
+        try:
+            if not hasattr(process, 'memory_full_info'):
+                raise NotImplementedError("Backend `ps_util_pss` requires psutil > 4.0.0")
+
+            meminfo_attr = 'memory_full_info'
+            meminfo = getattr(process, meminfo_attr)()
+
+            if not hasattr(meminfo, memory_metric):
+                raise NotImplementedError(
+                    f"Metric `{memory_metric}` not available. For details, see:"
+                    f"https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info")
+            mem = getattr(meminfo, memory_metric) / _TWO_20
+
+            if include_children:
+                mem +=  sum(_get_child_memory(process, meminfo_attr, memory_metric))
+
+            if timestamps:
+                return mem, time.time()
+            else:
+                return mem
+        
         except psutil.AccessDenied:
             pass
             # continue and try to get this from ps
@@ -180,6 +213,8 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
 
     tools = {'tracemalloc': tracemalloc_tool,
              'psutil': ps_util_tool,
+             'psutil_pss': lambda: _ps_util_full_tool(memory_metric="pss"),
+             'psutil_uss': lambda: _ps_util_full_tool(memory_metric="uss"),
              'posix': posix_tool}
     return tools[backend]()
 
@@ -1164,6 +1199,8 @@ def choose_backend(new_backend=None):
     _backend = 'no_backend'
     all_backends = [
         ('psutil', True),
+        ('psutil_pss', True),
+        ('psutil_uss', True),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
     ]
