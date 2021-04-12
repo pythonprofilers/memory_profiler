@@ -159,8 +159,8 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
 
             if not hasattr(meminfo, memory_metric):
                 raise NotImplementedError(
-                    f"Metric `{memory_metric}` not available. For details, see:"
-                    f"https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info")
+                    "Metric `{}` not available. For details, see:".format(memory_metric) +
+                    "https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info")
             mem = getattr(meminfo, memory_metric) / _TWO_20
 
             if include_children:
