@@ -98,9 +98,9 @@ def test_multiprocessing_showcase():
         n_jobs = 8
         size = 3000
 
-        print(f"Creating data: {size}x{size} ... ", end="")
+        print("Creating data: {size}x{size} ... ".format(size=size), end="")
         a = np.random.random((size, size))
-        print(f"done ({a.size * a.itemsize / 1024**3:.02f} Gb). ", end="")
+        print("done ({size:.02f} Gb). ".format(size=a.size * a.itemsize / 1024**3), end="")
 
         def subprocess(i):
             aa = a.copy()
@@ -116,21 +116,20 @@ def test_multiprocessing_showcase():
             pass
 
         start = datetime.datetime.now()
-        print(f"Starting processing: n_jobs={n_jobs} ... ", end="")
+        print("Starting processing: n_jobs={n_jobs} ... ".format(n_jobs=n_jobs), end="")
         results = joblib.Parallel(n_jobs=n_jobs)(
             joblib.delayed(subprocess)(i) 
             for i in range(n_jobs))
-        print(f"done ({datetime.datetime.now() - start}). ", end="")
+        print("done ({}). ".format(datetime.datetime.now() - start), end="")
 
         return results
 
     rss = memory_usage(proc=func, max_usage=True, backend="psutil", include_children=True, multiprocess=True)
-    print(f"RSS: {rss:.02f}")
+    print("RSS: {rss:.02f}".format(rss=rss))
     uss = memory_usage(proc=func, max_usage=True, backend="psutil_uss", include_children=True, multiprocess=True)
-    print(f"USS: {uss:.02f}")
+    print("USS: {uss:.02f}".format(uss=uss))
     pss = memory_usage(proc=func, max_usage=True, backend="psutil_pss", include_children=True, multiprocess=True)
-    print(f"PSS: {pss:.02f}")
-    print(f"RSS: {rss:.02f}, USS: {uss:.02f}, PSS: {pss:.02f}")
+    print("PSS: {pss:.02f}".format(pss=pss))
 
 
 if __name__ == "__main__":
