@@ -152,7 +152,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
         process = psutil.Process(pid)
         try:
             if not hasattr(process, 'memory_full_info'):
-                raise NotImplementedError("Backend `ps_util_pss` requires psutil > 4.0.0")
+                raise NotImplementedError("Backend `psutil_pss` and `psutil_uss` requires psutil > 4.0.0")
 
             meminfo_attr = 'memory_full_info'
             meminfo = getattr(process, meminfo_attr)()
