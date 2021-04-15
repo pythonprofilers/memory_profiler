@@ -148,7 +148,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
 
     def _ps_util_full_tool(memory_metric):
 
-        # .. cross-platform but but requires psutil ..
+        # .. cross-platform but requires psutil > 4.0.0 ..
         process = psutil.Process(pid)
         try:
             if not hasattr(process, 'memory_full_info'):
