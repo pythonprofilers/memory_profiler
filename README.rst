@@ -420,7 +420,7 @@ Currently, the backend can be set via the CLI
 
     $ python -m memory_profiler --backend psutil my_script.py
 
-and is explosed by the API
+and is exposed by the API
 
     >>> from memory_profiler import memory_usage
     >>> mem_usage = memory_usage(-1, interval=.2, timeout=1, backend="psutil")
@@ -503,6 +503,8 @@ cleanup.
 `Muhammad Haseeb Tariq <https://github.com/mhaseebtariq>`_ fixed issue #152, which made the whole interpreter hang on functions that launched an exception.
 
 `Juan Luis Cano <https://github.com/Juanlu001>`_ modernized the infrastructure and helped with various things.
+
+`Martin Becker <https://github.com/mgbckr>`_ added PSS and USS tracking via the psutil backend.
 
 =========
  License
