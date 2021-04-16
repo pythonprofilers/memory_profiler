@@ -398,7 +398,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                     proc.pid, backend, timestamps=timestamps,
                     include_children=include_children)
 
-                if stream is not None:
+                if mem_usage and stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
 
                     # Write children to the stream file
