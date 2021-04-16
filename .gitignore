@@ -6,6 +6,7 @@ MANIFEST
 *.egg-info
 *.pyc
 *~
+.coverage
 
 # Ignore mprof generated files
 mprofile_*.dat
