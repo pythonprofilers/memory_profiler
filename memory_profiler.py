@@ -152,7 +152,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
         process = psutil.Process(pid)
         try:
             if not hasattr(process, 'memory_full_info'):
-                raise NotImplementedError("Backend `psutil_pss` and `psutil_uss` requires psutil > 4.0.0")
+                raise NotImplementedError("Backend `{}` requires psutil > 4.0.0".format(memory_metric))
 
             meminfo_attr = 'memory_full_info'
             meminfo = getattr(process, meminfo_attr)()
@@ -308,6 +308,12 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         to this file instead of stored in memory and returned at the end of
         the subprocess. Useful for long-running processes.
         Implies timestamps=True.
+
+    backend : str, optional
+        Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'
+        If `backend=None` the default is "psutil" which measures RSS aka “Resident Set Size”. 
+        For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
+        https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
 
     max_iterations : int
         Limits the number of iterations (calls to the process being monitored). Relevent
@@ -1318,9 +1324,9 @@ if __name__ == '__main__':
         default=False, action='store_true',
         help='also include memory used by child processes')
     parser.add_argument('--backend', dest='backend', type=str, action='store',
-        choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
+        choices=['tracemalloc', 'psutil', 'psutil_pss', 'psutil_uss', 'posix'], default='psutil',
         help='backend using for getting memory info '
-             '(one of the {tracemalloc, psutil, posix})')
+             '(one of the {tracemalloc, psutil, posix, psutil_pss, psutil_uss, posix})')
     parser.add_argument("program", nargs=REMAINDER,
         help='python script or module followed by command line arguements to run')
     args = parser.parse_args()

@@ -407,6 +407,25 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
     import memory_profiler
     memory_profiler.load_ipython_extension(ip)
 
+===============================
+Memory tracking backends
+===============================
+`memory_profiler` supports different memory tracking backends including: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'.
+If no specific backend is specified the default is to use "psutil" which measures RSS aka “Resident Set Size”. 
+In some cases (particularly when tracking child processes) RSS may overestimate memory usage (see `example/example_psutil_memory_full_info.py` for an example).
+For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
+https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
+
+Currently, the backend can be set via the CLI
+
+    $ python -m memory_profiler --backend psutil my_script.py
+
+and is exposed by the API
+
+    >>> from memory_profiler import memory_usage
+    >>> mem_usage = memory_usage(-1, interval=.2, timeout=1, backend="psutil")
+
+    
 ============================
  Frequently Asked Questions
 ============================
@@ -422,7 +441,6 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
     * Q: Does it work under windows ?
     * A: Yes, thanks to the
       `psutil <http://pypi.python.org/pypi/psutil>`_ module.
-
 
 
 ===========================
@@ -485,6 +503,8 @@ cleanup.
 `Muhammad Haseeb Tariq <https://github.com/mhaseebtariq>`_ fixed issue #152, which made the whole interpreter hang on functions that launched an exception.
 
 `Juan Luis Cano <https://github.com/Juanlu001>`_ modernized the infrastructure and helped with various things.
+
+`Martin Becker <https://github.com/mgbckr>`_ added PSS and USS tracking via the psutil backend.
 
 =========
  License
