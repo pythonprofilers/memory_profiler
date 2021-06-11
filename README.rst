@@ -64,7 +64,7 @@ this would result in::
 
 Output will follow::
 
-    Line #    Mem usage    Increment  Occurences   Line Contents
+    Line #    Mem usage    Increment  Occurrences   Line Contents
     ============================================================
          3   38.816 MiB   38.816 MiB           1   @profile
          4                                         def my_func():
