@@ -854,7 +854,7 @@ def show_results(prof, stream=None, precision=1):
     template = '{0:>6} {1:>12} {2:>12}  {3:>10}   {4:<}'
 
     for (filename, lines) in prof.code_map.items():
-        header = template.format('Line #', 'Mem usage', 'Increment', 'Occurences',
+        header = template.format('Line #', 'Mem usage', 'Increment', 'Occurrences',
                                  'Line Contents')
 
         stream.write(u'Filename: ' + filename + '\n\n')
@@ -870,13 +870,13 @@ def show_results(prof, stream=None, precision=1):
                 inc = mem[0]
                 total_mem = mem[1]
                 total_mem = template_mem.format(total_mem)
-                occurences = mem[2]
+                occurrences = mem[2]
                 inc = template_mem.format(inc)
             else:
                 total_mem = u''
                 inc = u''
-                occurences = u''
-            tmp = template.format(lineno, total_mem, inc, occurences, all_lines[lineno - 1])
+                occurrences = u''
+            tmp = template.format(lineno, total_mem, inc, occurrences, all_lines[lineno - 1])
             stream.write(tmp)
         stream.write(u'\n\n')
 
