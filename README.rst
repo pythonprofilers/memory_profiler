@@ -179,7 +179,7 @@ track the usage of child processes: sum the memory of all children to the
 parent's usage and track each child individual.
 
 To create a report that combines memory usage of all the children and the
-parent, use the ``include_children`` flag in either the ``profile`` decorator or
+parent, use the ``include-children`` flag in either the ``profile`` decorator or
 as a command line argument to ``mprof``::
 
     mprof run --include-children <script>
@@ -197,7 +197,7 @@ This will create a plot using matplotlib similar to this:
     :target: https://github.com/pythonprofilers/memory_profiler/pull/134
     :height: 350px
 
-You can combine both the ``include_children`` and ``multiprocess`` flags to show
+You can combine both the ``include-children`` and ``multiprocess`` flags to show
 the total memory of the program as well as each child individually. If using
 the API directly, note that the return from ``memory_usage`` will include the
 child memory in a nested list along with the main process memory.
