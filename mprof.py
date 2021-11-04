@@ -215,7 +215,8 @@ def run_action():
 (where <YYYYMMDDhhmmss> is the date-time of the program start).
 This file contains the process memory consumption, in Mb (one value per line).""")
     parser.add_argument("--backend", dest="backend", choices=["psutil", "psutil_pss", "psutil_uss", "posix", "tracemalloc"],
-                        help="Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'")
+                        default="psutil",
+                        help="Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'. Defaults to 'psutil'.")
     parser.add_argument("program", nargs=REMAINDER,
                         help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
                              'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
