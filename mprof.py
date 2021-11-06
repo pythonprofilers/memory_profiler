@@ -214,6 +214,9 @@ def run_action():
                         help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat' in the current directory,
 (where <YYYYMMDDhhmmss> is the date-time of the program start).
 This file contains the process memory consumption, in Mb (one value per line).""")
+    parser.add_argument("--backend", dest="backend", choices=["psutil", "psutil_pss", "psutil_uss", "posix", "tracemalloc"],
+                        default="psutil",
+                        help="Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'. Defaults to 'psutil'.")
     parser.add_argument("program", nargs=REMAINDER,
                         help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
                              'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
@@ -279,7 +282,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
         f.write("CMDLINE {0}\n".format(cmd_line))
         mp.memory_usage(proc=p, interval=args.interval, timeout=args.timeout, timestamps=True,
                         include_children=args.include_children,
-                        multiprocess=args.multiprocess, stream=f)
+                        multiprocess=args.multiprocess, stream=f, backend=args.backend)
 
     if args.exit_code:
         if p.returncode != 0:
