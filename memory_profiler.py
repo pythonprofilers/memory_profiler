@@ -1110,7 +1110,7 @@ class MemoryProfilerMagics(Magics):
             counter += 1
             tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
                                timeout=timeout, interval=interval,
-                               max_usage=True,
+                               max_usage=True, max_iterations=1,
                                include_children=include_children)
             mem_usage.append(tmp)
 
