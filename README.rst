@@ -411,7 +411,7 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
 Memory tracking backends
 ===============================
 `memory_profiler` supports different memory tracking backends including: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'.
-If no specific backend is specified the default is to use "psutil" which measures RSS aka “Resident Set Size”. 
+If no specific backend is specified the default is to use "psutil" which measures RSS aka "Resident Set Size". 
 In some cases (particularly when tracking child processes) RSS may overestimate memory usage (see `example/example_psutil_memory_full_info.py` for an example).
 For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
 https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
