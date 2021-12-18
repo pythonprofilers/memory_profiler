@@ -311,7 +311,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
     backend : str, optional
         Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'
-        If `backend=None` the default is "psutil" which measures RSS aka “Resident Set Size”. 
+        If `backend=None` the default is "psutil" which measures RSS aka "Resident Set Size". 
         For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
         https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
 
