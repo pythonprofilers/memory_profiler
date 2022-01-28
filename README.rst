@@ -26,7 +26,7 @@ The package is also available on `conda-forge
 
 To install from source, download the package, extract and type::
 
-    $ python setup.py install
+    $ pip install .
 
 
 =======
