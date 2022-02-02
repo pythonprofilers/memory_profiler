@@ -680,7 +680,7 @@ class CodeMap(dict):
         occ_count = self[code][lineno][2] + 1 if lineno in self[code] else 1
         self[code][lineno] = (
             previous_inc + (memory - prev_line_memory),
-            max(memory, previous_memory),
+            memory,
             occ_count,
         )
 
