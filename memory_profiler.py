@@ -15,12 +15,14 @@ import inspect
 import linecache
 import logging
 import os
+from io import open
 import pdb
 import subprocess
 import sys
 import time
 import traceback
 import warnings
+
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -1246,6 +1248,7 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     try:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
+
         with open(filename, encoding='utf-8') as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
     finally:
