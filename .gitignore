@@ -1,13 +1,16 @@
 .idea
+.vscode
 dist
 build
 MANIFEST
 *.egg-info
 *.pyc
 *~
+.coverage
 
 # Ignore mprof generated files
 mprofile_*.dat
 
 # virtual environment
 venv/
+.python-version

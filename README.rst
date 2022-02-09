@@ -5,6 +5,9 @@
  Memory Profiler
 =================
 
+
+**Note:** This package is no longer actively maintained. If you'd like to volunteer to maintain it, please drop me a line at f@bianp.net
+
 This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
 programs. It is a pure python module which depends on the `psutil
@@ -23,7 +26,7 @@ The package is also available on `conda-forge
 
 To install from source, download the package, extract and type::
 
-    $ python setup.py install
+    $ pip install .
 
 
 =======
@@ -64,14 +67,14 @@ this would result in::
 
 Output will follow::
 
-    Line #    Mem usage  Increment   Line Contents
-    ==============================================
-         3                           @profile
-         4      5.97 MB    0.00 MB   def my_func():
-         5     13.61 MB    7.64 MB       a = [1] * (10 ** 6)
-         6    166.20 MB  152.59 MB       b = [2] * (2 * 10 ** 7)
-         7     13.61 MB -152.59 MB       del b
-         8     13.61 MB    0.00 MB       return a
+    Line #    Mem usage    Increment  Occurrences   Line Contents
+    ============================================================
+         3   38.816 MiB   38.816 MiB           1   @profile
+         4                                         def my_func():
+         5   46.492 MiB    7.676 MiB           1       a = [1] * (10 ** 6)
+         6  199.117 MiB  152.625 MiB           1       b = [2] * (2 * 10 ** 7)
+         7   46.629 MiB -152.488 MiB           1       del b
+         8   46.629 MiB    0.000 MiB           1       return a
 
 
 The first column represents the line number of the code that has been
@@ -179,7 +182,7 @@ track the usage of child processes: sum the memory of all children to the
 parent's usage and track each child individual.
 
 To create a report that combines memory usage of all the children and the
-parent, use the ``include_children`` flag in either the ``profile`` decorator or
+parent, use the ``include-children`` flag in either the ``profile`` decorator or
 as a command line argument to ``mprof``::
 
     mprof run --include-children <script>
@@ -197,7 +200,7 @@ This will create a plot using matplotlib similar to this:
     :target: https://github.com/pythonprofilers/memory_profiler/pull/134
     :height: 350px
 
-You can combine both the ``include_children`` and ``multiprocess`` flags to show
+You can combine both the ``include-children`` and ``multiprocess`` flags to show
 the total memory of the program as well as each child individually. If using
 the API directly, note that the return from ``memory_usage`` will include the
 child memory in a nested list along with the main process memory.
@@ -213,6 +216,21 @@ By default, the command line call is set as the graph title. If you wish to cust
 You can also hide the function timestamps using the ``n`` flag, such as
 
     mprof plot -n
+
+Trend lines and its numeric slope can be plotted using the ``s`` flag, such as
+
+    mprof plot -s
+
+.. image:: ./images/trend_slope.png
+   :height: 350px
+
+The intended usage of the -s switch is to check the labels' numerical slope over a significant time period for : 
+
+  - ``>0`` it might mean a memory leak.
+  - ``~0`` if 0 or near 0, the memory usage may be considered stable.
+  - ``<0`` to be interpreted depending on the expected process memory usage patterns, also might mean that the sampling period is too small.
+
+The trend lines are for ilustrative purposes and are plotted as (very) small dashed lines.
 
 
 Setting debugger breakpoints
@@ -392,6 +410,25 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
     import memory_profiler
     memory_profiler.load_ipython_extension(ip)
 
+===============================
+Memory tracking backends
+===============================
+`memory_profiler` supports different memory tracking backends including: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'.
+If no specific backend is specified the default is to use "psutil" which measures RSS aka "Resident Set Size". 
+In some cases (particularly when tracking child processes) RSS may overestimate memory usage (see `example/example_psutil_memory_full_info.py` for an example).
+For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
+https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
+
+Currently, the backend can be set via the CLI
+
+    $ python -m memory_profiler --backend psutil my_script.py
+
+and is exposed by the API
+
+    >>> from memory_profiler import memory_usage
+    >>> mem_usage = memory_usage(-1, interval=.2, timeout=1, backend="psutil")
+
+    
 ============================
  Frequently Asked Questions
 ============================
@@ -409,7 +446,6 @@ file ~/.ipython/ipy_user_conf.py to add the following lines::
       `psutil <http://pypi.python.org/pypi/psutil>`_ module.
 
 
-
 ===========================
  Support, bugs & wish list
 ===========================
@@ -419,9 +455,9 @@ Send issues, proposals, etc. to `github's issue tracker
 <https://github.com/pythonprofilers/memory_profiler/issues>`_ .
 
 If you've got questions regarding development, you can email me
-directly at fabian@fseoane.net
+directly at f@bianp.net
 
-.. image:: http://fseoane.net/static/tux_memory_small.png
+.. image:: http://fa.bianp.net/static/tux_memory_small.png
 
 
 =============
@@ -470,6 +506,8 @@ cleanup.
 `Muhammad Haseeb Tariq <https://github.com/mhaseebtariq>`_ fixed issue #152, which made the whole interpreter hang on functions that launched an exception.
 
 `Juan Luis Cano <https://github.com/Juanlu001>`_ modernized the infrastructure and helped with various things.
+
+`Martin Becker <https://github.com/mgbckr>`_ added PSS and USS tracking via the psutil backend.
 
 =========
  License

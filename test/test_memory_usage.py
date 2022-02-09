@@ -1,4 +1,5 @@
 from memory_profiler import memory_usage
+import os
 
 
 def some_func(*args, **kwargs):
@@ -10,6 +11,20 @@ def test_memory_usage():
     mem, ret = memory_usage((some_func, (1, 2), dict(a=1)), retval=True)
     assert ret[0] == (1, 2)
     assert ret[1] == dict(a=1)
+    
+    
+def write_line(filepath):
+    with open(filepath, 'a') as the_file:
+        the_file.write('Testing\n')
+
+def test_max_iterations():
+    # Check that memory_usage works with max_iterations set (for python functions).
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    file = os.path.join(this_dir, 'temp_test_max_iterations_file.txt')
+    mem = memory_usage((write_line, (file, ), dict()), max_usage=True, max_iterations=1)
+    n_lines = sum(1 for line in open(file))
+    os.remove(file)
+    assert n_lines == 1
 
 
 def test_return_value_consistency():
@@ -27,4 +42,5 @@ def test_return_value_consistency():
 
 if __name__ == "__main__":
     test_memory_usage()
+    test_max_iterations()
     test_return_value_consistency()

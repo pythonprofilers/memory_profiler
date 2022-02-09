@@ -3,11 +3,14 @@
 # .. we'll use this to pass it to the child script ..
 _CLEAN_GLOBALS = globals().copy()
 
-__version__ = '0.55.0'
+__version__ = '0.59.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-from functools import wraps
+from asyncio import coroutine, iscoroutinefunction
+from contextlib import contextmanager
+from functools import partial, wraps
+import builtins
 import inspect
 import linecache
 import logging
@@ -19,7 +22,6 @@ import sys
 import time
 import traceback
 import warnings
-import contextlib
 
 
 if sys.platform == "win32":
@@ -45,17 +47,8 @@ except ImportError:
     line_cell_magic = lambda func: func
     magics_class = lambda cls: cls
 
-PY2 = sys.version_info[0] == 2
-
 _TWO_20 = float(2 ** 20)
 
-if PY2:
-    import __builtin__ as builtins
-    to_str = lambda x: x
-    from future_builtins import filter
-else:
-    import builtins
-    to_str = lambda x: str(x)
 
 # .. get available packages ..
 try:
@@ -91,7 +84,7 @@ class MemitResult(object):
         p.text(u'<MemitResult : ' + msg + u'>')
 
 
-def _get_child_memory(process, meminfo_attr=None):
+def _get_child_memory(process, meminfo_attr=None, memory_metric=0):
     """
     Returns a generator that yields memory for all child processes.
     """
@@ -111,7 +104,11 @@ def _get_child_memory(process, meminfo_attr=None):
     # Loop over the child processes and yield their memory
     try:
         for child in getattr(process, children_attr)(recursive=True):
-            yield getattr(child, meminfo_attr)()[0] / _TWO_20
+            if isinstance(memory_metric, str):
+                meminfo = getattr(child, meminfo_attr)()
+                yield getattr(meminfo, memory_metric) / _TWO_20
+            else:
+                yield getattr(child, meminfo_attr)()[memory_metric] / _TWO_20
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         # https://github.com/fabianp/memory_profiler/issues/71
         yield 0.0
@@ -147,6 +144,35 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 return mem, time.time()
             else:
                 return mem
+        except psutil.AccessDenied:
+            pass
+            # continue and try to get this from ps
+
+    def _ps_util_full_tool(memory_metric):
+
+        # .. cross-platform but requires psutil > 4.0.0 ..
+        process = psutil.Process(pid)
+        try:
+            if not hasattr(process, 'memory_full_info'):
+                raise NotImplementedError("Backend `{}` requires psutil > 4.0.0".format(memory_metric))
+
+            meminfo_attr = 'memory_full_info'
+            meminfo = getattr(process, meminfo_attr)()
+
+            if not hasattr(meminfo, memory_metric):
+                raise NotImplementedError(
+                    "Metric `{}` not available. For details, see:".format(memory_metric) +
+                    "https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info")
+            mem = getattr(meminfo, memory_metric) / _TWO_20
+
+            if include_children:
+                mem +=  sum(_get_child_memory(process, meminfo_attr, memory_metric))
+
+            if timestamps:
+                return mem, time.time()
+            else:
+                return mem
+        
         except psutil.AccessDenied:
             pass
             # continue and try to get this from ps
@@ -189,6 +215,8 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
 
     tools = {'tracemalloc': tracemalloc_tool,
              'psutil': ps_util_tool,
+             'psutil_pss': lambda: _ps_util_full_tool(memory_metric="pss"),
+             'psutil_uss': lambda: _ps_util_full_tool(memory_metric="uss"),
              'posix': posix_tool}
     return tools[backend]()
 
@@ -240,7 +268,7 @@ class MemTimer(Process):
 
 def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                  include_children=False, multiprocess=False, max_usage=False,
-                 retval=False, stream=None, backend=None):
+                 retval=False, stream=None, backend=None, max_iterations=None):
     """
     Return the memory usage of a process or piece of code
 
@@ -283,6 +311,16 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         the subprocess. Useful for long-running processes.
         Implies timestamps=True.
 
+    backend : str, optional
+        Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'
+        If `backend=None` the default is "psutil" which measures RSS aka "Resident Set Size". 
+        For more information on "psutil_pss" (measuring PSS) and "psutil_uss" please refer to:
+        https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
+
+    max_iterations : int
+        Limits the number of iterations (calls to the process being monitored). Relevent
+        when the process is a python function.
+
     Returns
     -------
     mem_usage : list of floating-point values
@@ -309,6 +347,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
     else:
         # for a Python function wait until it finishes
         max_iter = float('inf')
+        if max_iterations is not None:
+            max_iter = max_iterations
 
     if callable(proc):
         proc = (proc, (), {})
@@ -322,7 +362,9 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         else:
             raise ValueError
 
+        current_iter = 0
         while True:
+            current_iter += 1
             child_conn, parent_conn = Pipe()  # this will store MemTimer's results
             p = MemTimer(os.getpid(), interval, child_conn, backend,
                          timestamps=timestamps,
@@ -351,7 +393,8 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                 raise
 
             p.join(5 * interval)
-            if n_measurements > 4 or interval < 1e-6:
+
+            if (n_measurements > 4) or (current_iter == max_iter) or (interval < 1e-6):
                 break
             interval /= 10.
     elif isinstance(proc, subprocess.Popen):
@@ -363,7 +406,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
                     proc.pid, backend, timestamps=timestamps,
                     include_children=include_children)
 
-                if stream is not None:
+                if mem_usage and stream is not None:
                     stream.write("MEM {0:.6f} {1:.4f}\n".format(*mem_usage))
 
                     # Write children to the stream file
@@ -463,12 +506,14 @@ def _find_script(script_name):
 class _TimeStamperCM(object):
     """Time-stamping context manager."""
 
-    def __init__(self, timestamps, filename, backend, timestamper=None, func=None):
+    def __init__(self, timestamps, filename, backend, timestamper=None, func=None,
+                 include_children=False):
         self.timestamps = timestamps
         self.filename = filename
         self.backend = backend
         self.ts = timestamper
         self.func = func
+        self.include_children = include_children
 
     def __enter__(self):
         if self.ts is not None:
@@ -476,14 +521,16 @@ class _TimeStamperCM(object):
             self.ts.stack[self.func].append(self.ts.current_stack_level)
 
         self.timestamps.append(
-            _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
+            _get_memory(os.getpid(), self.backend, timestamps=True,
+                        include_children=self.include_children, filename=self.filename))
 
     def __exit__(self, *args):
         if self.ts is not None:
             self.ts.current_stack_level -= 1
 
         self.timestamps.append(
-            _get_memory(os.getpid(), self.backend, timestamps=True, filename=self.filename))
+            _get_memory(os.getpid(), self.backend, timestamps=True,
+                        include_children=self.include_children, filename=self.filename))
 
 
 class TimeStamper:
@@ -491,9 +538,10 @@ class TimeStamper:
     any decorated function.
     """
 
-    def __init__(self, backend):
+    def __init__(self, backend, include_children=False):
         self.functions = {}
         self.backend = backend
+        self.include_children = include_children
         self.current_stack_level = -1
         self.stack = {}
 
@@ -554,7 +602,8 @@ class TimeStamper:
             except TypeError:
                 filename = '<unknown>'
             timestamps = [
-                _get_memory(os.getpid(), self.backend, timestamps=True, filename=filename)]
+                _get_memory(os.getpid(), self.backend, timestamps=True,
+                            include_children=self.include_children, filename=filename)]
             self.functions[func].append(timestamps)
             try:
                 with self.call_on_stack(func, *args, **kwds) as result:
@@ -562,11 +611,12 @@ class TimeStamper:
             finally:
                 # end time
                 timestamps.append(_get_memory(os.getpid(), self.backend, timestamps=True,
+                                              include_children=self.include_children,
                                               filename=filename))
 
         return f
 
-    @contextlib.contextmanager
+    @contextmanager
     def call_on_stack(self, func, *args, **kwds):
         self.current_stack_level += 1
         self.stack[func].append(self.current_stack_level)
@@ -629,7 +679,12 @@ class CodeMap(dict):
 
         prev_line_value = self[code].get(prev_lineno, None) if prev_lineno else None
         prev_line_memory = prev_line_value[1] if prev_line_value else 0
-        self[code][lineno] = (max(previous_inc, memory-prev_line_memory), max(memory, previous_memory))
+        occ_count = self[code][lineno][2] + 1 if lineno in self[code] else 1
+        self[code][lineno] = (
+            previous_inc + (memory - prev_line_memory),
+            max(memory, previous_memory),
+            occ_count,
+        )
 
     def items(self):
         """Iterate on the toplevel code blocks."""
@@ -682,16 +737,28 @@ class LineProfiler(object):
         else:
             self.code_map.add(code)
 
+    @contextmanager
+    def _count_ctxmgr(self):
+        self.enable_by_count()
+        try:
+            yield
+        finally:
+            self.disable_by_count()
+
     def wrap_function(self, func):
         """ Wrap a function to profile it.
         """
 
-        def f(*args, **kwds):
-            self.enable_by_count()
-            try:
-                return func(*args, **kwds)
-            finally:
-                self.disable_by_count()
+        if iscoroutinefunction(func):
+            @coroutine
+            def f(*args, **kwargs):
+                with self._count_ctxmgr():
+                    res = yield from func(*args, **kwargs)
+                    return res
+        else:
+            def f(*args, **kwds):
+                with self._count_ctxmgr():
+                    return func(*args, **kwds)
 
         return f
 
@@ -786,10 +853,10 @@ class LineProfiler(object):
 def show_results(prof, stream=None, precision=1):
     if stream is None:
         stream = sys.stdout
-    template = '{0:>6} {1:>12} {2:>12}   {3:<}'
+    template = '{0:>6} {1:>12} {2:>12}  {3:>10}   {4:<}'
 
     for (filename, lines) in prof.code_map.items():
-        header = template.format('Line #', 'Mem usage', 'Increment',
+        header = template.format('Line #', 'Mem usage', 'Increment', 'Occurrences',
                                  'Line Contents')
 
         stream.write(u'Filename: ' + filename + '\n\n')
@@ -803,14 +870,16 @@ def show_results(prof, stream=None, precision=1):
         for (lineno, mem) in lines:
             if mem:
                 inc = mem[0]
-                mem = mem[1]
-                mem = template_mem.format(mem)
+                total_mem = mem[1]
+                total_mem = template_mem.format(total_mem)
+                occurrences = mem[2]
                 inc = template_mem.format(inc)
             else:
-                mem = u''
+                total_mem = u''
                 inc = u''
-            tmp = template.format(lineno, mem, inc, all_lines[lineno - 1])
-            stream.write(to_str(tmp))
+                occurrences = u''
+            tmp = template.format(lineno, total_mem, inc, occurrences, all_lines[lineno - 1])
+            stream.write(tmp)
         stream.write(u'\n\n')
 
 
@@ -1045,7 +1114,7 @@ class MemoryProfilerMagics(Magics):
                                timeout=timeout, interval=interval,
                                max_usage=True,
                                include_children=include_children)
-            mem_usage.append(tmp[0])
+            mem_usage.append(tmp)
 
         result = MemitResult(mem_usage, baseline, repeat, timeout, interval,
                              include_children)
@@ -1100,12 +1169,25 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         if not tracemalloc.is_tracing():
             tracemalloc.start()
     if func is not None:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            prof = LineProfiler(backend=backend)
-            val = prof(func)(*args, **kwargs)
-            show_results(prof, stream=stream, precision=precision)
-            return val
+        get_prof = partial(LineProfiler, backend=backend)
+        show_results_bound = partial(
+            show_results, stream=stream, precision=precision
+        )
+        if iscoroutinefunction(func):
+            @wraps(wrapped=func)
+            @coroutine
+            def wrapper(*args, **kwargs):
+                prof = get_prof()
+                val = yield from prof(func)(*args, **kwargs)
+                show_results_bound(prof)
+                return val
+        else:
+            @wraps(wrapped=func)
+            def wrapper(*args, **kwargs):
+                prof = get_prof()
+                val = prof(func)(*args, **kwargs)
+                show_results_bound(prof)
+                return val
 
         return wrapper
     else:
@@ -1125,6 +1207,8 @@ def choose_backend(new_backend=None):
     _backend = 'no_backend'
     all_backends = [
         ('psutil', True),
+        ('psutil_pss', True),
+        ('psutil_uss', True),
         ('posix', os.name == 'posix'),
         ('tracemalloc', has_tracemalloc),
     ]
@@ -1164,7 +1248,8 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     try:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
-        with open(filename, 'rb') as f:
+
+        with open(filename, encoding='utf-8') as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
     finally:
         if has_tracemalloc and tracemalloc.is_tracing():
@@ -1177,16 +1262,13 @@ def run_module_with_profiler(module, profiler, backend, passed_args=[]):
     ns = dict(_CLEAN_GLOBALS, profile=profiler)
     _backend = choose_backend(backend)
     sys.argv = [module] + passed_args
-    if PY2:
+    if _backend == 'tracemalloc' and has_tracemalloc:
+        tracemalloc.start()
+    try:
         run_module(module, run_name="__main__", init_globals=ns)
-    else:
-        if _backend == 'tracemalloc' and has_tracemalloc:
-            tracemalloc.start()
-        try:
-            run_module(module, run_name="__main__", init_globals=ns)
-        finally:
-            if has_tracemalloc and tracemalloc.is_tracing():
-                tracemalloc.stop()
+    finally:
+        if has_tracemalloc and tracemalloc.is_tracing():
+            tracemalloc.stop()
 
 
 class LogFile(object):
@@ -1241,10 +1323,13 @@ if __name__ == '__main__':
         action='store_true',
         help='''print timestamp instead of memory measurement for
         decorated functions''')
+    parser.add_argument('--include-children', dest='include_children',
+        default=False, action='store_true',
+        help='also include memory used by child processes')
     parser.add_argument('--backend', dest='backend', type=str, action='store',
-        choices=['tracemalloc', 'psutil', 'posix'], default='psutil',
+        choices=['tracemalloc', 'psutil', 'psutil_pss', 'psutil_uss', 'posix'], default='psutil',
         help='backend using for getting memory info '
-             '(one of the {tracemalloc, psutil, posix})')
+             '(one of the {tracemalloc, psutil, posix, psutil_pss, psutil_uss, posix})')
     parser.add_argument("program", nargs=REMAINDER,
         help='python script or module followed by command line arguements to run')
     args = parser.parse_args()
@@ -1257,7 +1342,7 @@ if __name__ == '__main__':
     script_args = args.program[1:]
     _backend = choose_backend(args.backend)
     if args.timestamp:
-        prof = TimeStamper(_backend)
+        prof = TimeStamper(_backend, include_children=args.include_children)
     else:
         prof = LineProfiler(max_mem=args.max_mem, backend=_backend)
 
