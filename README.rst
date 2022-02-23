@@ -6,7 +6,7 @@
 =================
 
 
-**Note:** This package is no longer actively maintained. If you'd like to volunteer to maintain it, please drop me a line at f@bianp.net
+**Note:** This package is no longer actively maintained. I won't be actively responding to issues. If you'd like to volunteer to maintain it, please drop me a line at f@bianp.net
 
 This is a python module for monitoring memory consumption of a process
 as well as line-by-line analysis of memory consumption for python
