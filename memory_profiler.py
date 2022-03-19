@@ -164,7 +164,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
             mem = getattr(meminfo, memory_metric) / _TWO_20
 
             if include_children:
-                mem +=  sum([mem for (pid, mem) in _get_child_memory(process, meminfo_attr)])
+                mem +=  sum([mem for (pid, mem) in _get_child_memory(process, meminfo_attr, memory_metric)])
 
             if timestamps:
                 return mem, time.time()
