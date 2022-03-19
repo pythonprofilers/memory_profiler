@@ -15,6 +15,7 @@ import inspect
 import linecache
 import logging
 import os
+import io
 import pdb
 import subprocess
 import sys
@@ -1110,7 +1111,7 @@ class MemoryProfilerMagics(Magics):
             counter += 1
             tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
                                timeout=timeout, interval=interval,
-                               max_usage=True,
+                               max_usage=True, max_iterations=1,
                                include_children=include_children)
             mem_usage.append(tmp)
 
@@ -1246,7 +1247,7 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     try:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
-        with open(filename, encoding='utf-8') as f:
+        with io.open(filename, encoding='utf-8') as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
     finally:
         if has_tracemalloc and tracemalloc.is_tracing():
