@@ -3,7 +3,7 @@
 # .. we'll use this to pass it to the child script ..
 _CLEAN_GLOBALS = globals().copy()
 
-__version__ = '0.59.0'
+__version__ = '0.60.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
@@ -15,14 +15,12 @@ import inspect
 import linecache
 import logging
 import os
-import io
 import pdb
 import subprocess
 import sys
 import time
 import traceback
 import warnings
-
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -106,12 +104,12 @@ def _get_child_memory(process, meminfo_attr=None, memory_metric=0):
         for child in getattr(process, children_attr)(recursive=True):
             if isinstance(memory_metric, str):
                 meminfo = getattr(child, meminfo_attr)()
-                yield getattr(meminfo, memory_metric) / _TWO_20
+                yield child.pid, getattr(meminfo, memory_metric) / _TWO_20
             else:
-                yield getattr(child, meminfo_attr)()[memory_metric] / _TWO_20
+                yield child.pid, getattr(child, meminfo_attr)()[memory_metric] / _TWO_20
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         # https://github.com/fabianp/memory_profiler/issues/71
-        yield 0.0
+        yield (0, 0.0)
 
 
 def _get_memory(pid, backend, timestamps=False, include_children=False, filename=None):
@@ -139,7 +137,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 else 'get_memory_info'
             mem = getattr(process, meminfo_attr)()[0] / _TWO_20
             if include_children:
-                mem +=  sum(_get_child_memory(process, meminfo_attr))
+                mem +=  sum([mem for (pid, mem) in _get_child_memory(process, meminfo_attr)])
             if timestamps:
                 return mem, time.time()
             else:
@@ -166,7 +164,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
             mem = getattr(meminfo, memory_metric) / _TWO_20
 
             if include_children:
-                mem +=  sum(_get_child_memory(process, meminfo_attr, memory_metric))
+                mem +=  sum([mem for (pid, mem) in _get_child_memory(process, meminfo_attr)])
 
             if timestamps:
                 return mem, time.time()
@@ -411,13 +409,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
                     # Write children to the stream file
                     if multiprocess:
-                        for idx, chldmem in enumerate(_get_child_memory(proc.pid)):
+                        for idx, chldmem in _get_child_memory(proc.pid):
                             stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
                     # Create a nested list with the child memory
                     if multiprocess:
                         mem_usage = [mem_usage]
-                        for chldmem in _get_child_memory(proc.pid):
+                        for _, chldmem in _get_child_memory(proc.pid):
                             mem_usage.append(chldmem)
 
                     # Append the memory usage to the return value
@@ -455,13 +453,13 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
 
                     # Write children to the stream file
                     if multiprocess:
-                        for idx, chldmem in enumerate(_get_child_memory(proc)):
+                        for idx, chldmem in _get_child_memory(proc):
                             stream.write("CHLD {0} {1:.6f} {2:.4f}\n".format(idx, chldmem, time.time()))
                 else:
                     # Create a nested list with the child memory
                     if multiprocess:
                         mem_usage = [mem_usage]
-                        for chldmem in _get_child_memory(proc):
+                        for _, chldmem in _get_child_memory(proc):
                             mem_usage.append(chldmem)
 
                     # Append the memory usage to the return value
@@ -1112,7 +1110,7 @@ class MemoryProfilerMagics(Magics):
             counter += 1
             tmp = memory_usage((_func_exec, (stmt, self.shell.user_ns)),
                                timeout=timeout, interval=interval,
-                               max_usage=True, max_iterations=1,
+                               max_usage=True,
                                include_children=include_children)
             mem_usage.append(tmp)
 
@@ -1248,8 +1246,7 @@ def exec_with_profiler(filename, profiler, backend, passed_args=[]):
     try:
         if _backend == 'tracemalloc' and has_tracemalloc:
             tracemalloc.start()
-
-        with io.open(filename, encoding='utf-8') as f:
+        with open(filename, encoding='utf-8') as f:
             exec(compile(f.read(), filename, 'exec'), ns, ns)
     finally:
         if has_tracemalloc and tracemalloc.is_tracing():
