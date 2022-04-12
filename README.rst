@@ -138,10 +138,11 @@ give you any information on which function is executed at a given
 time. Depending on the case, it can be difficult to identify the part
 of the code that is causing the highest memory usage.
 
-Adding the `profile` decorator to a function and running the Python
+Adding the `profile` decorator to a function(ensure no 
+`from memory_profiler import profile` statement) and running the Python
 script with
 
-    mprof run <script>
+    mprof run --python python <script>
 
 will record timestamps when entering/leaving the profiled function. Running
 
