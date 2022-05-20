@@ -838,6 +838,26 @@ such file in the current directory."""
     else:
         pl.show()
 
+def filter_mprofile_mem_usage_by_function(prof, func):
+    if func is None:
+        return prof["mem_usage"]
+
+    if func not in prof["func_timestamp"]:
+        raise ValueError(str(func) + " was not found.")
+
+    time_ranges = prof["func_timestamp"][func]
+    filtered_memory = []
+    
+    # The check here could be improved, but it's done in this
+    # inefficient way to make sure we don't miss overlapping
+    # ranges.
+    for mib, ts in zip(prof["mem_usage"], prof["timestamp"]):
+        for rng in time_ranges:
+            if rng[0] <= ts <= rng[1]:
+                filtered_memory.append(mib)
+
+    return filtered_memory
+
 def peak_action():
     desc = """Prints the peak memory used in data file `file.dat` generated
 using `mprof run`. If no .dat file is given, it will take the most recent
@@ -845,12 +865,20 @@ such file in the current directory."""
     parser = ArgumentParser(usage="mprof peak [options] [file.dat]", description=desc)
     parser.add_argument("profiles", nargs="*",
                     help="profiles made by mprof run")
+    parser.add_argument("--func", dest="func", default=None,
+                        help="""Show the peak for this function. Does not support child processes.""")
     args = parser.parse_args()
     filenames = get_profiles(args)
 
     for filename in filenames:
         prof = read_mprofile_file(filename)
-        print("{}\t{:.3f} MiB".format(prof["filename"], max(prof["mem_usage"])))
+        try:
+            mem_usage = filter_mprofile_mem_usage_by_function(prof, args.func)
+        except ValueError:
+            print("{}\tNaN MiB".format(prof["filename"]))
+            continue
+
+        print("{}\t{:.3f} MiB".format(prof["filename"], max(mem_usage)))
         for child, values in prof["children"].items():
             child_peak = max([ mem_ts[0] for mem_ts in values ])
             print("  Child {}\t\t\t{:.3f} MiB".format(child, child_peak))
