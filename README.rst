@@ -28,6 +28,20 @@ To install from source, download the package, extract and type::
 
     $ pip install .
 
+===========
+Quick Start
+===========
+
+Use `mprof` to generate a full memory usage report of your executable and to plot it.
+
+.. code-block:: bash
+
+    mprof run executable
+    mprof plot
+
+The plot would be something like this:
+
+.. image:: https://i.stack.imgur.com/ixCH4.png
 
 =======
  Usage
