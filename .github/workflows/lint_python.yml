@@ -19,7 +19,7 @@ jobs:
                       --show-source --statistics
       - run: isort --check-only --profile black . || true
       - run: pip install -r requirements.txt || pip install --editable . || pip install . || true
-      - run: pip install numpy pylab
+      - run: pip install numpy pylab-sdk
       - run: mkdir --parents --verbose .mypy_cache
       - run: mypy --ignore-missing-imports --install-types --non-interactive . || true
       - run: pytest . || true
