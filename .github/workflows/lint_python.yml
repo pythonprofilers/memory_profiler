@@ -21,9 +21,7 @@ jobs:
       - run: pip install -r requirements.txt || pip install --editable . || pip install . || true
       - run: pip install numpy pylab-sdk
       - run: mkdir --parents --verbose .mypy_cache
-      - run: python -m memory_profiler mypy --ignore-missing-imports --install-types --non-interactive . || true
+      - run: mypy --ignore-missing-imports --install-types --non-interactive . || true
       - run: make test
-      # - run: python -m memory_profiler pytest --fixtures . || true
-      # - run: python -m memory_profiler pytest --doctest-modules --fixtures . || true
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
       - run: safety check
