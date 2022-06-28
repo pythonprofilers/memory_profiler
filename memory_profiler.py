@@ -317,7 +317,7 @@ def memory_usage(proc=-1, interval=.1, timeout=None, timestamps=False,
         https://psutil.readthedocs.io/en/latest/index.html?highlight=memory_info#psutil.Process.memory_full_info 
 
     max_iterations : int
-        Limits the number of iterations (calls to the process being monitored). Relevent
+        Limits the number of iterations (calls to the process being monitored). Relevant
         when the process is a python function.
 
     Returns
@@ -1329,7 +1329,7 @@ if __name__ == '__main__':
         help='backend using for getting memory info '
              '(one of the {tracemalloc, psutil, posix, psutil_pss, psutil_uss, posix})')
     parser.add_argument("program", nargs=REMAINDER,
-        help='python script or module followed by command line arguements to run')
+        help='python script or module followed by command line arguments to run')
     args = parser.parse_args()
 
     if len(args.program) == 0:
