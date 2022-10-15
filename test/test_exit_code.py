@@ -18,7 +18,7 @@ class TestExitCode(unittest.TestCase):
             ofile.write(s)
             ofile.flush()
             sys.argv = ['<ignored>', '--exit-code', tmpfile.name]
-            self.assertRaisesRegexp(SystemExit, '0', self.run_action)
+            self.assertRaisesRegex(SystemExit, '0', self.run_action)
 
     def test_exit_code_fail(self):
         s = "raise RuntimeError('I am not working nicely')"
@@ -27,7 +27,7 @@ class TestExitCode(unittest.TestCase):
             ofile.write(s)
             ofile.flush()
             sys.argv = ['<ignored>', '--exit-code', tmpfile.name]
-            self.assertRaisesRegexp(SystemExit, '1', self.run_action)
+            self.assertRaisesRegex(SystemExit, '1', self.run_action)
 
     def test_no_exit_code_success(self):
         s = "raise RuntimeError('I am not working nicely')"
