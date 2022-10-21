@@ -19,7 +19,7 @@ jobs:
           #
           # CPython -> 3.9.0-alpha - 3.9.X
           # PyPy    -> pypy-3.7
-          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python.action), matrix.python.action))[startsWith(matrix.python.action, 'pypy')] }}
+          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python), matrix.python))[startsWith(matrix.python, 'pypy')] }}
           architecture: x64
       - run: pip install --upgrade pip wheel
       - run: pip install bandit black codespell flake8 flake8-2020 flake8-bugbear
