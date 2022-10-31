@@ -7,7 +7,7 @@ __version__ = '0.60.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-from asyncio import coroutine, iscoroutinefunction
+from asyncio import iscoroutinefunction
 from contextlib import contextmanager
 from functools import partial, wraps
 import builtins
@@ -749,8 +749,7 @@ class LineProfiler(object):
         """
 
         if iscoroutinefunction(func):
-            @coroutine
-            def f(*args, **kwargs):
+            async def f(*args, **kwargs):
                 with self._count_ctxmgr():
                     res = yield from func(*args, **kwargs)
                     return res
@@ -1174,8 +1173,7 @@ def profile(func=None, stream=None, precision=1, backend='psutil'):
         )
         if iscoroutinefunction(func):
             @wraps(wrapped=func)
-            @coroutine
-            def wrapper(*args, **kwargs):
+            async def wrapper(*args, **kwargs):
                 prof = get_prof()
                 val = yield from prof(func)(*args, **kwargs)
                 show_results_bound(prof)
