@@ -1,12 +1,12 @@
 name: lint_python
 on: [pull_request, push]
 jobs:
-  lint_python:
+  lint:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python: '3.9'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -35,7 +35,32 @@ jobs:
       - run: pip install numpy pylab-sdk
       - run: mkdir --parents --verbose .mypy_cache
       - run: mypy --ignore-missing-imports --install-types --non-interactive . || true
-      - run: make test
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          # This allows the matrix to specify just the major.minor version while still
+          # expanding it to get the latest patch version including alpha releases.
+          # This avoids the need to update for each new alpha, beta, release candidate,
+          # and then finally an actual release version.  actions/setup-python doesn't
+          # support this for PyPy presently so we get no help there.
+          #
+          # CPython -> 3.9.0-alpha - 3.9.X
+          # PyPy    -> pypy-3.7
+          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python), matrix.python))[startsWith(matrix.python, 'pypy')] }}
+          architecture: x64
+      - run: pip install --upgrade pip wheel
+      - run: pip install pytest
+      - run: pip install --editable .
+      - run: pip install numpy pylab-sdk
+      - run: make test
       - if: matrix.python != '3.7'
         run: safety check
