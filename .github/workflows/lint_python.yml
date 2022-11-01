@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: '3.9'
+        python: ['3.9']
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
