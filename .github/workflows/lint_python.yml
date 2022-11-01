@@ -23,7 +23,7 @@ jobs:
           architecture: x64
       - run: pip install --upgrade pip wheel
       - run: pip install bandit black codespell flake8 flake8-2020 flake8-bugbear
-                         flake8-comprehensions isort mypy pytest pyupgrade safety
+                         flake8-comprehensions isort mypy pytest pyupgrade
       - run: bandit --recursive --skip B101,B102,B307,B404,B603,B607 .
       - run: black --check . || true
       - run: codespell  # --ignore-words-list="" --skip="*.css,*.js,*.lock"
@@ -58,7 +58,7 @@ jobs:
           python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python), matrix.python))[startsWith(matrix.python, 'pypy')] }}
           architecture: x64
       - run: pip install --upgrade pip wheel
-      - run: pip install pytest
+      - run: pip install pytest safety
       - run: pip install --editable .
       - run: pip install numpy pylab-sdk
       - run: make test
