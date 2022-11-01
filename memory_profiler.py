@@ -7,9 +7,10 @@ __version__ = '0.60.0'
 
 _CMD_USAGE = "python -m memory_profiler script_file.py"
 
-from asyncio import coroutine, iscoroutinefunction
+from asyncio import iscoroutinefunction
 from contextlib import contextmanager
 from functools import partial, wraps
+from types import coroutine
 import builtins
 import inspect
 import linecache
