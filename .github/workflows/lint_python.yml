@@ -6,7 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.10']
+        python:
+          - major_dot_minor: '3.10'
+            safety: false
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -19,7 +21,7 @@ jobs:
           #
           # CPython -> 3.9.0-alpha - 3.9.X
           # PyPy    -> pypy-3.7
-          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python), matrix.python))[startsWith(matrix.python, 'pypy')] }}
+          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python.major_dot_minor), matrix.python.major_dot_minor))[startsWith(matrix.python.major_dot_minor, 'pypy')] }}
           architecture: x64
       - run: pip install --upgrade pip wheel
       - run: pip install bandit black codespell flake8 flake8-2020 flake8-bugbear
@@ -42,7 +44,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python:
+          - major_dot_minor: '3.4'
+            safety: false
+          - major_dot_minor: '3.5'
+            safety: false
+          - major_dot_minor: '3.6'
+            safety: false
+          - major_dot_minor: '3.7'
+            safety: false
+          - major_dot_minor: '3.8'
+            safety: true
+          - major_dot_minor: '3.9'
+            safety: true
+          - major_dot_minor: '3.10'
+            safety: true
+          - major_dot_minor: '3.11'
+            safety: true
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -55,12 +73,12 @@ jobs:
           #
           # CPython -> 3.9.0-alpha - 3.9.X
           # PyPy    -> pypy-3.7
-          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python), matrix.python))[startsWith(matrix.python, 'pypy')] }}
+          python-version: ${{ fromJSON(format('["{0}", "{1}"]', format('{0}.0-alpha - {0}.X', matrix.python.major_dot_minor), matrix.python.major_dot_minor))[startsWith(matrix.python.major_dot_minor, 'pypy')] }}
           architecture: x64
       - run: pip install --upgrade pip wheel
       - run: pip install pytest safety
       - run: pip install --editable .
       - run: pip install numpy pylab-sdk
       - run: make test
-      - if: matrix.python != '3.7'
+      - if: matrix.python.safety
         run: safety check
