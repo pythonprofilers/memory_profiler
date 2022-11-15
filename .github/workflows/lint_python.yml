@@ -45,8 +45,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - major_dot_minor: '3.4'
-            safety: false
           - major_dot_minor: '3.5'
             safety: false
           - major_dot_minor: '3.6'
