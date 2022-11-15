@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from memory_profiler import profile
 
@@ -15,4 +16,8 @@ async def main():
     res = await asyncio.gather(task)
 
 if __name__ == '__main__':
-    asyncio.run(main())  # main loop
+    if sys.version_info >= (3, 7):
+        asyncio.run(main())  # main loop
+    else:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
