@@ -1,5 +1,15 @@
 name: lint_python
-on: [pull_request, push]
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - '**'
+
 jobs:
   lint:
     runs-on: ubuntu-latest
