@@ -918,11 +918,13 @@ def get_profiles(args):
 def main():
     # Workaround for optparse limitation: insert -- before first negative
     # number found.
-    negint = re.compile("-[0-9]+")
-    for n, arg in enumerate(sys.argv):
-        if negint.match(arg):
-            sys.argv.insert(n, "--")
-            break
+    action = get_action()
+    if action not in ["run"]:
+        negint = re.compile("-[0-9]+")
+        for n, arg in enumerate(sys.argv):
+            if negint.match(arg):
+                sys.argv.insert(n, "--")
+                break
     actions = {"rm": rm_action,
                "clean": clean_action,
                "list": list_action,
