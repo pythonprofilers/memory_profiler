@@ -95,8 +95,9 @@ The first column represents the line number of the code that has been
 profiled, the second column (*Mem usage*) the memory usage of the
 Python interpreter after that line has been executed. The third column
 (*Increment*) represents the difference in memory of the current line
-with respect to the last one. The last column (*Line Contents*) prints
-the code that has been profiled.
+with respect to the last one. The fourth column (*Occurrences*) shows
+the number of times that profiler has hit each line. The last column
+(*Line Contents*) prints the code that has been profiled.
 
 Decorator
 =========
