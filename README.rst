@@ -58,8 +58,9 @@ then run the script with a special script (in this case with specific
 arguments to the Python interpreter).
 
 In the following example, we create a simple function ``my_func`` that
-allocates lists ``a``, ``b`` and then deletes ``b``::
+allocates lists ``a``, ``b`` and then deletes ``b``:
 
+.. code-block:: python
 
     @profile
     def my_func():
@@ -101,7 +102,9 @@ the number of times that profiler has executed each line. The last column
 
 Decorator
 =========
-A function decorator is also available.  Use as follows::
+A function decorator is also available.  Use as follows:
+
+.. code-block:: python
 
     from memory_profiler import profile
 
@@ -116,7 +119,9 @@ In this case the script can be run without specifying ``-m
 memory_profiler`` in the command line.
 
 In function decorator, you can specify the precision as an argument to the
-decorator function.  Use as follows::
+decorator function.  Use as follows:
+
+.. code-block:: python
 
     from memory_profiler import profile
 
@@ -282,6 +287,7 @@ necessarily a Python program), a string containing some python code to
 be evaluated or a tuple ``(f, args, kw)`` containing a function and its
 arguments to be evaluated as ``f(*args, **kw)``. For example,
 
+.. code-block:: python
 
     >>> from memory_profiler import memory_usage
     >>> mem_usage = memory_usage(-1, interval=.2, timeout=1)
@@ -301,8 +307,9 @@ thing on the IPython notebook it scales up to 44MB.
 
 If you'd like to get the memory consumption of a Python function, then
 you should specify the function and its arguments in the tuple ``(f,
-args, kw)``. For example::
+args, kw)``. For example:
 
+.. code-block:: python
 
     >>> # define a simple function
     >>> def f(a, n=100):
@@ -325,6 +332,8 @@ REPORTING
 The output can be redirected to a log file by passing IO stream as
 parameter to the decorator like @profile(stream=fp)
 
+.. code-block:: python
+
     >>> fp=open('memory_profiler.log','w+')
     >>> @profile(stream=fp)
     >>> def my_func():
@@ -333,7 +342,7 @@ parameter to the decorator like @profile(stream=fp)
         ...     del b
         ...     return a
 
-    For details refer: examples/reporting_file.py
+For details refer: examples/reporting_file.py
 
 ``Reporting via logger Module:``
 
@@ -342,6 +351,8 @@ when we need to use RotatingFileHandler.
 
 The output can be redirected to logger module by simply making use of
 LogFile of memory profiler module.
+
+.. code-block:: python
 
     >>> from memory_profiler import LogFile
     >>> import sys
@@ -354,11 +365,13 @@ could be cumbersome and one can choose only entries with increments
 by passing True to reportIncrementFlag, where reportIncrementFlag is
 a parameter to LogFile class of memory profiler module.
 
+.. code-block:: python
+
     >>> from memory_profiler import LogFile
     >>> import sys
     >>> sys.stdout = LogFile('memory_profile_log', reportIncrementFlag=False)
 
-    For details refer: examples/reporting_logger.py
+For details refer: examples/reporting_logger.py
 
 =====================
  IPython integration
@@ -372,7 +385,9 @@ For IPython 0.11+, you can use the module directly as an extension, with
 To activate it whenever you start IPython, edit the configuration file for your
 IPython profile, ~/.ipython/profile_default/ipython_config.py, to register the
 extension like this (If you already have other extensions, just add this one to
-the list)::
+the list):
+
+.. code-block:: python
 
     c.InteractiveShellApp.extensions = [
         'memory_profiler',
@@ -385,20 +400,26 @@ It then can be used directly from IPython to obtain a line-by-line
 report using the `%mprun` or `%%mprun` magic command. In this case, you can skip
 the `@profile` decorator and instead use the `-f` parameter, like
 this. Note however that function my_func must be defined in a file
-(cannot have been defined interactively in the Python interpreter)::
+(cannot have been defined interactively in the Python interpreter):
+
+.. code-block:: python
 
     In [1]: from example import my_func, my_func_2
 
     In [2]: %mprun -f my_func my_func()
 
-or in cell mode::
+or in cell mode:
+
+.. code-block:: python
 
     In [3]: %%mprun -f my_func -f my_func_2
        ...: my_func()
        ...: my_func_2()
 
 Another useful magic that we define is `%memit`, which is analogous to
-`%timeit`. It can be used as follows::
+`%timeit`. It can be used as follows:
+
+.. code-block:: python
 
     In [1]: %memit range(10000)
     peak memory: 21.42 MiB, increment: 0.41 MiB
@@ -406,7 +427,9 @@ Another useful magic that we define is `%memit`, which is analogous to
     In [2]: %memit range(1000000)
     peak memory: 52.10 MiB, increment: 31.08 MiB
 
-or in cell mode (with setup code)::
+or in cell mode (with setup code):
+
+.. code-block:: python
 
     In [3]: %%memit l=range(1000000)
        ...: len(l)
@@ -416,7 +439,9 @@ or in cell mode (with setup code)::
 For more details, see the docstrings of the magics.
 
 For IPython 0.10, you can install it by editing the IPython configuration
-file ~/.ipython/ipy_user_conf.py to add the following lines::
+file ~/.ipython/ipy_user_conf.py to add the following lines:
+
+.. code-block:: python
 
     # These two lines are standard and probably already there.
     import IPython.ipapi
@@ -440,6 +465,8 @@ Currently, the backend can be set via the CLI
     $ python -m memory_profiler --backend psutil my_script.py
 
 and is exposed by the API
+
+.. code-block:: python
 
     >>> from memory_profiler import memory_usage
     >>> mem_usage = memory_usage(-1, interval=.2, timeout=1, backend="psutil")
