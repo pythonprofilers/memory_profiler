@@ -1,6 +1,7 @@
 import glob
 import os
 import os.path as osp
+import shlex
 import sys
 import re
 import copy
@@ -175,8 +176,7 @@ def clean_action():
 
 def get_cmd_line(args):
     """Given a set or arguments, compute command-line."""
-    blanks = set(' \t')
-    args = [s if blanks.isdisjoint(s) else "'" + s + "'" for s in args]
+    args = [shlex.quote(s).replace('\n', '\\n') for s in args]
     return ' '.join(args)
 
 def find_first_process(name):
