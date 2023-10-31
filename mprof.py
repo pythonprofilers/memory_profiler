@@ -430,14 +430,18 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
     mem = np.asarray(mem)
     t = np.asarray(t)
+    global_start = t[0]
+    t = t - global_start
+
+    if options.xlim is not None:
+        cond = (t >= options.xlim[0]) & (t <= options.xlim[1]) 
+        mem, t = mem[cond], t[cond]
+
     ind = t.argsort()
     mem = mem[ind]
     t = t[ind]
 
     # Plot curves
-    global_start = float(t[0])
-    t = t - global_start
-
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
