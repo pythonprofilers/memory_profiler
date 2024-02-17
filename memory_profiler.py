@@ -937,18 +937,9 @@ class MemoryProfilerMagics(Magics):
         from io import StringIO
         from memory_profiler import show_results, LineProfiler
 
-        # Local imports to avoid hard dependency.
-        from distutils.version import LooseVersion
-        import IPython
-        ipython_version = LooseVersion(IPython.__version__)
-        if ipython_version < '0.11':
-            from IPython.genutils import page
-            from IPython.ipstruct import Struct
-            from IPython.ipapi import UsageError
-        else:
-            from IPython.core.page import page
-            from IPython.utils.ipstruct import Struct
-            from IPython.core.error import UsageError
+        from IPython.core.page import page
+        from IPython.utils.ipstruct import Struct
+        from IPython.core.error import UsageError
 
         # Escape quote markers.
         opts_def = Struct(T=[''], f=[])
@@ -1131,20 +1122,7 @@ class MemoryProfilerMagics(Magics):
 
     @classmethod
     def register_magics(cls, ip):
-        from distutils.version import LooseVersion
-        import IPython
-        ipython_version = LooseVersion(IPython.__version__)
-
-        if ipython_version < '0.13':
-            try:
-                _register_magic = ip.define_magic
-            except AttributeError:  # ipython 0.10
-                _register_magic = ip.expose_magic
-
-            _register_magic('mprun', cls.mprun.__func__)
-            _register_magic('memit', cls.memit.__func__)
-        else:
-            ip.register_magics(cls)
+        ip.register_magics(cls)
 
 
 # commenting out due to failures with some versions of IPython
