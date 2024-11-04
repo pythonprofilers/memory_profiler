@@ -23,6 +23,12 @@ import sys
 import time
 import traceback
 import warnings
+from rich.console import Console
+from rich.table import Table
+from rich.syntax import Syntax
+from rich import box
+
+
 
 if sys.platform == "win32":
     # any value except signal.CTRL_C_EVENT and signal.CTRL_BREAK_EVENT
@@ -848,39 +854,112 @@ class LineProfiler(object):
 
     def disable(self):
         sys.settrace(self._original_trace_function)
-
-
 def show_results(prof, stream=None, precision=1):
-    if stream is None:
-        stream = sys.stdout
-    template = '{0:>6} {1:>12} {2:>12}  {3:>10}   {4:<}'
+    """Display the profiling results using rich console for colored output."""
+    console = Console(file=stream) if stream else Console()
+    float_format = f'{{:.{precision}f}}'
 
-    for (filename, lines) in prof.code_map.items():
-        header = template.format('Line #', 'Mem usage', 'Increment', 'Occurrences',
-                                 'Line Contents')
+    for filename, line_iterator in prof.code_map.items():
+        console.print(f"\n[bold blue]Filename: {filename}[/bold blue]")
+        
+        # Create table
+        table = Table(
+            show_header=True,
+            header_style="bold white",
+            box=box.MINIMAL_DOUBLE_HEAD,
+            expand=True,
+            row_styles=["", "dim"]  # Alternating row styles
+        )
+        
+        # Add columns
+        table.add_column("Line #", justify="right", width=8)
+        table.add_column("Mem usage", justify="right", width=12)
+        table.add_column("Increment", justify="right", width=12)
+        table.add_column("Occurrences", justify="right", width=10)
+        table.add_column("Line Contents", ratio=1)
 
-        stream.write(u'Filename: ' + filename + '\n\n')
-        stream.write(header + u'\n')
-        stream.write(u'=' * len(header) + '\n')
-
+        # Get all lines first
+        linecache.checkcache(filename)
         all_lines = linecache.getlines(filename)
+        
+        # Convert line_iterator to list for multiple passes
+        try:
+            # First try direct iteration
+            lines_list = list(line_iterator)
+        except TypeError:
+            # If that fails, try calling items()
+            try:
+                lines_list = list(line_iterator.items())
+            except (AttributeError, TypeError):
+                console.print(f"[bold red]Error: Could not process lines for {filename}[/bold red]")
+                continue
 
-        float_format = u'{0}.{1}f'.format(precision + 4, precision)
-        template_mem = u'{0:' + float_format + '} MiB'
-        for (lineno, mem) in lines:
-            if mem:
-                inc = mem[0]
-                total_mem = mem[1]
-                total_mem = template_mem.format(total_mem)
-                occurrences = mem[2]
-                inc = template_mem.format(inc)
+        # Get memory range for coloring
+        mem_values = []
+        for lineno, mem_info in lines_list:
+            if mem_info:
+                mem_values.append(mem_info[1])  # total memory
+        
+        max_mem = max(mem_values) if mem_values else 0
+
+        # Process each line
+        for lineno, mem_info in lines_list:
+            if not (0 < lineno <= len(all_lines)):
+                continue
+                
+            source_line = all_lines[lineno - 1].rstrip('\n')
+            
+            if mem_info:
+                increment, total_mem, occurrences = mem_info
+                
+                # Color based on memory usage
+                mem_ratio = total_mem / max_mem if max_mem else 0
+                color = ("green" if mem_ratio < 0.25 else
+                        "yellow" if mem_ratio < 0.5 else
+                        "orange1" if mem_ratio < 0.75 else
+                        "red")
+                
+                # Format the memory values with colors
+                mem_str = f"[{color}]{float_format.format(total_mem)}[/]"
+                inc_str = f"[{color}]{float_format.format(increment)}[/]"
+                
+                table.add_row(
+                    str(lineno),
+                    mem_str,
+                    inc_str,
+                    str(occurrences),
+                    Syntax(source_line, "python", theme="monokai", line_numbers=False)
+                )
             else:
-                total_mem = u''
-                inc = u''
-                occurrences = u''
-            tmp = template.format(lineno, total_mem, inc, occurrences, all_lines[lineno - 1])
-            stream.write(tmp)
-        stream.write(u'\n\n')
+                # Add row with no memory info
+                table.add_row(
+                    str(lineno),
+                    "", "", "",
+                    Syntax(source_line, "python", theme="monokai", line_numbers=False)
+                )
+
+        # Print the table
+        console.print(table)
+
+# Add debug function
+def print_code_map_structure(prof):
+    """Debug helper to print the structure of code_map"""
+    console = Console()
+    console.print("\n[bold red]Debug: Code Map Structure[/bold red]")
+    
+    for filename, line_iterator in prof.code_map.items():
+        console.print(f"\nFilename: {filename}")
+        console.print(f"Type of line_iterator: {type(line_iterator)}")
+        
+        # Try to get first few items
+        try:
+            if hasattr(line_iterator, 'items'):
+                first_items = list(itertools.islice(line_iterator.items(), 3))
+            else:
+                first_items = list(itertools.islice(line_iterator, 3))
+            console.print(f"First few items: {first_items}")
+        except Exception as e:
+            console.print(f"Error inspecting items: {str(e)}")
 
 
 def _func_exec(stmt, ns):
@@ -1158,6 +1237,8 @@ def load_ipython_extension(ip):
     """This is called to load the module as an IPython extension."""
 
     MemoryProfilerMagics.register_magics(ip)
+
+
 
 
 def profile(func=None, stream=None, precision=1, backend='psutil'):
