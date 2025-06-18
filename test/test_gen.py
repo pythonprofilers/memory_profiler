@@ -1,3 +1,4 @@
+from memory_profiler import profile
 
 @profile
 def my_func():
@@ -8,7 +9,7 @@ def my_func():
 
 
 @profile
-def test_comprehension():
+def func_comprehension():
     # Dict comprehension
     d_comp = dict((str(k*k), [v] * (1<<17))
                   for (v, k) in enumerate(range(99, 111)))
@@ -33,7 +34,7 @@ def test_comprehension():
 
 
 @profile
-def test_generator():
+def func_generator():
     a_gen = ([42] * (1<<20) for __ in '123')
     huge_lst = list(a_gen)
 
@@ -43,10 +44,14 @@ def test_generator():
 
     return a_gen
 
+def test_gen():
 
-if __name__ == '__main__':
-    with profile:
-        next(my_func())     # Issue #42
+    # with profile:
+    next(my_func())     # Issue #42
 
-    test_generator()
-    test_comprehension()
+def test_generator():
+    _ = func_generator()
+
+
+def test_comprehension():
+    _ = func_comprehension()

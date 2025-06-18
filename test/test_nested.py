@@ -1,29 +1,27 @@
 # .. an example with a for loop ..
 
-import time
 
-@profile
-def test_1():
+from memory_profiler import LineProfiler
+
+
+def func_1():
     a = [1] * (10 ** 6)
     b = [2] * (2 * 10 ** 7)
     del b
 
-    def test_2():
+    def func_2():
         a = [1] * (10 ** 6)
         b = [2] * (2 * 10 ** 7)
         del b
 
         return a
 
-    return test_2
+    return func_2
 
 
-if __name__ == '__main__':
-    profile.enable_by_count()
-
-    test_2 = test_1()
-    time.sleep(1)
-    test_2()
-    time.sleep(1)
-
-    profile.disable_by_count()
+def test_nested():
+    profiler = LineProfiler()
+    profiler.enable_by_count()
+    wrapped = profiler(func_1)
+    wrapped()
+    profiler.disable_by_count()

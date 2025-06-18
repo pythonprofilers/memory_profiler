@@ -1,5 +1,6 @@
 import asyncio
-import sys
+
+import pytest
 
 from memory_profiler import profile
 
@@ -10,18 +11,13 @@ async def my_func():
     b = [2] * (2 * 10 ** 7)
     await asyncio.sleep(1e-2)
     del b
+    return 1, 2
 
-async def main():
+@pytest.mark.asyncio
+async def test_async_func():
     task = asyncio.create_task(my_func())
     res = await asyncio.gather(task)
+    assert res, "function didn't return anything"
+    assert len(res) > 0, "task didn't return anything"
+    assert res == [(1, 2), ]
 
-async def main_legacy():
-    future = asyncio.ensure_future(my_func())
-    res = await asyncio.gather(future)
-
-if __name__ == '__main__':
-    if sys.version_info >= (3, 7):
-        asyncio.run(main())  # main loop
-    else:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main_legacy())

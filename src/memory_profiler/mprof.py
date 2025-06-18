@@ -1,19 +1,18 @@
+import copy
 import glob
+import itertools
+import logging
+import math
 import os
 import os.path as osp
-import sys
 import re
-import copy
+import sys
 import time
-import math
-import logging
-import itertools
+from argparse import REMAINDER, ArgumentError, ArgumentParser, RawTextHelpFormatter
 from ast import literal_eval
-
 from collections import defaultdict
-from argparse import ArgumentParser, ArgumentError, REMAINDER, RawTextHelpFormatter
+from pathlib import Path
 
-import importlib
 import memory_profiler as mp
 
 ALL_ACTIONS = ("run", "rm", "clean", "list", "plot", "attach", "peak")
@@ -47,7 +46,7 @@ def get_action():
     if len(sys.argv) <= 1:
         print_usage()
         sys.exit(1)
-    if not sys.argv[1] in ALL_ACTIONS:
+    if sys.argv[1] not in ALL_ACTIONS:
         print_usage()
         sys.exit(1)
 
@@ -58,7 +57,7 @@ def get_profile_filenames(args):
     """Return list of profile filenames.
 
     Parameters
-    ==========
+    ----------
     args (list)
         list of filename or integer. An integer is the index of the
         profile in the list of existing profiles. 0 is the oldest,
@@ -66,10 +65,11 @@ def get_profile_filenames(args):
         Non-existing files cause a ValueError exception to be thrown.
 
     Returns
-    =======
+    -------
     filenames (list)
         list of existing memory profile filenames. It is guaranteed
         that an given file name will not appear twice in this list.
+
     """
     profiles = glob.glob("mprofile_??????????????.dat")
     profiles.sort()
@@ -88,19 +88,18 @@ def get_profile_filenames(args):
             if index is not None:
                 try:
                     filename = profiles[index]
-                except IndexError:
-                    raise ValueError("Invalid index (non-existing file): %s" % arg)
+                except IndexError as ie:
+                    raise ValueError("Invalid index (non-existing file): %s" % arg) from ie
 
                 if filename not in filenames:
                     filenames.append(filename)
+            elif osp.isfile(arg):
+                if arg not in filenames:
+                    filenames.append(arg)
+            elif osp.isdir(arg):
+                raise ValueError("Path %s is a directory" % arg)
             else:
-                if osp.isfile(arg):
-                    if arg not in filenames:
-                        filenames.append(arg)
-                elif osp.isdir(arg):
-                    raise ValueError("Path %s is a directory" % arg)
-                else:
-                    raise ValueError("File %s not found" % arg)
+                raise ValueError("File %s not found" % arg)
 
     # Add timestamp files, if any
     for filename in reversed(filenames):
@@ -115,27 +114,24 @@ def get_profile_filenames(args):
 def list_action():
     """Display existing profiles, with indices."""
     parser = ArgumentParser(
-            usage='mprof list\nThis command takes no argument.')
-    parser.add_argument('--version', action='version', version=mp.__version__)
-    args = parser.parse_args()
+            usage="mprof list\nThis command takes no argument.")
+    parser.add_argument("--version", action="version", version=mp.__version__)
 
     filenames = get_profile_filenames("all")
     for n, filename in enumerate(filenames):
-        ts = osp.splitext(filename)[0].split('_')[-1]
-        print("{index} {filename} {hour}:{min}:{sec} {day}/{month}/{year}"
-              .format(index=n, filename=filename,
-                      year=ts[:4], month=ts[4:6], day=ts[6:8],
-                      hour=ts[8:10], min=ts[10:12], sec=ts[12:14]))
+        ts = osp.splitext(filename)[0].split("_")[-1]
+        print(f"{n} {filename} {ts[8:10]}:{ts[10:12]}:{ts[12:14]} {ts[6:8]}/{ts[4:6]}/{ts[:4]}"
+              )
 
 
 def rm_action():
     """TODO: merge with clean_action (@pgervais)"""
-    parser = ArgumentParser(usage='mprof rm [options] numbers_or_filenames')
-    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser = ArgumentParser(usage="mprof rm [options] numbers_or_filenames")
+    parser.add_argument("--version", action="version", version=mp.__version__)
     parser.add_argument("--dry-run", dest="dry_run", default=False,
                         action="store_true",
                         help="""Show what will be done, without actually doing it.""")
-    parser.add_argument("numbers_or_filenames", nargs='*',
+    parser.add_argument("numbers_or_filenames", nargs="*",
                         help="""numbers or filenames removed""")
     args = parser.parse_args()
 
@@ -156,8 +152,8 @@ def rm_action():
 def clean_action():
     """Remove every profile file in current directory."""
     parser = ArgumentParser(
-            usage='mprof clean\nThis command takes no argument.')
-    parser.add_argument('--version', action='version', version=mp.__version__)
+            usage="mprof clean\nThis command takes no argument.")
+    parser.add_argument("--version", action="version", version=mp.__version__)
     parser.add_argument("--dry-run", dest="dry_run", default=False,
                         action="store_true",
                         help="""Show what will be done, without actually doing it.""")
@@ -175,9 +171,9 @@ def clean_action():
 
 def get_cmd_line(args):
     """Given a set or arguments, compute command-line."""
-    blanks = set(' \t')
+    blanks = set(" \t")
     args = [s if blanks.isdisjoint(s) else "'" + s + "'" for s in args]
-    return ' '.join(args)
+    return " ".join(args)
 
 def find_first_process(name):
     for i in mp.psutil.process_iter():
@@ -187,28 +183,32 @@ def find_first_process(name):
 
 def attach_action():
     argv = sys.argv
-    sys.argv = argv[:1] + ['--attach'] + argv[1:]
+    sys.argv = argv[:1] + ["--attach"] + argv[1:]
     run_action()
 
 def run_action():
-    import time, subprocess
+    import subprocess
+    import time
     parser = ArgumentParser(usage="mprof run [options] program", formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--version", action="version", version=mp.__version__)
     parser.add_argument("--python", dest="python", action="store_true",
-                        help="""Activates extra features when the profiling executable is a Python program (currently: function timestamping.)""")
+                        help=("Activates extra features when the profiling executable is a Python "
+                              "program (currently: function timestamping.)"))
     parser.add_argument("--nopython", dest="nopython", action="store_true",
-                        help="""Disables extra features when the profiled executable is a Python program (currently: function timestamping.)""")
+                        help=("Disables extra features when the profiled executable"
+                              " is a Python program (currently: function timestamping.)"))
     parser.add_argument("--interval", "-T", dest="interval", default="0.1", type=float, action="store",
                         help="Sampling period (in seconds), defaults to 0.1")
     parser.add_argument("--include-children", "-C", dest="include_children", action="store_true",
                         help="""Monitors forked processes as well (sum up all process memory)""")
     parser.add_argument("--multiprocess", "-M", dest="multiprocess", action="store_true",
-                        help="""Monitors forked processes creating individual plots for each child (disables --python features)""")
+                        help="Monitors forked processes creating individual plots for each child (disables --python features)")
     parser.add_argument("--exit-code", "-E", dest="exit_code", action="store_true", help="""Propagate the exit code""")
     attach_arg = parser.add_argument("--attach", "-a", dest="attach_existing", action="store_true",
                         help="Attach to an existing process, by process name or by pid")
     parser.add_argument("--timeout", "-t", dest="timeout", action="store", type=int,
-                        help="timeout in seconds for the profiling, default new process has no timeout, attach existing is 1 hour")
+                        help=("timeout in seconds for the profiling, default new process has no timeout, "
+                              "attach existing is 1 hour"))
     parser.add_argument("--output", "-o", dest="filename",
                         default="mprofile_%s.dat" % time.strftime("%Y%m%d%H%M%S", time.localtime()),
                         help="""File to store results in, defaults to 'mprofile_<YYYYMMDDhhmmss>.dat' in the current directory,
@@ -216,11 +216,13 @@ def run_action():
 This file contains the process memory consumption, in Mb (one value per line).""")
     parser.add_argument("--backend", dest="backend", choices=["psutil", "psutil_pss", "psutil_uss", "posix", "tracemalloc"],
                         default="psutil",
-                        help="Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss', 'posix', 'tracemalloc'. Defaults to 'psutil'.")
+                        help=("Current supported backends: 'psutil', 'psutil_pss', 'psutil_uss',"
+                              " 'posix', 'tracemalloc'. Defaults to 'psutil'."))
     parser.add_argument("program", nargs=REMAINDER,
                         help='Option 1: "<EXECUTABLE> <ARG1> <ARG2>..." - profile executable\n'
-                             'Option 2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
-                             'Option 3: (--python flag present) "<PYTHON_EXECUTABLE> <PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script with specified interpreter\n'
+                             'Option  2: "<PYTHON_SCRIPT> <ARG1> <ARG2>..." - profile python script\n'
+                             'Option 3: (--python flag present) "<PYTHON_EXECUTABLE> <PYTHON_SCRIPT> <ARG1> <ARG2>..."'
+                             ' - profile python script with specified interpreter\n'
                              'Option 4: (--python flag present) "<PYTHON_MODULE> <ARG1> <ARG2>..." - profile python module\n'
                         )
     args = parser.parse_args()
@@ -229,33 +231,34 @@ This file contains the process memory consumption, in Mb (one value per line).""
         print("A program to run must be provided. Use -h for help")
         sys.exit(1)
 
-    print("{1}: Sampling memory every {0}s".format(
-        args.interval, osp.basename(sys.argv[0])))
+    print(f"{osp.basename(sys.argv[0])}: Sampling memory every {args.interval}s")
 
     mprofile_output = args.filename
 
     program = args.program
     if args.attach_existing:
-        print('attaching to existing process, using hint: {}'.format(program[0]))
+        print(f"attaching to existing process, using hint: {program[0]}")
         if program[0].isdigit():
             p = literal_eval(program[0])
             cmd_line = get_cmd_line(program)
         else:
             proc = find_first_process(program[0])
             if proc is None:
-                raise ArgumentError(attach_arg, '\nWhen attaching, program should be process name or pid.\nFailed to find a process using hint: {}'.format(program[0]))
-            
+                msg = (f"\nWhen attaching, program should be process name or pid.\n"
+                       f"Failed to find a process using hint: {program[0]}")
+                raise ArgumentError(attach_arg, msg)
+
             p = proc.pid
             try:
                 cmd_line = proc.cmdline()
-            except:
+            except Exception:
                 cmd_line = get_cmd_line(program)
         if args.timeout is None:
             args.timeout = 3600
     else:
-        print('running new process')
+        print("running new process")
         # .. TODO: more than one script as argument ? ..
-        if program[0].endswith('.py') and not args.nopython:
+        if program[0].endswith(".py") and not args.nopython:
             if args.multiprocess:
                 # in multiprocessing mode you want to spawn a separate
                 # python process
@@ -279,14 +282,14 @@ This file contains the process memory consumption, in Mb (one value per line).""
             p = subprocess.Popen(program)
 
     with open(mprofile_output, "a") as f:
-        f.write("CMDLINE {0}\n".format(cmd_line))
+        f.write(f"CMDLINE {cmd_line}\n")
         mp.memory_usage(proc=p, interval=args.interval, timeout=args.timeout, timestamps=True,
                         include_children=args.include_children,
                         multiprocess=args.multiprocess, stream=f, backend=args.backend)
 
     if args.exit_code:
         if p.returncode != 0:
-            logger.error('Program resulted with a non-zero exit code: %s', p.returncode)
+            logger.error("Program resulted with a non-zero exit code: %s", p.returncode)
         sys.exit(p.returncode)
 
 
@@ -296,13 +299,14 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
     This function uses the current figure.
 
     Parameters
-    ==========
+    ----------
     xloc: tuple with 2 values
         brackets location (on horizontal axis).
     yloc: tuple with 2 values
         brackets location (on vertical axis)
     xshift: float
         value to subtract to xloc.
+
     """
     try:
         import pylab as pl
@@ -318,8 +322,8 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
     bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
 
     # Matplotlib workaround: labels starting with _ aren't displayed
-    if label[0] == '_':
-        label = ' ' + label
+    if label[0] == "_":
+        label = " " + label
     if options.xlim is None or options.xlim[0] <= (xloc[0] - xshift) <= options.xlim[1]:
         pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
                 "-" + color, linewidth=2, label=label)
@@ -341,7 +345,7 @@ def read_mprofile_file(filename):
     """Read an mprofile file and return its content.
 
     Returns
-    =======
+    -------
     content: dict
         Keys:
 
@@ -351,25 +355,26 @@ def read_mprofile_file(filename):
         - "func_timestamp": (dict) for each function, timestamps and memory
             usage upon entering and exiting.
         - 'cmd_line': (str) command-line ran for this profile.
+
     """
     func_ts = {}
     mem_usage = []
     timestamp = []
     children  = defaultdict(list)
     cmd_line = None
-    f = open(filename, "r")
-    for l in f:
-        if l == '\n':
-            raise ValueError('Sampling time was too short')
-        field, value = l.split(' ', 1)
+    file_to_examine = Path(filename).open("r")
+    for line in file_to_examine:
+        if line == "\n":
+            raise ValueError("Sampling time was too short")
+        field, value = line.split(" ", 1)
         if field == "MEM":
             # mem, timestamp
-            values = value.split(' ')
+            values = value.split(" ")
             mem_usage.append(float(values[0]))
             timestamp.append(float(values[1]))
 
         elif field == "FUNC":
-            values = value.split(' ')
+            values = value.split(" ")
             f_name, mem_start, start, mem_end, end = values[:5]
             ts = func_ts.get(f_name, [])
             to_append = [float(start), float(end), float(mem_start), float(mem_end)]
@@ -381,7 +386,7 @@ def read_mprofile_file(filename):
             func_ts[f_name] = ts
 
         elif field == "CHLD":
-            values = value.split(' ')
+            values = value.split(" ")
             chldnum = values[0]
             children[chldnum].append(
                 (float(values[1]), float(values[2]))
@@ -391,11 +396,11 @@ def read_mprofile_file(filename):
             cmd_line = value
         else:
             pass
-    f.close()
+    file_to_examine.close()
 
     return {"mem_usage": mem_usage, "timestamp": timestamp,
-            "func_timestamp": func_ts, 'filename': filename,
-            'cmd_line': cmd_line, 'children': children}
+            "func_timestamp": func_ts, "filename": filename,
+            "cmd_line": cmd_line, "children": children}
 
 
 def plot_file(filename, index=0, timestamps=True, children=True, options=None):
@@ -408,19 +413,19 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     import numpy as np  # pylab requires numpy anyway
     mprofile = read_mprofile_file(filename)
 
-    if len(mprofile['timestamp']) == 0:
+    if len(mprofile["timestamp"]) == 0:
         print('** No memory usage values have been found in the profile '
               'file.**\nFile path: {0}\n'
               'File may be empty or invalid.\n'
               'It can be deleted with "mprof rm {0}"'.format(
-            mprofile['filename']))
+            mprofile["filename"]))
         sys.exit(0)
 
     # Merge function timestamps and memory usage together
-    ts = mprofile['func_timestamp']
-    t = mprofile['timestamp']
-    mem = mprofile['mem_usage']
-    chld = mprofile['children']
+    ts = mprofile["func_timestamp"]
+    t = mprofile["timestamp"]
+    mem = mprofile["mem_usage"]
+    chld = mprofile["children"]
 
     if len(ts) > 0:
         for values in ts.values():
@@ -444,11 +449,11 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     all_colors = ("c", "y", "g", "r", "b")
     mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
 
-    show_trend_slope = options is not None and hasattr(options, 'slope') and options.slope is True
+    show_trend_slope = options is not None and hasattr(options, "slope") and options.slope is True
 
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
-                     + ".{0:03d}".format(int(round(math.modf(global_start)[0] * 1000)))
+                     + f".{int(round(math.modf(global_start)[0] * 1000)):03d}"
 
     mem_trend = None
     if show_trend_slope:
@@ -456,7 +461,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         mem_trend = np.polyfit(t, mem, 1)
 
         # Append slope to label
-        mem_line_label = mem_line_label + " slope {0:.5f}".format(mem_trend[0])
+        mem_line_label = mem_line_label + f" slope {mem_trend[0]:.5f}"
 
     pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
@@ -484,11 +489,11 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
                 # Compute trend line
                 cmem_trend = np.polyfit(cts, cmem, 1)
 
-                child_mem_trend_label = " slope {0:.5f}".format(cmem_trend[0])
+                child_mem_trend_label = f" slope {cmem_trend[0]:.5f}"
 
             # Plot the line to the figure
             pl.plot(cts, cmem, "+-" + mem_line_colors[(idx + 1) % len(mem_line_colors)],
-                    label="child {}{}".format(proc, child_mem_trend_label))
+                    label=f"child {proc}{child_mem_trend_label}")
 
             if show_trend_slope:
                 # Plot the trend line
@@ -500,8 +505,8 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
                 cmpoint = (cts[cmem.argmax()], cmax_mem)
 
         # Add the marker lines for the maximal child memory usage
-        pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, 'r', '--')
-        pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, 'r', '--')
+        pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, "r", "--")
+        pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, "r", "--")
 
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:
@@ -526,9 +531,9 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
 
 FLAME_PLOTTER_VARS = {
-    'hovered_rect': None,
-    'hovered_text': None,
-    'alpha': None
+    "hovered_rect": None,
+    "hovered_text": None,
+    "alpha": None
 }
 
 def flame_plotter(filename, index=0, timestamps=True, children=True, options=None):
@@ -541,19 +546,19 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     import numpy as np  # pylab requires numpy anyway
     mprofile = read_mprofile_file(filename)
 
-    if len(mprofile['timestamp']) == 0:
+    if len(mprofile["timestamp"]) == 0:
         print('** No memory usage values have been found in the profile '
               'file.**\nFile path: {0}\n'
               'File may be empty or invalid.\n'
               'It can be deleted with "mprof rm {0}"'.format(
-            mprofile['filename']))
+            mprofile["filename"]))
         sys.exit(0)
 
     # Merge function timestamps and memory usage together
-    ts = mprofile['func_timestamp']
-    t = mprofile['timestamp']
-    mem = mprofile['mem_usage']
-    chld = mprofile['children']
+    ts = mprofile["func_timestamp"]
+    t = mprofile["timestamp"]
+    mem = mprofile["mem_usage"]
+    chld = mprofile["children"]
 
     if len(ts) > 0:
         for values in ts.values():
@@ -592,7 +597,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     mem_line_colors = ("k", "b", "r", "g", "c", "y", "m")
     mem_line_label = time.strftime("%d / %m / %Y - start at %H:%M:%S",
                                    time.localtime(global_start)) \
-                     + ".{0:03d}".format(int(round(math.modf(global_start)[0] * 1000)))
+                     + f".{int(round(math.modf(global_start)[0] * 1000)):03d}"
 
     pl.plot(t, mem, "-" + mem_line_colors[index % len(mem_line_colors)],
             label=mem_line_label)
@@ -619,7 +624,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
 
             # Plot the line to the figure
             pl.plot(cts, cmem, "+-"  + mem_line_colors[(idx+1) % len(mem_line_colors)],
-                     label="child {}".format(proc))
+                     label=f"child {proc}")
 
             # Detect the maximal child memory point
             cmax_mem = cmem.max()
@@ -627,39 +632,39 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
                 cmpoint = (cts[cmem.argmax()], cmax_mem)
 
         # Add the marker lines for the maximal child memory usage
-        pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, 'r', '--')
-        pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, 'r', '--')
+        pl.vlines(cmpoint[0], pl.ylim()[0]+0.001, pl.ylim()[1] - 0.001, "r", "--")
+        pl.hlines(cmpoint[1], pl.xlim()[0]+0.001, pl.xlim()[1] - 0.001, "r", "--")
 
     def mouse_motion_handler(event):
         x, y = event.xdata, event.ydata
         if x is not None and y is not None:
-            for coord, (name, text, rect) in rectangles.items():
+            for coord, (_, text, rect) in rectangles.items():
                 x0, y0, x1, y1 = coord
                 if x0 < x < x1 and y0 < y < y1:
-                    if FLAME_PLOTTER_VARS['hovered_rect'] == rect:
+                    if FLAME_PLOTTER_VARS["hovered_rect"] == rect:
                         return
 
-                    if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
-                        FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
-                        FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 0))
-                        FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
+                    if FLAME_PLOTTER_VARS["hovered_rect"] is not None:
+                        FLAME_PLOTTER_VARS["hovered_rect"].set_alpha(FLAME_PLOTTER_VARS["alpha"])
+                        FLAME_PLOTTER_VARS["hovered_text"].set_color((0, 0, 0, 0))
+                        FLAME_PLOTTER_VARS["hovered_rect"].set_linewidth(1)
 
-                    FLAME_PLOTTER_VARS['hovered_text'] = text
-                    FLAME_PLOTTER_VARS['hovered_rect'] = rect
-                    FLAME_PLOTTER_VARS['alpha'] = rect.get_alpha()
-                    FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(0.8)
-                    FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(3)
-                    FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 1))
+                    FLAME_PLOTTER_VARS["hovered_text"] = text
+                    FLAME_PLOTTER_VARS["hovered_rect"] = rect
+                    FLAME_PLOTTER_VARS["alpha"] = rect.get_alpha()
+                    FLAME_PLOTTER_VARS["hovered_rect"].set_alpha(0.8)
+                    FLAME_PLOTTER_VARS["hovered_rect"].set_linewidth(3)
+                    FLAME_PLOTTER_VARS["hovered_text"].set_color((0, 0, 0, 1))
                     pl.draw()
                     return
 
-        if FLAME_PLOTTER_VARS['hovered_rect'] is not None:
-            FLAME_PLOTTER_VARS['hovered_text'].set_color((0, 0, 0, 0))
-            FLAME_PLOTTER_VARS['hovered_rect'].set_alpha(FLAME_PLOTTER_VARS['alpha'])
-            FLAME_PLOTTER_VARS['hovered_rect'].set_linewidth(1)
+        if FLAME_PLOTTER_VARS["hovered_rect"] is not None:
+            FLAME_PLOTTER_VARS["hovered_text"].set_color((0, 0, 0, 0))
+            FLAME_PLOTTER_VARS["hovered_rect"].set_alpha(FLAME_PLOTTER_VARS["alpha"])
+            FLAME_PLOTTER_VARS["hovered_rect"].set_linewidth(1)
             pl.draw()
-            FLAME_PLOTTER_VARS['hovered_rect'] = None
-            FLAME_PLOTTER_VARS['hovered_text'] = None
+            FLAME_PLOTTER_VARS["hovered_rect"] = None
+            FLAME_PLOTTER_VARS["hovered_text"] = None
 
     def mouse_click_handler(event):
         x, y = event.xdata, event.ydata
@@ -680,7 +685,7 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     # plot timestamps, if any
     if len(ts) > 0 and timestamps:
         func_num = 0
-        f_labels = function_labels(ts.keys())
+
         rectangles = {}
         for f, exec_ts in ts.items():
             for execution in exec_ts:
@@ -700,8 +705,8 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
 
         # Disable hovering if there are too many rectangle to prevent slow down
         if len(rectangles) < 100:
-            pl.gcf().canvas.mpl_connect('motion_notify_event', mouse_motion_handler)
-        pl.gcf().canvas.mpl_connect('button_release_event', mouse_click_handler)
+            pl.gcf().canvas.mpl_connect("motion_notify_event", mouse_motion_handler)
+        pl.gcf().canvas.mpl_connect("button_release_event", mouse_click_handler)
 
     if timestamps:
         pl.hlines(max_mem,
@@ -715,11 +720,11 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     return mprofile
 
 
-def add_timestamp_rectangle(ax, x0, x1, y0, y1, func_name, color='none'):
+def add_timestamp_rectangle(ax, x0, x1, y0, y1, func_name, color="none"):
     rect = ax.fill_betweenx((y0, y1), x0, x1, color=color, alpha=0.5, linewidth=1)
     text = ax.text(x0, y1, func_name,
-        horizontalalignment='left',
-        verticalalignment='top',
+        horizontalalignment="left",
+        verticalalignment="top",
         color=(0, 0, 0, 0)
     )
     return rect, text
@@ -755,9 +760,9 @@ def function_labels(dotted_function_names):
 def plot_action():
     def xlim_type(value):
         try:
-            newvalue = [float(x) for x in value.split(',')]
-        except:
-            raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
+            newvalue = [float(x) for x in value.split(",")]
+        except ValueError as ve:
+            raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value) from ve
         if len(newvalue) != 2:
             raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
         return newvalue
@@ -766,7 +771,7 @@ def plot_action():
 using `mprof run`. If no .dat file is given, it will take the most recent
 such file in the current directory."""
     parser = ArgumentParser(usage="mprof plot [options] [file.dat]", description=desc)
-    parser.add_argument('--version', action='version', version=mp.__version__)
+    parser.add_argument("--version", action="version", version=mp.__version__)
     parser.add_argument("--title", "-t", dest="title", default=None,
                         type=str, action="store",
                         help="String shown as plot title")
@@ -821,15 +826,14 @@ such file in the current directory."""
     pl.ylabel("memory used (in MiB)")
 
     if args.title is None and len(filenames) == 1:
-        pl.title(mprofile['cmd_line'])
-    else:
-        if args.title is not None:
-            pl.title(args.title)
+        pl.title(mprofile["cmd_line"])
+    elif args.title is not None:
+        pl.title(args.title)
 
     # place legend within the plot, make partially transparent in
     # case it obscures part of the lineplot
     if not args.flame_mode:
-        leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        leg = ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         leg.get_frame().set_alpha(0.5)
         pl.grid()
 
@@ -847,7 +851,7 @@ def filter_mprofile_mem_usage_by_function(prof, func):
 
     time_ranges = prof["func_timestamp"][func]
     filtered_memory = []
-    
+
     # The check here could be improved, but it's done in this
     # inefficient way to make sure we don't miss overlapping
     # ranges.
@@ -881,8 +885,8 @@ such file in the current directory."""
         print("{}\t{:.3f} MiB".format(prof["filename"], max(mem_usage)))
         for child, values in prof["children"].items():
             child_peak = max([ mem_ts[0] for mem_ts in values ])
-            print("  Child {}\t\t\t{:.3f} MiB".format(child, child_peak))
-        
+            print(f"  Child {child}\t\t\t{child_peak:.3f} MiB")
+
 
 def get_profiles(args):
     profiles = glob.glob("mprofile_??????????????.dat")
@@ -900,12 +904,12 @@ def get_profiles(args):
         filenames = []
         for prof in args.profiles:
             if osp.exists(prof):
-                if not prof in filenames:
+                if prof not in filenames:
                     filenames.append(prof)
             else:
                 try:
                     n = int(prof)
-                    if not profiles[n] in filenames:
+                    if profiles[n] not in filenames:
                         filenames.append(profiles[n])
                 except ValueError:
                     print("Input file not found: " + prof)

@@ -2,8 +2,11 @@
 
 import time
 
+from memory_profiler import profile
+
+
 @profile
-def test_1():
+def func_1():
     a = [1] * (10 ** 6)
     b = [2] * (2 * 10 ** 7)
     time.sleep(0.6)
@@ -16,7 +19,7 @@ def test_1():
     return a
 
 @profile
-def test_2():
+def func_2():
     a = {}
     time.sleep(0.5)
     for i in range(10000):
@@ -24,6 +27,6 @@ def test_2():
     time.sleep(0.6)
     return
 
-if __name__ == '__main__':
-    test_1()
-    test_2()
+def test_loop_decorated():
+    func_1()
+    func_2()

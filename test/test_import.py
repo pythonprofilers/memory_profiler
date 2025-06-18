@@ -8,5 +8,5 @@ def my_func():
     del b
     return a
 
-if __name__ == '__main__':
+def test_my_func():
     my_func()

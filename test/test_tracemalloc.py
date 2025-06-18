@@ -5,9 +5,9 @@ from memory_profiler import profile
 
 try:
     import tracemalloc
-    has_tracemalloc = True
+    has_trace_malloc = True
 except ImportError:
-    has_tracemalloc = False
+    has_trace_malloc = False
 
 output = StringIO()
 
@@ -15,7 +15,7 @@ output = StringIO()
 EPSILON = 0.0001
 
 
-def test_memory_profiler(test_input, expected):
+def run_memory_profiler(test_input, expected):
     mem_prof(test_input)
     inc, dec = parse_mem_prof()
     assert abs(inc - expected) <= EPSILON, \
@@ -39,8 +39,8 @@ def parse_mem_prof():
 
     return f(text[-6]), -f(text[-5])
 
-if __name__ == '__main__':
-    if has_tracemalloc:
+def test_tracemalloc():
+    if has_trace_malloc:
         tests = [
             (100, 0.00012302398681640625),
             (1000, 0.0009813308715820312),
@@ -51,4 +51,4 @@ if __name__ == '__main__':
             (100000000, 95.36745929718018),
         ]
         for test_input, expected in tests:
-            test_memory_profiler(test_input, expected)
+            run_memory_profiler(test_input, expected)

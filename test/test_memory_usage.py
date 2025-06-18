@@ -11,8 +11,8 @@ def test_memory_usage():
     mem, ret = memory_usage((some_func, (1, 2), dict(a=1)), retval=True)
     assert ret[0] == (1, 2)
     assert ret[1] == dict(a=1)
-    
-    
+
+
 def write_line(filepath):
     with open(filepath, 'a') as the_file:
         the_file.write('Testing\n')
@@ -38,9 +38,3 @@ def test_return_value_consistency():
     assert type(func_mem_list) == list, "Memory usage of callable should be a list"
     func_mem_max = memory_usage((some_func, (42,), dict(a=42)), max_usage=True)
     assert type(func_mem_max) == float, "Max memory usage of callable should be a number"
-
-
-if __name__ == "__main__":
-    test_memory_usage()
-    test_max_iterations()
-    test_return_value_consistency()

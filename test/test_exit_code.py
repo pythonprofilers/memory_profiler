@@ -8,7 +8,7 @@ class TestExitCode(unittest.TestCase):
     def setUp(self):
         # to be able to import mprof
         sys.path.append('.')
-        from mprof import run_action
+        from memory_profiler.mprof import run_action
         self.run_action = run_action
 
     def test_exit_code_success(self):

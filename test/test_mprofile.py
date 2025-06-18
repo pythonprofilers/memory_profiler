@@ -2,35 +2,38 @@
 
 import time
 
+from memory_profiler import profile
+
+
 @profile
-def test1(l):
-    """test1 docstring"""
+def func1(l):
+    """func1 docstring"""
     a = [1] * l
     time.sleep(1)
     return a
 
 @profile
-def test2(l):
+def func2(l):
     b = [1] * l
     time.sleep(1)
     return b
 
-def test3(l):
-    """test3 docstring"""
+def func3(l):
+    """func3 docstring"""
     return l
 
-if __name__ == "__main__":
+def test_mprofile():
     l = 100000
-    test1(l)
-    test2(2 * l)
+    func1(l)
+    func2(2 * l)
 
     # make sure that the function name and docstring are set
     # by functools.wraps
     # memory_profile.py def profile func is not None case
-    assert (test1.__name__ == 'test1'), 'function name is incorrect'
-    assert (test1.__doc__ == 'test1 docstring'), 'function docstring is incorrect'
+    assert (func1.__name__ == 'func1'), 'function name is incorrect'
+    assert (func1.__doc__ == 'func1 docstring'), 'function docstring is incorrect'
     # memory_profile.py def profile func is None case
     profile_maker = profile()
-    profiled_test3 = profile_maker(test3)
-    assert (profiled_test3.__name__ == 'test3'), 'function name is incorrect'
-    assert (profiled_test3.__doc__ == 'test3 docstring'), 'function docstring is incorrect'
+    profiled_test3 = profile_maker(func3)
+    assert (profiled_test3.__name__ == 'func3'), 'function name is incorrect'
+    assert (profiled_test3.__doc__ == 'func3 docstring'), 'function docstring is incorrect'

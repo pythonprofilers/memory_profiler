@@ -33,7 +33,7 @@ def test_multiprocessing():
             return a[i,i]
 
         results = joblib.Parallel(n_jobs=n_jobs)(
-            joblib.delayed(subprocess)(i) 
+            joblib.delayed(subprocess)(i)
             for i in range(n_jobs))
 
         return results
@@ -60,7 +60,7 @@ def test_multiprocessing_write():
             return aa[i,i]
 
         results = joblib.Parallel(n_jobs=n_jobs)(
-            joblib.delayed(subprocess)(i) 
+            joblib.delayed(subprocess)(i)
             for i in range(n_jobs))
 
         return results
@@ -91,7 +91,7 @@ def test_multiprocessing_showcase():
         # Creating data: 10000x10000 ... done (0.75 Gb). Starting processing: n_jobs=64 ... done (0:00:14.701243). RSS: 111362.79
         # Creating data: 10000x10000 ... done (0.75 Gb). Starting processing: n_jobs=64 ... done (0:00:15.020202). USS: 56108.69
         # Creating data: 10000x10000 ... done (0.75 Gb). Starting processing: n_jobs=64 ... done (0:00:15.072918). PSS: 54826.61
-        
+
         # Conclusion:
         # * RSS is overestimating like crazy (I checked the actual memory usage using htop)
 
@@ -108,17 +108,17 @@ def test_multiprocessing_showcase():
             aa = a.copy()
             time.sleep(10)
             return r
-            
+
             # r = a[1,1]
             # # time.sleep(10)
             # return r
-            
+
             pass
 
         start = datetime.datetime.now()
         print("Starting processing: n_jobs={n_jobs} ... ".format(n_jobs=n_jobs), end="")
         results = joblib.Parallel(n_jobs=n_jobs)(
-            joblib.delayed(subprocess)(i) 
+            joblib.delayed(subprocess)(i)
             for i in range(n_jobs))
         print("done ({}). ".format(datetime.datetime.now() - start), end="")
 

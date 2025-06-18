@@ -1,6 +1,185 @@
+[project]
+name = "memory_profiler"
+description = "A module for monitoring memory usage of a python program"
+readme = "README.rst"
+dynamic = ["version"]
+license = { text = "BSD" }
+license-files = { paths = ["COPYING"] }
+authors = [{ name = "Fabian Pedregosa", email = "f@bianp.net" }]
+urls = { Homepage = "https://github.com/pythonprofilers/memory_profiler" }
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+    "Operating System :: POSIX",
+    "Operating System :: Unix"
+]
+requires-python = ">=3.9"
+dependencies = [
+    "psutil==7.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "hatch>=1.14.1",
+    "pre-commit>=4.2.0",
+    "pylint>=3.3.7",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "ruff>=0.12.0",
+    "mypy>=1.16.1",
+]
+
+[project.scripts]
+mprof = "memory_profiler.mprof:main"
+
+
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs", "uv-dynamic-versioning"]
+
+build-backend = "hatchling.build"
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111",  # missing-docstring
+    "C0305",  # trailing-newlines
+    "W0612",  # unused-variable (in tests)
+    "R0912",  # too-many-branches
+    "R0914",  # too-many-locals
+    "R0915",  # too-many-statements
+]
+
+[tool.hatch.build]
+packages = [
+    "src/memory_profiler"
+]
+exclude = [
+    ".venv*",
+    "tests/",
+    "**/tests/",
+    "**/*.pyc",
+    "**/__pycache__/",
+    "**/README.md",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src/memory_profile", "README.rst"]
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.codespell]
 skip = './.git'
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+
+# ____________________________________ RUFF ____________________________________
+# https://docs.astral.sh/ruff/settings/
+[tool.ruff]
+line-length = 130
+fix = true
+extend-exclude = ["docs/", "samples/"]
+
+
+[tool.ruff.format]
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint]
+#select = ["ALL"]
+select = [
+    "E",    # pycodestyle errors (flake8)
+    "W",    # pycodestyle warnings (flake8)
+    "F",    # pyflakes
+    "B",    # flake8-bugbear,
+#    "I",    # isort
+#    "D",    # pydocstyle (like flake8-docstrings)
+#    "UP",   # pyupgrade
+    "N",    # pep8-naming,
+#    "ANN",  # flake8-annotations
+    "TID",  # flake8-tidy-imports
+#    "T201"
+]
+
+
+extend-select = [
+#    "UP", # pyupgrade
+#    "D", # pydocstyle
+]
+
+ignore = [
+    "FBT001", # Checks for the use of boolean positional arguments in function definitions.
+    "FBT002", # Checks for the use of boolean positional arguments in function definitions.
+    "G004", # Logging statement uses f-string
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D107", # Missing docstring in `__init__`
+    "D203", # Incorrect blank line before class (mutually exclusive D211)
+    "D213", # Multi-line summary second line (mutually exclusive D212)
+    "FIX002", # Checks for "TODO" comments.
+    "TD002", # TODO Missing author.
+    "TD003", # TODO Missing issue link for this TODO.
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
+    "ARG002", # Unused method argument
+    "PERF203", # try-except penalty within loops (3.10 only),
+    "COM812"  # rule causes conflicts when used with the formatter
+]
+
+# ------------------------------------ MYPY ------------------------------------
+[tool.mypy]
+exclude = ["^tests/.*",]
+ignore_missing_imports = true
+install_types = true
+
+# ----------------------------------- PYLINT -----------------------------------
+[tool.pylint.MAIN]
+jobs = 2
+ignore = ["tests"]
+fail-on = ["I"]
+max-line-length = 130
+
+[tool.pylint.BASIC]
+# Good variable names which should always be accepted, separated by a comma.
+good-names = ["i", "j", "k", "e", "ex", "f", "_", "T", "x", "y", "id", "tg"]
+
+[tool.pylint."MESSAGES CONTROL"]
+# Reasons disabled:
+# duplicate-code - unavoidable
+# too-many-* - are not enforced for the sake of readability
+disable = [
+    "broad-exception-caught", # TODO: improve later
+    "duplicate-code",
+    "fixme",
+    "invalid-name",
+    "line-too-long",
+    "logging-fstring-interpolation",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "protected-access",
+    "redefined-slots-in-subclass",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "unused-argument",
+    "wrong-import-order",
+    "import-error",
+    "import-outside-toplevel", # TODO: fix
+    "redefined-outer-name",
+    "consider-using-f-string",  # TODO : easy fix
+    "redundant-u-string-prefix", # TODO : fix,
+    "too-many-nested-blocks",
+    "unnecessary-dunder-call", # TODO: fix
+]
+
+[tool.pylint.REPORTS]
+score = false
+
+[tool.pylint.FORMAT]
+expected-line-ending-format = "LF"

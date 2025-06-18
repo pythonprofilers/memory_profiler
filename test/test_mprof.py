@@ -1,8 +1,8 @@
 import unittest
 
-import mprof
+from memory_profiler import mprof
 
-class Test_function_labels(unittest.TestCase):
+class TestFunctionLabels(unittest.TestCase):
     def test(self):
         expected = {
             "x.z": "z",
@@ -16,5 +16,3 @@ class Test_function_labels(unittest.TestCase):
         result = mprof.function_labels(expected.keys())
         self.assertEqual(expected,result)
 
-if __name__ == "__main__":
-    unittest.main()

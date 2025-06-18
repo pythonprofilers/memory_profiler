@@ -1,0 +1,31 @@
+---
+# Pre-commit configuration
+# For details, visit: https://pre-commit.com/hooks.html
+
+ci:
+  autofix_prs: false
+  skip:
+    # These steps run in the CI workflow. Keep in sync.
+    - mypy
+    - ruff
+
+repos:
+
+  # Local hooks for mypy and pylint
+  - repo: local
+    hooks:
+      - id: mypy
+        name: Run mypy
+        entry: scripts/run-mypy.sh
+        language: script
+        types: [python]
+      - id: ruff
+        name: Run ruff
+        entry: scripts/run-ruff.sh
+        language: script
+        types: [ python ]
+#      - id: lint
+#        name: Run pylint
+#        entry: scripts/run-pylint.sh
+#        language: script
+#        types: [ python ]

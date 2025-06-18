@@ -1,8 +1,12 @@
 # -*- coding: utf-8  -*-
+from memory_profiler import profile
+
+
 @profile
-def test_unicode(txt):
+def run_unicode(txt):
     # test when unicode is present
     txt = txt.replace (u"ی", u"ي") #Arabic Yah = ي
     return txt
-if __name__ == '__main__':
-	test_unicode (u"ایست")
+
+def test_unicode():
+    run_unicode(u"ایست")

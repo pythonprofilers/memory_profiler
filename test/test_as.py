@@ -1,9 +1,10 @@
 import math
+from memory_profiler import profile
 
 @profile
 def f():
     o = math.sqrt(2013)
     return o
 
-if __name__ == '__main__':
+def test_f():
     f()
