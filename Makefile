@@ -20,6 +20,7 @@ test:
 	$(PYTHON) test/test_mprof.py
 	$(PYTHON) test/test_async.py
 	$(PYTHON) test/test_ipython.py
+	$(PYTHON) test/test_increment_display.py
 	mprof run test/test_func.py
 
 develop:

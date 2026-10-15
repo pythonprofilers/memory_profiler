@@ -680,6 +680,9 @@ class CodeMap(dict):
         previous_inc = prev_value[0] if prev_value else 0
 
         prev_line_value = self[code].get(prev_lineno, None) if prev_lineno else None
+        # Use the most recent memory of the previous line (index 3) rather than
+        # its historical maximum (index 1) so loops do not accumulate false
+        # negative increments when memory drops below an earlier peak (#219).
         prev_line_memory = prev_line_value[3] if prev_line_value else 0
         occ_count = self[code][lineno][2] + 1 if lineno in self[code] else 1
         self[code][lineno] = (
