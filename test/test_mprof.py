@@ -101,6 +101,26 @@ class TestMprofMainArgs(unittest.TestCase):
             finally:
                 pl.close(fig)
 
+    def test_multiline_cmdline_arg_roundtrip(self):
+        # Verify that multiline CLI arguments passed to `mprof run` do not
+        # write raw newlines into the CMDLINE header of the .dat file, which
+        # previously caused read_mprofile_file() to crash with ValueError
+        # on blank or single-token continuation lines (Issue #210 / PR #363).
+        multiline_arg = "hello\n\nworld"
+        cmd_line = mprof.get_cmd_line(["python", "script.py", multiline_arg])
+        self.assertNotIn("\n", cmd_line)
+
+        content = (
+            "CMDLINE %s\n"
+            "MEM 10.0 100.0\n"
+        ) % cmd_line
+        with tempfile.NamedTemporaryFile('w', suffix='.dat') as tmp_dat:
+            tmp_dat.write(content)
+            tmp_dat.flush()
+            parsed = mprof.read_mprofile_file(tmp_dat.name)
+            self.assertEqual(parsed["mem_usage"], [10.0])
+            self.assertIn("hello\\n\\nworld", parsed["cmd_line"])
+
 
 if __name__ == "__main__":
     unittest.main()

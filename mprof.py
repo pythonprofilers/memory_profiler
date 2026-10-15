@@ -1,7 +1,6 @@
 import glob
 import os
 import os.path as osp
-import shlex
 import sys
 import re
 import copy
@@ -176,7 +175,10 @@ def clean_action():
 
 def get_cmd_line(args):
     """Given a set or arguments, compute command-line."""
-    args = [shlex.quote(s).replace('\n', '\\n') for s in args]
+    # Escape newlines so the CMDLINE record in the .dat file remains on a
+    # single line and does not break read_mprofile_file() (#210).
+    blanks = set(' \t\n')
+    args = [s.replace('\n', '\\n') if blanks.isdisjoint(s) else "'" + s.replace('\n', '\\n') + "'" for s in args]
     return ' '.join(args)
 
 def find_first_process(name):
