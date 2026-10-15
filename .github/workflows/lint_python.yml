@@ -44,7 +44,7 @@ jobs:
                       --show-source --statistics
       - run: isort --check-only --profile black . || true
       - run: pip install --editable .
-      - run: pip install numpy pylab-sdk
+      - run: pip install numpy matplotlib
       - run: mkdir --parents --verbose .mypy_cache
       - run: mypy --ignore-missing-imports --install-types --non-interactive . || true
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
@@ -76,5 +76,5 @@ jobs:
       - run: pip install --upgrade pip wheel
       - run: pip install pytest ipython
       - run: pip install --editable .
-      - run: pip install numpy pylab-sdk
+      - run: pip install numpy matplotlib
       - run: make test

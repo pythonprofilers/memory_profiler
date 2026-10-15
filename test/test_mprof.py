@@ -69,6 +69,38 @@ class TestMprofMainArgs(unittest.TestCase):
             if os.path.exists(tmp_prof):
                 os.remove(tmp_prof)
 
+    def test_plot_file_xlim_window_rescales_ylim(self):
+        # Verify that plotting with --window (options.xlim) filters the plotted
+        # data to the requested time window so the y-axis and peak memory marker
+        # reflect the windowed data rather than out-of-window spikes (PR #367).
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as pl
+
+        content = (
+            "CMDLINE python test.py\n"
+            "MEM 10.0 100.0\n"
+            "MEM 20.0 101.0\n"
+            "MEM 500.0 102.0\n"  # Large spike at t=2.0s outside the [0, 1.5] window
+        )
+        with tempfile.NamedTemporaryFile('w', suffix='.dat') as tmp_dat:
+            tmp_dat.write(content)
+            tmp_dat.flush()
+
+            class Options:
+                xlim = [0.0, 1.5]
+                slope = False
+
+            fig = pl.figure()
+            try:
+                mprof.plot_file(tmp_dat.name, options=Options())
+                top_ylim = pl.ylim()[1]
+                # Since the 500.0 MiB spike at t=2.0s is outside xlim=[0.0, 1.5],
+                # the y-axis upper bound should be scaled to ~20.0 MiB, not 500.0 MiB.
+                self.assertLess(top_ylim, 50.0)
+            finally:
+                pl.close(fig)
+
 
 if __name__ == "__main__":
     unittest.main()

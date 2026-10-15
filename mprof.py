@@ -306,7 +306,8 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         value to subtract to xloc.
     """
     try:
-        import pylab as pl
+        import matplotlib.pyplot as pl
+        import numpy as np
     except ImportError as e:
         print("matplotlib is needed for plotting.")
         print(e)
@@ -315,16 +316,17 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
     vsize = (pl.ylim()[1] - pl.ylim()[0]) / height_ratio
     hsize = (pl.xlim()[1] - pl.xlim()[0]) / (3. * height_ratio)
 
-    bracket_x = pl.asarray([hsize, 0, 0, hsize])
-    bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
+    bracket_x = np.asarray([hsize, 0, 0, hsize])
+    bracket_y = np.asarray([vsize, vsize, -vsize, -vsize])
 
     # Matplotlib workaround: labels starting with _ aren't displayed
     if label[0] == '_':
         label = ' ' + label
-    if options.xlim is None or options.xlim[0] <= (xloc[0] - xshift) <= options.xlim[1]:
+    xlim = getattr(options, 'xlim', None) if options is not None else None
+    if xlim is None or xlim[0] <= (xloc[0] - xshift) <= xlim[1]:
         pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
                 "-" + color, linewidth=2, label=label)
-    if options.xlim is None or options.xlim[0] <= (xloc[1] - xshift) <= options.xlim[1]:
+    if xlim is None or xlim[0] <= (xloc[1] - xshift) <= xlim[1]:
         pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
                 "-" + color, linewidth=2)
 
@@ -401,12 +403,12 @@ def read_mprofile_file(filename):
 
 def plot_file(filename, index=0, timestamps=True, children=True, options=None):
     try:
-        import pylab as pl
+        import matplotlib.pyplot as pl
     except ImportError as e:
         print("matplotlib is needed for plotting.")
         print(e)
         sys.exit(1)
-    import numpy as np  # pylab requires numpy anyway
+    import numpy as np  # matplotlib requires numpy anyway
     mprofile = read_mprofile_file(filename)
 
     if len(mprofile['timestamp']) == 0:
@@ -431,18 +433,19 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
 
     mem = np.asarray(mem)
     t = np.asarray(t)
-    global_start = t[0]
-    t = t - global_start
-
-    if options.xlim is not None:
-        cond = (t >= options.xlim[0]) & (t <= options.xlim[1]) 
-        mem, t = mem[cond], t[cond]
-
     ind = t.argsort()
     mem = mem[ind]
     t = t[ind]
 
     # Plot curves
+    global_start = float(t[0])
+    t = t - global_start
+
+    if options is not None and getattr(options, 'xlim', None) is not None:
+        # Filter points to the requested xlim window so the y-axis and peak
+        # memory marker rescale to the visible range (PR #367).
+        cond = (t >= options.xlim[0]) & (t <= options.xlim[1])
+        mem, t = mem[cond], t[cond]
     max_mem = mem.max()
     max_mem_ind = mem.argmax()
 
@@ -538,12 +541,12 @@ FLAME_PLOTTER_VARS = {
 
 def flame_plotter(filename, index=0, timestamps=True, children=True, options=None):
     try:
-        import pylab as pl
+        import matplotlib.pyplot as pl
     except ImportError as e:
         print("matplotlib is needed for plotting.")
         print(e)
         sys.exit(1)
-    import numpy as np  # pylab requires numpy anyway
+    import numpy as np  # matplotlib requires numpy anyway
     mprofile = read_mprofile_file(filename)
 
     if len(mprofile['timestamp']) == 0:
@@ -798,7 +801,7 @@ such file in the current directory."""
             import matplotlib
             matplotlib.use(args.backend)
 
-        import pylab as pl
+        import matplotlib.pyplot as pl
     except ImportError as e:
         print("matplotlib is needed for plotting.")
         print(e)
