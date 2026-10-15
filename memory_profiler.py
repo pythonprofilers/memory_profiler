@@ -201,7 +201,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 return mem, time.time()
             else:
                 return mem
-        except:
+        except (ValueError, IndexError):
             if timestamps:
                 return -1, time.time()
             else:
