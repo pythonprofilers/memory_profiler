@@ -919,8 +919,10 @@ def get_profiles(args):
     return filenames
 
 def main():
-    # Workaround for optparse limitation: insert -- before first negative
-    # number found.
+    # Workaround for optparse/argparse limitation: insert -- before the first
+    # negative number found so commands like `mprof plot -1` or `mprof rm -1`
+    # can accept negative profile indices. Skip this for `run` so negative
+    # numbers passed as arguments to the profiled script are not modified (#388).
     action = get_action()
     if action not in ["run"]:
         negint = re.compile("-[0-9]+")
@@ -935,7 +937,7 @@ def main():
                "attach": attach_action,
                "plot": plot_action,
                "peak": peak_action}
-    actions[get_action()]()
+    actions[action]()
 
 if __name__ == "__main__":
     main()

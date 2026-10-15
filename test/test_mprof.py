@@ -1,6 +1,10 @@
+import os
+import sys
+import tempfile
 import unittest
 
 import mprof
+
 
 class Test_function_labels(unittest.TestCase):
     def test(self):
@@ -14,7 +18,57 @@ class Test_function_labels(unittest.TestCase):
             "b.c": "b.c",
         }
         result = mprof.function_labels(expected.keys())
-        self.assertEqual(expected,result)
+        self.assertEqual(expected, result)
+
+
+class TestMprofMainArgs(unittest.TestCase):
+    """Tests for CLI argument handling in mprof.main() (Issue #388 / PR #390).
+
+    Background (Issue #388):
+    Subcommands like `mprof plot -1` or `mprof rm -1` allow selecting a profile
+    file by negative index (-1 = most recent). To prevent argparse from treating
+    `-1` as an unknown flag, `mprof.main()` inserts `"--"` before the first
+    negative integer in `sys.argv`.
+
+    However, when running `mprof run script.py -1`, inserting `"--"` into
+    `sys.argv` causes `"--"` to be forwarded as an extra argument to `script.py`
+    (so the script receives `['--', '-1']` instead of `['-1']`).
+    """
+
+    def test_run_preserves_negative_int_args(self):
+        # Verify that `mprof run` does NOT inject "--" before negative integer
+        # arguments meant for the target program. The temporary script checks
+        # that its sys.argv[1:] is exactly ['-1'] and exits non-zero otherwise.
+        script = (
+            "import sys\n"
+            "assert sys.argv[1:] == ['-1'], 'Unexpected argv: %r' % (sys.argv[1:],)\n"
+        )
+        with tempfile.NamedTemporaryFile('w', suffix='.py') as tmp_script, \
+             tempfile.NamedTemporaryFile('w', suffix='.dat') as tmp_dat:
+            tmp_script.write(script)
+            tmp_script.flush()
+            sys.argv = [
+                'mprof', 'run', '--exit-code', '-o', tmp_dat.name,
+                tmp_script.name, '-1'
+            ]
+            with self.assertRaises(SystemExit) as cm:
+                mprof.main()
+            self.assertEqual(cm.exception.code, 0)
+
+    def test_non_run_action_accepts_negative_index(self):
+        # Verify that non-`run` subcommands (such as `mprof rm --dry-run -1`)
+        # still have "--" inserted before `-1` so negative profile indices
+        # are accepted by argparse without raising an unrecognized argument error.
+        tmp_prof = "mprofile_20990101000000.dat"
+        with open(tmp_prof, "w") as f:
+            f.write("")
+        try:
+            sys.argv = ['mprof', 'rm', '--dry-run', '-1']
+            mprof.main()
+        finally:
+            if os.path.exists(tmp_prof):
+                os.remove(tmp_prof)
+
 
 if __name__ == "__main__":
     unittest.main()
