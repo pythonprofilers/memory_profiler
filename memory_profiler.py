@@ -202,6 +202,8 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
             else:
                 return mem
         except (ValueError, IndexError):
+            # Catch only parsing errors rather than a bare except so we do not
+            # swallow BaseException subclasses like SystemExit or KeyboardInterrupt.
             if timestamps:
                 return -1, time.time()
             else:

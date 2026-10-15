@@ -249,6 +249,7 @@ This file contains the process memory consumption, in Mb (one value per line).""
             try:
                 cmd_line = proc.cmdline()
             except Exception:
+                # Avoid bare except so SystemExit and KeyboardInterrupt are not caught
                 cmd_line = get_cmd_line(program)
         if args.timeout is None:
             args.timeout = 3600
@@ -757,6 +758,8 @@ def plot_action():
         try:
             newvalue = [float(x) for x in value.split(',')]
         except (ValueError, AttributeError):
+            # Catch specific parsing errors rather than a bare except to avoid
+            # swallowing SystemExit or KeyboardInterrupt.
             raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
         if len(newvalue) != 2:
             raise ArgumentError("'%s' option must contain two numbers separated with a comma" % value)
