@@ -144,7 +144,7 @@ def _get_memory(pid, backend, timestamps=False, include_children=False, filename
                 return mem, time.time()
             else:
                 return mem
-        except psutil.AccessDenied:
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
             # continue and try to get this from ps
 
