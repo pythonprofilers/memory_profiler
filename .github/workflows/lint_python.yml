@@ -59,6 +59,9 @@ jobs:
           - major_dot_minor: '3.9'
           - major_dot_minor: '3.10'
           - major_dot_minor: '3.11'
+          - major_dot_minor: '3.12'
+          - major_dot_minor: '3.13'
+          - major_dot_minor: '3.14'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

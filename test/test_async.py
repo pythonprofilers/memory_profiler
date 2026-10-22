@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import sys
 
 from memory_profiler import profile
@@ -10,10 +11,16 @@ async def my_func():
     b = [2] * (2 * 10 ** 7)
     await asyncio.sleep(1e-2)
     del b
+    return len(a)
+
 
 async def main():
+    # Ensure @profile preserves the coroutine nature of async functions so
+    # asyncio.create_task() accepts them on Python 3.12+.
+    assert inspect.iscoroutinefunction(my_func)
     task = asyncio.create_task(my_func())
     res = await asyncio.gather(task)
+    assert res == [10 ** 6]
 
 async def main_legacy():
     future = asyncio.ensure_future(my_func())
